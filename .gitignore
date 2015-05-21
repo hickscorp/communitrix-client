@@ -1,0 +1,49 @@
+# Java.
+*.class
+*.war
+*.ear
+hs_err_pid*
+
+# GWT.
+.gwt/
+.gwt-tmp/
+.apt_generated/
+war/
+www-test/
+gwt-unitCache/
+HTML/war/gwt_bree/
+HTML/gwt-unitCache/
+HTML/war/WEB-INF/deploy/
+HTML/war/WEB-INF/classes/
+
+# Android.
+Android/gen/
+Android/libs/x86/
+Android/libs/armeabi/
+Android/libs/armeabi-v7a/
+*.ipr
+*.iws
+*.iml
+out/
+com_crashlytics_export_strings.xml
+
+# Various: Generated files, built binaries, IDE settings, OS Specific...
+*.tmp
+*.bak
+*.swp
+*~.nib
+**/bin/
+*.launch
+.DS_Store
+.classpath
+.project
+.metadata
+.settings
+.loadpath
+.gradle
+.externalToolBuilders
+local.properties
+tmp/
+gradle-app.setting
+build/
+dist/
