@@ -28,13 +28,15 @@ public class SimpleCube extends GameObject {
   }
   
   public void rotate (final Camera cam, final Vector3 axis, final float angle) {
+    // Get rotation axis based on camera.
     tmpZAxis.set(cam.direction).scl(-1);
     tmpXAxis.set(tmpZAxis).crs(cam.up);
     tmpYAxis.set(tmpXAxis).crs(cam.direction);
-    
+    // Store original position / rotation.
     transform.getTranslation(tmpPosition);
     transform.getRotation(tmpRotation).nor();
     transform.idt();
+    // Rotate model.
     if (axis==Vector3.X)
       transform.rotate(tmpXAxis, angle);
     else if (axis==Vector3.Y)
@@ -51,7 +53,7 @@ public class SimpleCube extends GameObject {
           "face1",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
-          new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+          new Material(ColorAttribute.createDiffuse(Color.RED)))
         .rect(  -1, -1, -1,
                 -1,  1, -1,
                  1,  1, -1,
@@ -72,7 +74,7 @@ public class SimpleCube extends GameObject {
           "face3",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
-          new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+          new Material(ColorAttribute.createDiffuse(Color.BLUE)))
         .rect(
                 -1, -1,  1,
                 -1, -1, -1,
@@ -83,7 +85,7 @@ public class SimpleCube extends GameObject {
           "face4",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
-          new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+          new Material(ColorAttribute.createDiffuse(Color.PURPLE)))
         .rect(
                 -1,  1, -1,
                 -1,  1,  1,
@@ -94,7 +96,7 @@ public class SimpleCube extends GameObject {
           "face5",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
-          new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+          new Material(ColorAttribute.createDiffuse(Color.PINK)))
         .rect(
                 -1, -1,  1,
                 -1,  1,  1,
@@ -105,7 +107,7 @@ public class SimpleCube extends GameObject {
           "face6",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
-          new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+          new Material(ColorAttribute.createDiffuse(Color.ORANGE)))
         .rect(
                  1, -1, -1,
                  1,  1, -1,

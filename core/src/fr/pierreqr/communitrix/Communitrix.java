@@ -70,25 +70,26 @@ public class Communitrix extends ApplicationAdapter {
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.9f, 0.9f, 0.9f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    //environment.add(new DirectionalLight().set(Color.WHITE, -1f, -0.8f, -0.2f));
     
     // Cache viewport size.
     resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
+    /*
     // Add bloom to post-processor.
     Bloom blm             = new Bloom(viewWidth/3, viewHeight/3);
-    blm.setBloomIntesity  (1.2f);
-    blm.setBloomSaturation(1.0f);
+    blm.setBloomIntesity  (1.0f);
+    blm.setBloomSaturation(0.6f);
     postProMain.addEffect (blm);
     // Add motion blur to post-processor.
     MotionBlur blur       = new MotionBlur();
-    blur.setBlurOpacity   (0.84f);
+    blur.setBlurOpacity   (1.6f);
     postProMain.addEffect (blur);
     // Add FFA to post-processing.
-    Nfaa faa              = new Nfaa(viewWidth/3, viewHeight/3);
-    postProMain.addEffect(faa);
+    Nfaa faa              = new Nfaa(viewWidth/2, viewHeight/2);
+    postProMain.addEffect (faa);
+    */
     
     // This is the main model rendering batch.
     mdlBtchMain           = new ModelBatch();
@@ -189,7 +190,7 @@ public class Communitrix extends ApplicationAdapter {
       mdlInstCharacter.detachAllNodes();
     
     // Update the camera according to the controller inputs.
-    //camCtrlMain.update();
+    camCtrlMain.update();
     
     // Begin post-processing FBO capture.
     postProMain.capture();
