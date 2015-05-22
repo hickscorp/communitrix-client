@@ -21,11 +21,11 @@ import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.bitfire.utils.ShaderLoader;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import com.bitfire.postprocessing.effects.Nfaa;
-import com.bitfire.utils.ShaderLoader;
 
 public class Communitrix extends ApplicationAdapter {
   // Constants.
@@ -33,7 +33,7 @@ public class Communitrix extends ApplicationAdapter {
   private static final  float         TRANSLATION_SPEED     = 20.0f;
   private static final  float         ROTATION_SPEED        = 120.0f;
   // Those are temporaries.
-  private static        float         tmpFloat;
+  private               float         tmpFloat;
 
   
   // FPS logging class.
@@ -47,8 +47,8 @@ public class Communitrix extends ApplicationAdapter {
   // Main cube model.
   public        Model                 mdlCube;
   // Various object instances.
-  public        GameObject            mdlInsBlueCube;
-  public        Node                  nodeBlueCube, nodeGreenCube, nodeRedCube;
+  public        SimpleCube            mdlInstCharacter;
+  public        Node                  nodeCharacter;
   public final  Array<GameObject>     instances   = new Array<GameObject>();
   // Caches.
   private       int                   viewWidth, viewHeight;
@@ -95,7 +95,7 @@ public class Communitrix extends ApplicationAdapter {
 
     // Set up our main camera, and position it.
     camMain               = new PerspectiveCamera(67, viewWidth, viewHeight);
-    camMain.position.set  (25f, 25f, 25f);
+    camMain.position.set  (0.0f, 0.0f, 25.0f);
     camMain.lookAt        (0, 0, 0);
     camMain.near          = 1f;
     camMain.far           = 150f;
@@ -110,46 +110,36 @@ public class Communitrix extends ApplicationAdapter {
     Material mtlDefault     = new Material(ColorAttribute.createDiffuse(1.0f, 1.0f, 1.0f, 1.0f), new BlendingAttribute(1.0f));
     // Get a cube model.
     mdlCube                 = mdlBuilder.createBox(3f, 3f, 3f, mtlDefault, Usage.Position | Usage.Normal);
-    // Prepare the blue cube...
-    mdlInsBlueCube          = new GameObject(mdlCube);
-    mdlInsBlueCube.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 0.0f, 1.0f, 0.7f));
-    // As our blue cube will be rendered with everything else, add it to our instances array.
-    instances.add           (mdlInsBlueCube);
-
-    // Prepare an uninitialized model instance pointer.
-    ModelInstance mdlInst;
-    // Prepare the green cube...
-    mdlInst                 = new ModelInstance(mdlCube);
-    mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 1.0f, 0.0f, 0.7f));
-    nodeGreenCube           = mdlInst.nodes.get(0);
-    // Prepare the red cube.
-    mdlInst                 = new GameObject(mdlCube);
-    mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(1.0f, 0.0f, 0.0f, 0.7f));
-    nodeRedCube             = mdlInst.nodes.get(0);
-
-    int   iTrans, jTrans;
-    float halfWidth         = CELL_DIMENSIONS.x / 2.0f;  
-    float halfHeight        = CELL_DIMENSIONS.y / 2.0f;  
-    float halfDepth         = CELL_DIMENSIONS.z / 2.0f;  
-    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
-      iTrans  = i * 5;
-      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
-        jTrans = j * 5;
-        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
-          GameObject instance = new GameObject(mdlCube);
-          instance.materials.get(0).set(
-              ColorAttribute.createDiffuse(
-                  1.0f / CELL_DIMENSIONS.x * i,
-                  1.0f / CELL_DIMENSIONS.y * j,
-                  1.0f / CELL_DIMENSIONS.z * k,
-                  0.80f
-              )
-          );
-          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
-          instances.add(instance);
-        }
-      }
-    }
+    
+    // Prepare the character model...
+    mdlInstCharacter          = new SimpleCube();
+    mdlInstCharacter.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 0.0f, 1.0f, 0.7f));
+    // As our character model will be rendered with everything else, add it to our instances array.
+    instances.add           (mdlInstCharacter);
+    
+//    int   iTrans, jTrans;
+//    float halfWidth         = CELL_DIMENSIONS.x / 2.0f;  
+//    float halfHeight        = CELL_DIMENSIONS.y / 2.0f;  
+//    float halfDepth         = CELL_DIMENSIONS.z / 2.0f;  
+//    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
+//      iTrans  = i * 5;
+//      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
+//        jTrans = j * 5;
+//        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
+//          GameObject instance = new GameObject(mdlCube);
+//          instance.materials.get(0).set(
+//              ColorAttribute.createDiffuse(
+//                  1.0f / CELL_DIMENSIONS.x * i,
+//                  1.0f / CELL_DIMENSIONS.y * j,
+//                  1.0f / CELL_DIMENSIONS.z * k,
+//                  0.80f
+//              )
+//          );
+//          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
+//          instances.add(instance);
+//        }
+//      }
+//    }
   }
 
   @Override
@@ -165,29 +155,47 @@ public class Communitrix extends ApplicationAdapter {
     Gdx.gl.glCullFace(GL20.GL_BACK);
     
     tmpFloat       = Gdx.graphics.getDeltaTime();
-    // Up / Down events.
+    // Character moves forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))
-      mdlInsBlueCube.transform.translate(TRANSLATION_SPEED * tmpFloat, 0, 0);
+      mdlInstCharacter.transform.translate(TRANSLATION_SPEED * tmpFloat, 0, 0);
     else if (Gdx.input.isKeyPressed(Input.Keys.DOWN))
-      mdlInsBlueCube.transform.translate(-TRANSLATION_SPEED * tmpFloat, 0, 0);
+      mdlInstCharacter.transform.translate(-TRANSLATION_SPEED * tmpFloat, 0, 0);
+    
+    // Character rotation events.
+    if (Gdx.input.isKeyPressed(Input.Keys.I))
+      mdlInstCharacter.rotate(camMain, Vector3.X, -1.0f*ROTATION_SPEED*tmpFloat);
+    else if (Gdx.input.isKeyPressed(Input.Keys.K))
+      mdlInstCharacter.rotate(camMain, Vector3.X, 1.0f*ROTATION_SPEED*tmpFloat);
+    if (Gdx.input.isKeyPressed(Input.Keys.J))
+      mdlInstCharacter.rotate(camMain, Vector3.Y, -1.0f*ROTATION_SPEED*tmpFloat);
+    else if (Gdx.input.isKeyPressed(Input.Keys.L))
+      mdlInstCharacter.rotate(camMain, Vector3.Y, 1.0f*ROTATION_SPEED*tmpFloat);
+
+    
     // Left / Right events.
     if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
-      mdlInsBlueCube.transform.rotate(Vector3.Y, ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.transform.rotate(Vector3.Y, ROTATION_SPEED * tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-      mdlInsBlueCube.transform.rotate(Vector3.Y, -ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.transform.rotate(Vector3.Y, -ROTATION_SPEED * tmpFloat);
+
     // Attach / Detach event.
-    if (Gdx.input.isKeyPressed(Input.Keys.M)) {
-      mdlInsBlueCube.attachAt(nodeGreenCube, 0.0f, 3.0f, 0.0f);
-      mdlInsBlueCube.attachAt(nodeRedCube, 3.0f, 0.0f, 0.0f);
-      // attachAtPosition(nodeGreenCube, 0.0f, 3.0f, 0.0f);
-      // attachAtPosition(nodeRedCube, 3.0f, 0.0f, 0.0f);
-      // mdlInsBlueCube.calculateTransforms();
+    if (Gdx.input.isKeyPressed(Input.Keys.M) && !mdlInstCharacter.nodes.get(0).hasChildren()) {
+      // Prepare an uninitialized model instance pointer.
+      ModelInstance mdlInst   = null;
+      // Prepare the green cube...
+      mdlInst                 = new ModelInstance(mdlCube);
+      mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 1.0f, 0.0f, 0.7f));
+      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 0.0f, 3.0f, 0.0f);
+      // Prepare the red cube.
+      mdlInst                 = new ModelInstance(mdlCube);
+      mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(1.0f, 0.0f, 0.0f, 0.7f));
+      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 0.0f, 3.0f, 0.0f);
     }
-    if (Gdx.input.isKeyPressed(Input.Keys.N))
-      mdlInsBlueCube.detachAllNodes();
+    if (Gdx.input.isKeyPressed(Input.Keys.N) && mdlInstCharacter.nodes.get(0).hasChildren())
+      mdlInstCharacter.detachAllNodes();
     
     // Update the camera according to the controller inputs.
-    camCtrlMain.update();
+    //camCtrlMain.update();
     
     // Begin post-processing FBO capture.
     postProMain.capture();

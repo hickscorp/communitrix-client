@@ -24,13 +24,21 @@ public class GameObject extends ModelInstance {
     bounds.getDimensions  (dimensions);
     radius                = dimensions.len() / 2f;
   }
-  
+
+  // Attaches an external ModelInstance to the root node of this instance.
+  public void attachAt (final ModelInstance model, final float x, final float y, final float z) {
+    for (final Node node : model.nodes)
+      attachAt(node, x, y, z);
+  }
   // Attaches an external node to the root node of this instance.
-  public void attachAt (Node node, final float x, final float y, final float z) {
-    if (nodes.get(0)!=node.getParent()) {
-      node.attachTo(nodes.get(0));
-      node.translation.set(x, y, z);
-      calculateTransforms();
+  public void attachAt (final Node node, final float x, final float y, final float z) {
+    // Check whether the current root node is already the target's parent or not.
+    final Node myNode           = nodes.get(0);
+    if (myNode!=node.getParent()) {
+      // Attach 
+      node.attachTo         (myNode);
+      node.translation.set  (x, y, z);
+      calculateTransforms   ();
     }
   }
   // Detaches all children of the root node of this instance.
@@ -40,6 +48,7 @@ public class GameObject extends ModelInstance {
       myNode.removeChild(myNode.getChild(0));
   }
   
+  // Checks whether the current object is visible or not given a camera.
   public boolean isVisible (final Camera cam) {
     transform.getTranslation(tmpVec3);
     tmpVec3.add(center);
