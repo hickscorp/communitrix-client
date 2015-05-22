@@ -70,26 +70,25 @@ public class Communitrix extends ApplicationAdapter {
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.9f, 0.9f, 0.9f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
+    //environment.add(new DirectionalLight().set(Color.WHITE, -1f, -0.8f, -0.2f));
     
     // Cache viewport size.
     resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    /*
     // Add bloom to post-processor.
     Bloom blm             = new Bloom(viewWidth/3, viewHeight/3);
-    blm.setBloomIntesity  (1.0f);
-    blm.setBloomSaturation(0.6f);
+    blm.setBloomIntesity  (1.2f);
+    blm.setBloomSaturation(1.0f);
     postProMain.addEffect (blm);
     // Add motion blur to post-processor.
     MotionBlur blur       = new MotionBlur();
-    blur.setBlurOpacity   (1.6f);
+    blur.setBlurOpacity   (0.84f);
     postProMain.addEffect (blur);
     // Add FFA to post-processing.
-    Nfaa faa              = new Nfaa(viewWidth/2, viewHeight/2);
-    postProMain.addEffect (faa);
-    */
+    Nfaa faa              = new Nfaa(viewWidth/3, viewHeight/3);
+    postProMain.addEffect(faa);
     
     // This is the main model rendering batch.
     mdlBtchMain           = new ModelBatch();
@@ -110,7 +109,7 @@ public class Communitrix extends ApplicationAdapter {
     // Create a default material to work with.
     Material mtlDefault     = new Material(ColorAttribute.createDiffuse(1.0f, 1.0f, 1.0f, 1.0f), new BlendingAttribute(1.0f));
     // Get a cube model.
-    mdlCube                 = mdlBuilder.createBox(3f, 3f, 3f, mtlDefault, Usage.Position | Usage.Normal);
+    mdlCube                 = mdlBuilder.createBox(2f, 2f, 2f, mtlDefault, Usage.Position | Usage.Normal);
     
     // Prepare the character model...
     mdlInstCharacter          = new SimpleCube();
@@ -164,15 +163,21 @@ public class Communitrix extends ApplicationAdapter {
     
     // Character rotation events.
     if (Gdx.input.isKeyPressed(Input.Keys.I))
-      mdlInstCharacter.rotate(camMain, Vector3.X, ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.X, -1.0f*ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.K))
-      mdlInstCharacter.rotate(camMain, Vector3.X, -ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.X, 1.0f*ROTATION_SPEED*tmpFloat);
     if (Gdx.input.isKeyPressed(Input.Keys.J))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.Y, -1.0f*ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.L))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, -ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.Y, 1.0f*ROTATION_SPEED*tmpFloat);
 
     
+    // Left / Right events.
+    if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
+      mdlInstCharacter.transform.rotate(Vector3.Y, ROTATION_SPEED * tmpFloat);
+    else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
+      mdlInstCharacter.transform.rotate(Vector3.Y, -ROTATION_SPEED * tmpFloat);
+
     // Attach / Detach event.
     if (Gdx.input.isKeyPressed(Input.Keys.M) && !mdlInstCharacter.nodes.get(0).hasChildren()) {
       // Prepare an uninitialized model instance pointer.
@@ -180,17 +185,17 @@ public class Communitrix extends ApplicationAdapter {
       // Prepare the green cube...
       mdlInst                 = new ModelInstance(mdlCube);
       mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 1.0f, 0.0f, 0.7f));
-      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 0.0f, 3.0f, 0.0f);
+      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 0.0f, 2.0f, 0.0f);
       // Prepare the red cube.
       mdlInst                 = new ModelInstance(mdlCube);
       mdlInst.materials.get(0).set(ColorAttribute.createDiffuse(1.0f, 0.0f, 0.0f, 0.7f));
-      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 0.0f, 3.0f, 0.0f);
+      mdlInstCharacter.attachAt(mdlInst.nodes.get(0), 2.0f, 0.0f, 0.0f);
     }
     if (Gdx.input.isKeyPressed(Input.Keys.N) && mdlInstCharacter.nodes.get(0).hasChildren())
       mdlInstCharacter.detachAllNodes();
     
     // Update the camera according to the controller inputs.
-    camCtrlMain.update();
+    //camCtrlMain.update();
     
     // Begin post-processing FBO capture.
     postProMain.capture();
