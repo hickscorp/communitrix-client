@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 
@@ -15,7 +17,11 @@ public class SimpleCube extends GameObject {
   // Members.
   public                int           selectedFace  = 0;
   // Temporaries.
-  private final static  Quaternion    tmpQuat       = new Quaternion();
+  private final static  Vector3       tmpXAxis      = new Vector3();
+  private final static  Vector3       tmpYAxis      = new Vector3();
+  private final static  Vector3       tmpZAxis      = new Vector3();
+  private final static  Vector3       tmpPosition   = new Vector3();
+  private final static  Quaternion    tmpRotation   = new Quaternion();
   // The model based on which to build our instances.
   private static        Model         mdlCube;
   
@@ -24,13 +30,22 @@ public class SimpleCube extends GameObject {
   }
   
   public void rotate (final Camera cam, final Vector3 axis, final float angle) {
-    transform.getRotation(tmpQuat).nor();
+    tmpZAxis.set(cam.direction).scl(-1);
+    tmpXAxis.set(tmpZAxis).crs(cam.up);
+    tmpYAxis.set(tmpXAxis).crs(cam.direction);
+    
+    transform.getTranslation(tmpPosition);
+    transform.getRotation(tmpRotation).nor();
     transform.idt();
-    transform.rotate(axis, angle);
-    transform.rotate(tmpQuat);
+    if (axis==Vector3.X)
+      transform.rotate(tmpXAxis, angle);
+    else if (axis==Vector3.Y)
+      transform.rotate(tmpYAxis, angle);
+    transform.rotate(tmpRotation);
+    transform.trn(tmpPosition);    
   }
   
-  public static Model init () {
+  private static Model init () {
     if (mdlCube==null) {
       ModelBuilder mdlBdrCube = new ModelBuilder();
       mdlBdrCube.begin();
@@ -39,37 +54,66 @@ public class SimpleCube extends GameObject {
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(-1,-1,-1, -1,1,-1,  1, 1, -1, 1,-1,-1, 0, 0,-1);
+        .rect(  -1, -1, -1,
+                -1,  1, -1,
+                 1,  1, -1,
+                 1, -1, -1,
+                 0,  0, -1);
       mdlBdrCube.part(
           "face2",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(-1,1,1, -1,-1,1,  1,-1,1, 1,1,1, 0,0,1);
+        .rect(
+                -1,  1,  1, 
+                -1, -1,  1,
+                 1, -1,  1,
+                 1,  1,  1,
+                 0,  0,  1);
       mdlBdrCube.part(
           "face3",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(-1,-1,1, -1,-1,-1,  1,-1,-1, 1,-1,1, 0,-1,0);
+        .rect(
+                -1, -1,  1,
+                -1, -1, -1,
+                 1, -1, -1,
+                 1, -1,  1,
+                 0, -1,  0);
       mdlBdrCube.part(
           "face4",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(-1,1,-1, -1,1,1,  1,1,1, 1,1,-1, 0,1,0);
+        .rect(
+                -1,  1, -1,
+                -1,  1,  1,
+                 1,  1,  1,
+                 1,  1, -1,
+                 0,  1,  0);
       mdlBdrCube.part(
           "face5",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(-1,-1,1, -1,1,1,  -1,1,-1, -1,-1,-1, -1,0,0);
+        .rect(
+                -1, -1,  1,
+                -1,  1,  1,
+                -1,  1, -1,
+                -1, -1, -1,
+                -1,  0,  0);
       mdlBdrCube.part(
           "face6",
           GL20.GL_TRIANGLES,
           Usage.Position | Usage.Normal,
           new Material(ColorAttribute.createDiffuse(Color.GREEN)))
-        .rect(1,-1,-1, 1,1,-1,  1,1,1, 1,-1,1, 1,0,0);
+        .rect(
+                 1, -1, -1,
+                 1,  1, -1,
+                 1,  1,  1,
+                 1, -1,  1,
+                 1,  0,  0);
       mdlCube = mdlBdrCube.end();
     }
     return mdlCube;

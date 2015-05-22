@@ -163,21 +163,15 @@ public class Communitrix extends ApplicationAdapter {
     
     // Character rotation events.
     if (Gdx.input.isKeyPressed(Input.Keys.I))
-      mdlInstCharacter.rotate(camMain, Vector3.X, -1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.X, ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.K))
-      mdlInstCharacter.rotate(camMain, Vector3.X, 1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.X, -ROTATION_SPEED*tmpFloat);
     if (Gdx.input.isKeyPressed(Input.Keys.J))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, -1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.Y, ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.L))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, 1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.rotate(camMain, Vector3.Y, -ROTATION_SPEED*tmpFloat);
 
     
-    // Left / Right events.
-    if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
-      mdlInstCharacter.transform.rotate(Vector3.Y, ROTATION_SPEED * tmpFloat);
-    else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-      mdlInstCharacter.transform.rotate(Vector3.Y, -ROTATION_SPEED * tmpFloat);
-
     // Attach / Detach event.
     if (Gdx.input.isKeyPressed(Input.Keys.M) && !mdlInstCharacter.nodes.get(0).hasChildren()) {
       // Prepare an uninitialized model instance pointer.
