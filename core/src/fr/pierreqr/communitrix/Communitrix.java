@@ -76,20 +76,18 @@ public class Communitrix extends ApplicationAdapter {
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    /*
     // Add bloom to post-processor.
     Bloom blm             = new Bloom(viewWidth/3, viewHeight/3);
     blm.setBloomIntesity  (1.0f);
     blm.setBloomSaturation(0.6f);
-    postProMain.addEffect (blm);
+    //postProMain.addEffect (blm);
     // Add motion blur to post-processor.
     MotionBlur blur       = new MotionBlur();
     blur.setBlurOpacity   (1.6f);
-    postProMain.addEffect (blur);
+    //postProMain.addEffect (blur);
     // Add FFA to post-processing.
     Nfaa faa              = new Nfaa(viewWidth/2, viewHeight/2);
-    postProMain.addEffect (faa);
-    */
+    //postProMain.addEffect (faa);
     
     // This is the main model rendering batch.
     mdlBtchMain           = new ModelBatch();
@@ -114,7 +112,6 @@ public class Communitrix extends ApplicationAdapter {
     
     // Prepare the character model...
     mdlInstCharacter          = new SimpleCube();
-    mdlInstCharacter.materials.get(0).set(ColorAttribute.createDiffuse(0.0f, 0.0f, 1.0f, 0.7f));
     // As our character model will be rendered with everything else, add it to our instances array.
     instances.add           (mdlInstCharacter);
     

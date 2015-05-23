@@ -83,7 +83,7 @@ eclipse {
     }
 
     project {
-        name = appName + "-android"
+        name = "Android"
         natures 'com.android.ide.eclipse.adt.AndroidNature'
         buildCommands.clear();
         buildCommand "com.android.ide.eclipse.adt.ResourceManagerBuilder"

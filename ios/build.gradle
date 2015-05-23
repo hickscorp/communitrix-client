@@ -60,6 +60,6 @@ createIPA.dependsOn build
 
 
 eclipse.project {
-    name = appName + "-ios"
+    name = "iOS"
     natures 'org.robovm.eclipse.RoboVMNature'
 }
