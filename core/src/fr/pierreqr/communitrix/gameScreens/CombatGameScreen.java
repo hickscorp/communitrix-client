@@ -2,8 +2,6 @@ package fr.pierreqr.communitrix.gameScreens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Application.ApplicationType;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -24,9 +22,9 @@ import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import com.bitfire.utils.ShaderLoader;
+
 import fr.pierreqr.communitrix.GameObject;
 import fr.pierreqr.communitrix.LogicManager;
-import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 
 public class CombatGameScreen implements GameScreen {
 
