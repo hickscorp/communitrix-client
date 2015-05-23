@@ -48,7 +48,7 @@ public class Communitrix extends ApplicationAdapter {
   // Main cube model.
   public        Model                 mdlCube;
   // Various object instances.
-  public        SimpleCube            mdlInstCharacter;
+  public        GameObject            mdlInstCharacter;
   public        Node                  nodeCharacter;
   public final  Array<GameObject>     instances   = new Array<GameObject>();
   // Caches.
@@ -128,7 +128,7 @@ public class Communitrix extends ApplicationAdapter {
     
     // Prepare the character model...
     try {
-      mdlInstCharacter          = new SimpleCube();
+      mdlInstCharacter          = new GameObject(LogicManager.getInstance().getModel("Cube"));
     }
     catch ( Exception ex ) {
       ex.printStackTrace();
@@ -209,13 +209,13 @@ public class Communitrix extends ApplicationAdapter {
     
     // Character rotation events.
     if (Gdx.input.isKeyPressed(Input.Keys.I))
-      mdlInstCharacter.rotate(camMain, Vector3.X, -1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X, -1.0f*ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.K))
-      mdlInstCharacter.rotate(camMain, Vector3.X, 1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X, 1.0f*ROTATION_SPEED*tmpFloat);
     if (Gdx.input.isKeyPressed(Input.Keys.J))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, -1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, -1.0f*ROTATION_SPEED*tmpFloat);
     else if (Gdx.input.isKeyPressed(Input.Keys.L))
-      mdlInstCharacter.rotate(camMain, Vector3.Y, 1.0f*ROTATION_SPEED*tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, 1.0f*ROTATION_SPEED*tmpFloat);
 
     
     // Left / Right events.

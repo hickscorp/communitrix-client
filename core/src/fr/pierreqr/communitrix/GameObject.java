@@ -4,21 +4,31 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.model.Node;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
 public class GameObject extends ModelInstance {
   // As for any class inheriting GameObject the bounding box will be the same, make this static.
-  private final static    BoundingBox   bounds      = new BoundingBox();
+  private final static  BoundingBox   bounds        = new BoundingBox();
+  
   // Center and dimensions will be re-calculated based on radius.
   public final  Vector3         center      = new Vector3();
   public final  Vector3         dimensions  = new Vector3();
-  public final  float           radius;
+  public        float           radius;
+
   // Those are temporaries.
-  private final static  Vector3 tmpVec3     = new Vector3();
+  private final static  Vector3       tmpXAxis      = new Vector3();
+  private final static  Vector3       tmpYAxis      = new Vector3();
+  private final static  Vector3       tmpZAxis      = new Vector3();
+  private final static  Vector3       tmpPosition   = new Vector3();
+  private final static  Quaternion    tmpRotation   = new Quaternion();
   
   public GameObject (Model model) {
     super(model);
+    recomputeBounds();
+  }
+  public void recomputeBounds () {
     calculateBoundingBox  (bounds);
     bounds.getCenter      (center);
     bounds.getDimensions  (dimensions);
@@ -39,6 +49,7 @@ public class GameObject extends ModelInstance {
       node.attachTo         (myNode);
       node.translation.set  (x, y, z);
       calculateTransforms   ();
+      recomputeBounds();
     }
   }
   // Detaches all children of the root node of this instance.
@@ -50,8 +61,27 @@ public class GameObject extends ModelInstance {
   
   // Checks whether the current object is visible or not given a camera.
   public boolean isVisible (final Camera cam) {
-    transform.getTranslation(tmpVec3);
-    tmpVec3.add(center);
-    return cam.frustum.sphereInFrustum(tmpVec3, radius);
+    transform.getTranslation(tmpPosition);
+    tmpPosition.add(center);
+    return cam.frustum.sphereInFrustum(tmpPosition, radius);
+  }
+  
+  public void relativeRotate (final Camera cam, final Vector3 axis, final float angle) {
+    // Get rotation axis based on camera.
+    tmpZAxis.set(cam.direction).scl(-1);
+    tmpXAxis.set(tmpZAxis).crs(cam.up);
+    tmpYAxis.set(tmpXAxis).crs(cam.direction);
+    // Store original position / rotation.
+    transform.getTranslation(tmpPosition);
+    transform.getRotation(tmpRotation).nor();
+    transform.idt();
+    // Rotate model.
+    if (axis==Vector3.X)
+      transform.rotate(tmpXAxis, angle);
+    else if (axis==Vector3.Y)
+      transform.rotate(tmpYAxis, angle);
+    // Restore to the previous rotation and translation.
+    transform.rotate(tmpRotation);
+    transform.trn(tmpPosition);
   }
 }
