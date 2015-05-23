@@ -102,18 +102,16 @@ public class CombatScreen implements Screen {
     Model   mdlCube     = communitrix.getModel("Cube");
     // Prepare a blending attribute for our cubes.
     BlendingAttribute alphaBlend  = new BlendingAttribute();
-    // Cache cell dimensions.
-    final Vector3 CELL_DIMENSIONS = Communitrix.CELL_DIMENSIONS;
     // Create an array of cube for testing.
     int   iTrans, jTrans;
-    float halfWidth     = CELL_DIMENSIONS.x*5/2.0f;
-    float halfHeight    = CELL_DIMENSIONS.y*5/2.0f;
-    float halfDepth     = CELL_DIMENSIONS.z*5/2.0f;
-    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
+    float halfWidth     = Communitrix.CELL_DIMENSIONS.x*5/2.0f;
+    float halfHeight    = Communitrix.CELL_DIMENSIONS.y*5/2.0f;
+    float halfDepth     = Communitrix.CELL_DIMENSIONS.z*5/2.0f;
+    for (int i = 0; i<Communitrix.CELL_DIMENSIONS.x; ++i) {
       iTrans  = i * 5;
-      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
+      for (int j = 0; j<Communitrix.CELL_DIMENSIONS.y; ++j) {
         jTrans = j * 5;
-        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
+        for (int k = 0; k<Communitrix.CELL_DIMENSIONS.z; ++k) {
           // Create a new cube instance and position it.
           GameObject instance = new GameObject(mdlCube);
           instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
@@ -121,9 +119,9 @@ public class CombatScreen implements Screen {
           for (Material mat : instance.materials)
             mat.set(
                 ColorAttribute.createDiffuse(
-                    1.0f/CELL_DIMENSIONS.x*i,
-                    1.0f/CELL_DIMENSIONS.y*j,
-                    1.0f/CELL_DIMENSIONS.z*k,
+                    1.0f/Communitrix.CELL_DIMENSIONS.x*i,
+                    1.0f/Communitrix.CELL_DIMENSIONS.y*j,
+                    1.0f/Communitrix.CELL_DIMENSIONS.z*k,
                     0.70f
                 ), alphaBlend
           );
@@ -145,23 +143,22 @@ public class CombatScreen implements Screen {
     postProMain.dispose ();
   }
 
-  @Override public void render (final float delta) {    
+  @Override public void render (final float delta) {
     // Clear viewport etc.
-    //Gdx.gl.glViewport(0, 0, viewWidth, viewHeight);
+    Gdx.gl.glViewport(0, 0, communitrix.viewWidth, communitrix.viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
-    //Gdx.gl.glEnable(GL20.GL_BLEND);
-    //Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    Gdx.gl.glEnable(GL20.GL_BLEND);
+    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     // Enable back-face culling.
-    //Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-    //Gdx.gl.glCullFace(GL20.GL_BACK);
+    Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+    Gdx.gl.glCullFace(GL20.GL_BACK);
     
     // Process user inputs.
     handleInputs(delta);
     
     // Capture FBO for post-processing.
     postProMain.capture();
-    
     // Mark the beginning of our rendering phase.
     communitrix.modelBatch.begin(camMain);
     // Render all instances in our batch array.
@@ -170,7 +167,6 @@ public class CombatScreen implements Screen {
         communitrix.modelBatch.render(instance, envMain);
     // Rendering is over.
     communitrix.modelBatch.end();
-    
     // Apply post-processing.
     postProMain.render();
     

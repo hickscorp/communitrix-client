@@ -121,23 +121,22 @@ public class LobbyScreen implements Screen {
     postProMain.dispose ();
   }
 
-  @Override public void render (final float delta) {    
+  @Override public void render (final float delta) {
     // Clear viewport etc.
-    //Gdx.gl.glViewport(0, 0, viewWidth, viewHeight);
+    Gdx.gl.glViewport(0, 0, communitrix.viewWidth, communitrix.viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
-    //Gdx.gl.glEnable(GL20.GL_BLEND);
-    //Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    Gdx.gl.glEnable(GL20.GL_BLEND);
+    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     // Enable back-face culling.
-    //Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-    //Gdx.gl.glCullFace(GL20.GL_BACK);
+    Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+    Gdx.gl.glCullFace(GL20.GL_BACK);
     
     // Process user inputs.
     handleInputs(delta);
     
     // Capture FBO for post-processing.
     postProMain.capture();
-    
     // Mark the beginning of our rendering phase.
     communitrix.modelBatch.begin(camMain);
     // Render all instances in our batch array.
@@ -146,7 +145,6 @@ public class LobbyScreen implements Screen {
         communitrix.modelBatch.render(instance, envMain);
     // Rendering is over.
     communitrix.modelBatch.end();
-    
     // Apply post-processing.
     postProMain.render();
     
