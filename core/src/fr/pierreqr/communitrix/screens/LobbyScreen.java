@@ -1,61 +1,48 @@
-package fr.pierreqr.communitrix.gameScreens;
+package fr.pierreqr.communitrix.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
-import com.bitfire.utils.ShaderLoader;
 
+import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.GameObject;
-import fr.pierreqr.communitrix.LogicManager;
 
-public class CombatGameScreen implements GameScreen {
+public class LobbyScreen implements Screen {
 
   // Scene setup related objects.
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
   private       CameraInputController camCtrlMain;
   private       PostProcessor         postProMain;
-  private       ModelBatch            mdlBtchMain;
   // Various object instances.
   private       GameObject            mdlInstCharacter;
+  private       GameObject            mdlInstSphere;
   private final Array<GameObject>     instances         = new Array<GameObject>();
-  // Caches.
-  private       int                   viewWidth, viewHeight;
-
-  // Flat UI related members.
-  private       LogicManager          logicManager;
-  private       Stage                 uiStage;
-  private       Skin                  uiSkin;
+  
+  private final Communitrix           communitrix;
+  
   private       Label                 lblFPS;
-
-  // Those are temporaries.
-  private       float                 tmpFloat;
-
-  @Override
-  public void create (final LogicManager lm) {
-    logicManager          = lm;
-    // Cache viewport size.
-    resize                (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    // Configure assets etc.
-    ShaderLoader.BasePath = "../android/assets/shaders/";
+  
+  public LobbyScreen (final Communitrix communitrixInstance) {
+    // Cache our game instance.
+    communitrix           = communitrixInstance;
     // Set up our FPS logging object.
     initEnvironment       ();   // Environment dedicated initializer.
     initPostProcessing    ();   // Post-processing dedicated initializer.
@@ -73,7 +60,7 @@ public class CombatGameScreen implements GameScreen {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
     // Add bloom to post-processor.
-    Bloom blm             = new Bloom(viewWidth/3, viewHeight/3);
+    Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
     blm.setBloomIntesity  (0.7f);
     blm.setBloomSaturation(0.8f);
     postProMain.addEffect (blm);
@@ -84,7 +71,7 @@ public class CombatGameScreen implements GameScreen {
   }
   private void initCamera () {
     // Set up our main camera, and position it.
-    camMain               = new PerspectiveCamera(67, viewWidth, viewHeight);
+    camMain               = new PerspectiveCamera(90, communitrix.viewWidth, communitrix.viewHeight);
     camMain.position.set  (25, 25, 25);
     camMain.near          = 1f;
     camMain.far           = 150f;
@@ -92,138 +79,120 @@ public class CombatGameScreen implements GameScreen {
     camMain.update        ();
     // Attach a camera controller to the main camera, set it as the main processor.
     camCtrlMain           = new CameraInputController(camMain);
-    Gdx.input.setInputProcessor(camCtrlMain);
   }
   private void initModelsAndInstances () {
-    // This is the main model rendering batch.
-    mdlBtchMain         = new ModelBatch();
-    // Cache our cube model.
-    Model   mdlCube     = logicManager.getModel("Cube");
-    
     // Prepare the character model...
-    mdlInstCharacter    = new GameObject(logicManager.getModel("Cube"));
+    mdlInstCharacter    = new GameObject(communitrix.getModel("Cube"));
     // As our character model will be rendered with everything else, add it to our instances array.
     instances.add       (mdlInstCharacter);
-    
-    // Prepare a blending attribute for our cubes.
-    BlendingAttribute alphaBlend  = new BlendingAttribute();
-    // Cache cell dimensions.
-    final Vector3 CELL_DIMENSIONS = LogicManager.CELL_DIMENSIONS;
-    // Create an array of cube for testing.
-    int   iTrans, jTrans;
-    float halfWidth     = CELL_DIMENSIONS.x*5/2.0f;
-    float halfHeight    = CELL_DIMENSIONS.y*5/2.0f;
-    float halfDepth     = CELL_DIMENSIONS.z*5/2.0f;
-    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
-      iTrans  = i * 5;
-      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
-        jTrans = j * 5;
-        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
-          // Create a new cube instance and position it.
-          GameObject instance = new GameObject(mdlCube);
-          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
-          // Because our model might have different materials, reset them all to a diffuse color.
-          for (Material mat : instance.materials)
-            mat.set(
-                ColorAttribute.createDiffuse(
-                    1.0f/CELL_DIMENSIONS.x*i,
-                    1.0f/CELL_DIMENSIONS.y*j,
-                    1.0f/CELL_DIMENSIONS.z*k,
-                    0.70f
-                ), alphaBlend
-          );
-          instances.add(instance);
-        }
-      }
-    }
   }
   private void initFlatUI () {
-    // Load the flat UI skin.
-    uiSkin                      = new Skin(Gdx.files.local("../android/assets/skins/uiskin.json"));
-    // Prepare the flat UI stage, and set it as first responder.
-    uiStage                     = new Stage();
     // Create the FPS label and place it on stage.
-    lblFPS                      = new Label("FPS:", uiSkin);
-    lblFPS.setPosition          (5, 5);
-    lblFPS.setColor             (Color.WHITE);
-    uiStage.addActor            (lblFPS);
+    lblFPS                        = new Label("", communitrix.uiSkin);
+    lblFPS.setPosition            (5, communitrix.viewHeight - 15);
+    lblFPS.setColor               (Color.WHITE);
+  }
+  
+  @Override public void show () {
+    // Set the input controller.
+    Gdx.input.setInputProcessor(camCtrlMain);
+    
+    // Cache our cube model.
+    Model   mdlSphere   = communitrix.modelBuilder.createSphere(10, 10, 10, 30, 30, new Material(ColorAttribute.createDiffuse(Color.WHITE)), Usage.Position | Usage.Normal);
+    // Prepare a blending attribute for our cubes.
+    BlendingAttribute alphaBlend  = new BlendingAttribute();
+    // Set up our sphere.
+    mdlInstSphere       = new GameObject(mdlSphere);
+    instances.add       (mdlInstSphere);
+    
+    // Change sphere materials.
+    for (Material mat : mdlInstSphere.materials)
+      mat.set(ColorAttribute.createDiffuse(0.5f, 0.5f, 0.5f, 0.7f), alphaBlend);
+    
+    // Put our label on stage.
+    communitrix.uiStage.addActor  (lblFPS);
+  }
+  @Override public void hide () {
+    // Remove all instances except our character.
+    instances.removeRange (1, instances.size - 1);
   }
   
   @Override public void dispose () {
     postProMain.dispose ();
-    mdlBtchMain.dispose ();
   }
 
-  @Override public void render () {
+  @Override public void render (final float delta) {    
     // Clear viewport etc.
-    Gdx.gl.glViewport(0, 0, viewWidth, viewHeight);
+    //Gdx.gl.glViewport(0, 0, viewWidth, viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
-    Gdx.gl.glEnable(GL20.GL_BLEND);
-    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    //Gdx.gl.glEnable(GL20.GL_BLEND);
+    //Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     // Enable back-face culling.
-    Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-    Gdx.gl.glCullFace(GL20.GL_BACK);
+    //Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+    //Gdx.gl.glCullFace(GL20.GL_BACK);
     
     // Process user inputs.
-    handleInputs();
+    handleInputs(delta);
     
     // Capture FBO for post-processing.
     postProMain.capture();
+    
     // Mark the beginning of our rendering phase.
-    mdlBtchMain.begin(camMain);
+    communitrix.modelBatch.begin(camMain);
     // Render all instances in our batch array.
     for (final GameObject instance : instances)
       if (instance.isVisible(camMain))
-        mdlBtchMain.render(instance, envMain);
+        communitrix.modelBatch.render(instance, envMain);
     // Rendering is over.
-    mdlBtchMain.end();
+    communitrix.modelBatch.end();
+    
     // Apply post-processing.
     postProMain.render();
     
     // Update flat UI.
-    lblFPS.setText    ("FPS: " + Gdx.graphics.getFramesPerSecond());
-    uiStage.draw      ();
-    
-    // Log our FPS count to the console.
-    //lgrFps.log();
+    lblFPS.setText            ("Lobby FPS: " + Gdx.graphics.getFramesPerSecond());
+    communitrix.uiStage.act   (delta);
+    communitrix.uiStage.draw  ();
   }
-  private void handleInputs () {
-    // Store elapsed delta.
-    tmpFloat            = Gdx.graphics.getDeltaTime();
-    
+  private void handleInputs (final float delta) {
     // Update camera controller.
     camCtrlMain.update  ();
-
+    
+    // Screen change.
+    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+      communitrix.lobbyScreenRequestingExit();
+    }
+    
     // Move character forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))
-      mdlInstCharacter.transform.translate(LogicManager.TRANSLATION_SPEED * tmpFloat, 0, 0);
+      mdlInstCharacter.transform.translate(Communitrix.TRANSLATION_SPEED * delta, 0, 0);
     else if (Gdx.input.isKeyPressed(Input.Keys.DOWN))
-      mdlInstCharacter.transform.translate(-LogicManager.TRANSLATION_SPEED * tmpFloat, 0, 0);
+      mdlInstCharacter.transform.translate(-Communitrix.TRANSLATION_SPEED * delta, 0, 0);
     
     // Character rotation relative to camera on X axis.
     if (Gdx.input.isKeyPressed(Input.Keys.I))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.X, -LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X, -Communitrix.ROTATION_SPEED * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.K))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.X,  LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X,  Communitrix.ROTATION_SPEED * delta);
     // Character rotation relative to camera on Y axis.
     if (Gdx.input.isKeyPressed(Input.Keys.J))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, -LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, -Communitrix.ROTATION_SPEED * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.L))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.Y,  LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y,  Communitrix.ROTATION_SPEED * delta);
     
     // Left / Right events.
     if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
-      mdlInstCharacter.transform.rotate(Vector3.Y,  LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.transform.rotate(Vector3.Y,  Communitrix.ROTATION_SPEED * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-      mdlInstCharacter.transform.rotate(Vector3.Y, -LogicManager.ROTATION_SPEED * tmpFloat);
+      mdlInstCharacter.transform.rotate(Vector3.Y, -Communitrix.ROTATION_SPEED * delta);
 
     // Attach / Detach event.
     if (Gdx.input.isKeyPressed(Input.Keys.M) && !mdlInstCharacter.nodes.get(0).hasChildren()) {
       // Prepare an uninitialized model instance pointer.
       ModelInstance mdlInst   = null;
       // Cache our cube model.
-      final Model   mdlCube   = logicManager.getModel("Cube");
+      final Model   mdlCube   = communitrix.getModel("Cube");
       // Prepare the green cube...
       mdlInst                 = new ModelInstance(mdlCube);
       for (final Material mtl : mdlInst.materials)
@@ -238,19 +207,15 @@ public class CombatGameScreen implements GameScreen {
     if (Gdx.input.isKeyPressed(Input.Keys.N) && mdlInstCharacter.nodes.get(0).hasChildren())
       mdlInstCharacter.detachAllNodes();
   }
-  
-  // Occurs whenever the viewport size changes.
-  @Override public void resize (int width, int height) {
-    viewWidth         = width;
-    viewHeight        = height;
+  @Override public void resize (final int width, final int height) {
+    // If a post-processor exists, update it.
+    if (postProMain!=null)
+      postProMain.rebind();
   }
-  
-  // Occurs whenever the application is paused (Eg enters background, etc).
+
   @Override public void pause () {
   }
-  // Transitions between pause and normal mode.
   @Override public void resume () {
-    resize              (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    postProMain.rebind  ();
+    Gdx.app.log     ("LobbyScreen", "Resume event.");
   }
 }
