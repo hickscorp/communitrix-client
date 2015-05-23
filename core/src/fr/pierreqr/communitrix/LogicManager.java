@@ -7,8 +7,14 @@ import java.util.HashMap;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Vector3;
 
 public class LogicManager {
+  // Constants.
+  public  static final  Vector3       CELL_DIMENSIONS   = new Vector3(5, 5, 5);
+  public  static final  float         TRANSLATION_SPEED = 20.0f;
+  public  static final  float         ROTATION_SPEED    = 120.0f;
+
   // Our singleton instance.
   private static  LogicManager                    instance        = null;
   // Where our models will be cached.
