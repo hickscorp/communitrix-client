@@ -6,7 +6,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.Environment;
@@ -37,8 +36,6 @@ public class Communitrix extends ApplicationAdapter {
 
   // Main logic manager instance is cached here.
   private       LogicManager          logicManager;
-  // FPS logging class.
-  private       FPSLogger             lgrFps;
   // Scene setup related objects.
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
@@ -61,16 +58,15 @@ public class Communitrix extends ApplicationAdapter {
 
   @Override public void create () {
     // After starting the application, we can query for the desktop dimensions
-    //if (Gdx.app.getType()==ApplicationType.Desktop) {
-    //  final DisplayMode dm    = Gdx.graphics.getDesktopDisplayMode();
-    //  Gdx.graphics.setDisplayMode   (dm.width, dm.height, true);
-    //}
+    if (Gdx.app.getType()==ApplicationType.Desktop) {
+      final DisplayMode dm    = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode   (dm.width, dm.height, true);
+    }
     // Cache viewport size.
     resize                (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Configure assets etc.
     ShaderLoader.BasePath = "../android/assets/shaders/";
     // Set up our FPS logging object.
-    lgrFps                = new FPSLogger();
     initBusinessLogic     ();   // General business-related logic initialization.
     initEnvironment       ();   // Environment dedicated initializer.
     initPostProcessing    ();   // Post-processing dedicated initializer.
