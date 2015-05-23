@@ -32,7 +32,8 @@ public class SimpleCube extends GameObject {
       transform.rotate(tmpXAxis, angle);
     else if (axis==Vector3.Y)
       transform.rotate(tmpYAxis, angle);
+    // Restore to the previous rotation and translation.
     transform.rotate(tmpRotation);
-    transform.trn(tmpPosition);    
+    transform.trn(tmpPosition);
   }
 }
