@@ -15,7 +15,7 @@ public class SimpleCube extends GameObject {
   private final static  Quaternion    tmpRotation   = new Quaternion();
   
   public SimpleCube () throws Exception {
-    super(LogicManager.getInstance().getModel("Sphere"));
+    super(LogicManager.getInstance().getModel("Cube"));
   }
   
   public void rotate (final Camera cam, final Vector3 axis, final float angle) {
