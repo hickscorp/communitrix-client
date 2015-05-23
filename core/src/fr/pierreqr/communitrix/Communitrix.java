@@ -57,18 +57,15 @@ public class Communitrix extends ApplicationAdapter {
   public void create () {
     // After starting the application, we can query for the desktop dimensions
     if (Gdx.app.getType()==ApplicationType.Desktop) {
-      final DisplayMode   dm      = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+      final DisplayMode   dm        = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode   (dm.width, dm.height, true);
     }
-
+    // Cache viewport size.
+    resize                (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Configure assets etc.
     ShaderLoader.BasePath = "../android/assets/shaders/";
     // Set up our FPS logging object.
     lgrFps                = new FPSLogger();
-        
-    // Cache viewport size.
-    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    
     // Environment decdicated initializer.
     initEnvironment();
     // Post-processing dedicated initializer.
