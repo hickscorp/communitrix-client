@@ -26,6 +26,7 @@ import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import com.bitfire.postprocessing.effects.Nfaa;
+import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 
 public class Communitrix extends ApplicationAdapter {
   // Constants.
@@ -53,8 +54,7 @@ public class Communitrix extends ApplicationAdapter {
   // Caches.
   private       int                   viewWidth, viewHeight;
   
-  @Override
-  public void create () {
+  @Override public void create () {
     // After starting the application, we can query for the desktop dimensions
     if (Gdx.app.getType()==ApplicationType.Desktop) {
       final DisplayMode   dm        = Gdx.graphics.getDesktopDisplayMode();
@@ -66,7 +66,9 @@ public class Communitrix extends ApplicationAdapter {
     ShaderLoader.BasePath = "../android/assets/shaders/";
     // Set up our FPS logging object.
     lgrFps                = new FPSLogger();
-    // Environment decdicated initializer.
+    // General business-related logic initialization.
+    initBusinessLogic();
+    // Environment dedicated initializer.
     initEnvironment();
     // Post-processing dedicated initializer.
     initPostProcessing();
@@ -74,6 +76,10 @@ public class Communitrix extends ApplicationAdapter {
     initCamera();
     // Models / Instances dedicated initializer.
     initModelsAndInstances();
+  }
+  private void initBusinessLogic () {
+    LogicManager    lm        = LogicManager.getInstance();
+    lm.registerModelTemplater ("Cube",    new CubeModelTemplater());
   }
   private void initEnvironment () {
     // Set up the scene environment.
@@ -116,12 +122,17 @@ public class Communitrix extends ApplicationAdapter {
     // Instantiate a single model builder.
     ModelBuilder mdlBuilder = new ModelBuilder();
     // Create a default material to work with.
-    Material mtlDefault     = new Material(ColorAttribute.createDiffuse(1.0f, 1.0f, 1.0f, 1.0f), new BlendingAttribute(1.0f));
+    Material    mtlDefault  = new Material(ColorAttribute.createDiffuse(1.0f, 1.0f, 1.0f, 1.0f), new BlendingAttribute(1.0f));
     // Get a cube model.
     mdlCube                 = mdlBuilder.createBox(2f, 2f, 2f, mtlDefault, Usage.Position | Usage.Normal);
     
     // Prepare the character model...
-    mdlInstCharacter          = new SimpleCube();
+    try {
+      mdlInstCharacter          = new SimpleCube();
+    }
+    catch ( Exception ex ) {
+      ex.printStackTrace();
+    }
     // As our character model will be rendered with everything else, add it to our instances array.
     instances.add           (mdlInstCharacter);
     
@@ -151,8 +162,13 @@ public class Communitrix extends ApplicationAdapter {
     }
   }
 
-  @Override
-  public void render () {
+  @Override public void dispose () {
+    postProMain.dispose ();
+    mdlBtchMain.dispose ();
+    mdlCube.dispose     ();
+  }
+
+  @Override public void render () {
     // Clear viewport etc.
     Gdx.gl.glViewport(0, 0, viewWidth, viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -178,7 +194,7 @@ public class Communitrix extends ApplicationAdapter {
     mdlBtchMain.end();
     // Apply post-processing.
     postProMain.render();
-
+    
     // Log our FPS count to the console.
     lgrFps.log();
   }
@@ -227,26 +243,19 @@ public class Communitrix extends ApplicationAdapter {
     // Update camera controller.
     camCtrlMain.update();
   }
-
-  @Override
-  public void dispose () {
-    postProMain.dispose();
-    mdlBtchMain.dispose();
-    mdlCube.dispose();
-  }
-
-  @Override
-  public void resume () {
-    postProMain.rebind();
-  }
-
-  @Override
-  public void resize (int width, int height) {
+  
+  // Occurs whenever the viewport size changes.
+  @Override public void resize (int width, int height) {
     viewWidth         = width;
     viewHeight        = height;
   }
-
-  @Override
-  public void pause () {
+  
+  // Occurs whenever the application is paused (Eg enters background, etc).
+  @Override public void pause () {
+  }
+  // Transitions between pause and normal mode.
+  @Override public void resume () {
+    resize              (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    postProMain.rebind  ();
   }
 }
