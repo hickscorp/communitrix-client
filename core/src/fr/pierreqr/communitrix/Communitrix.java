@@ -65,15 +65,26 @@ public class Communitrix extends ApplicationAdapter {
     ShaderLoader.BasePath = "../android/assets/shaders/";
     // Set up our FPS logging object.
     lgrFps                = new FPSLogger();
+        
+    // Cache viewport size.
+    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     
+    // Environment decdicated initializer.
+    initEnvironment();
+    // Post-processing dedicated initializer.
+    initPostProcessing();
+    // Camera / Camera controller dedicated initializer.
+    initCamera();
+    // Models / Instances dedicated initializer.
+    initModelsAndInstances();
+  }
+  private void initEnvironment () {
     // Set up the scene environment.
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.9f, 0.9f, 0.9f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    
-    // Cache viewport size.
-    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    
+  }
+  private void initPostProcessing () {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
     // Add bloom to post-processor.
@@ -88,10 +99,8 @@ public class Communitrix extends ApplicationAdapter {
     // Add FFA to post-processing.
     Nfaa faa              = new Nfaa(viewWidth/3, viewHeight/3);
     postProMain.addEffect (faa);
-    
-    // This is the main model rendering batch.
-    mdlBtchMain           = new ModelBatch();
-
+  }
+  private void initCamera () {
     // Set up our main camera, and position it.
     camMain               = new PerspectiveCamera(67, viewWidth, viewHeight);
     camMain.position.set  (0.0f, 0.0f, 25.0f);
@@ -102,7 +111,11 @@ public class Communitrix extends ApplicationAdapter {
     // Attach a camera controller to the main camera, set it as the main processor.
     camCtrlMain           = new CameraInputController(camMain);
     Gdx.input.setInputProcessor(camCtrlMain);
-    
+  }
+  private void initModelsAndInstances () {
+    // This is the main model rendering batch.
+    mdlBtchMain           = new ModelBatch();
+        
     // Instantiate a single model builder.
     ModelBuilder mdlBuilder = new ModelBuilder();
     // Create a default material to work with.
@@ -115,29 +128,30 @@ public class Communitrix extends ApplicationAdapter {
     // As our character model will be rendered with everything else, add it to our instances array.
     instances.add           (mdlInstCharacter);
     
-//    int   iTrans, jTrans;
-//    float halfWidth         = CELL_DIMENSIONS.x / 2.0f;  
-//    float halfHeight        = CELL_DIMENSIONS.y / 2.0f;  
-//    float halfDepth         = CELL_DIMENSIONS.z / 2.0f;  
-//    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
-//      iTrans  = i * 5;
-//      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
-//        jTrans = j * 5;
-//        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
-//          GameObject instance = new GameObject(mdlCube);
-//          instance.materials.get(0).set(
-//              ColorAttribute.createDiffuse(
-//                  1.0f / CELL_DIMENSIONS.x * i,
-//                  1.0f / CELL_DIMENSIONS.y * j,
-//                  1.0f / CELL_DIMENSIONS.z * k,
-//                  0.80f
-//              )
-//          );
-//          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
-//          instances.add(instance);
-//        }
-//      }
-//    }
+    // Create an array of cube for testing.
+    int   iTrans, jTrans;
+    float halfWidth         = CELL_DIMENSIONS.x / 2.0f;  
+    float halfHeight        = CELL_DIMENSIONS.y / 2.0f;  
+    float halfDepth         = CELL_DIMENSIONS.z / 2.0f;  
+    for (int i = 0; i<CELL_DIMENSIONS.x; ++i) {
+      iTrans  = i * 5;
+      for (int j = 0; j<CELL_DIMENSIONS.y; ++j) {
+        jTrans = j * 5;
+        for (int k = 0; k<CELL_DIMENSIONS.z; ++k) {
+          GameObject instance = new GameObject(mdlCube);
+          instance.materials.get(0).set(
+              ColorAttribute.createDiffuse(
+                  1.0f / CELL_DIMENSIONS.x * i,
+                  1.0f / CELL_DIMENSIONS.y * j,
+                  1.0f / CELL_DIMENSIONS.z * k,
+                  0.80f
+              )
+          );
+          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
+          instances.add(instance);
+        }
+      }
+    }
   }
 
   @Override
