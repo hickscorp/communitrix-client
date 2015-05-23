@@ -9,13 +9,17 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 
 public class CubeModelTemplater implements ModelTemplater {
+  private static    Material    mtlDefault    = null;
+  
   public Model build (final ModelBuilder b) {
+    if (mtlDefault==null)
+      mtlDefault    = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     b.begin();
     b.part(
         "face1",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.RED)))
+        mtlDefault)
       .rect(  -1, -1, -1,
               -1,  1, -1,
                1,  1, -1,
@@ -25,7 +29,7 @@ public class CubeModelTemplater implements ModelTemplater {
         "face2",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.GREEN)))
+        mtlDefault)
       .rect(
               -1,  1,  1, 
               -1, -1,  1,
@@ -36,7 +40,7 @@ public class CubeModelTemplater implements ModelTemplater {
         "face3",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.BLUE)))
+        mtlDefault)
       .rect(
               -1, -1,  1,
               -1, -1, -1,
@@ -47,7 +51,7 @@ public class CubeModelTemplater implements ModelTemplater {
         "face4",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.PURPLE)))
+        mtlDefault)
       .rect(
               -1,  1, -1,
               -1,  1,  1,
@@ -58,7 +62,7 @@ public class CubeModelTemplater implements ModelTemplater {
         "face5",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.PINK)))
+        mtlDefault)
       .rect(
               -1, -1,  1,
               -1,  1,  1,
@@ -69,7 +73,7 @@ public class CubeModelTemplater implements ModelTemplater {
         "face6",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        new Material(ColorAttribute.createDiffuse(Color.ORANGE)))
+        mtlDefault)
       .rect(
                1, -1, -1,
                1,  1, -1,
@@ -78,5 +82,7 @@ public class CubeModelTemplater implements ModelTemplater {
                1,  0,  0);
       
     return b.end();
+  }
+  public void dispose () {
   }
 }

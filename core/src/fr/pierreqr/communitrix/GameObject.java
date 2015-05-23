@@ -9,13 +9,10 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
 public class GameObject extends ModelInstance {
-  // As for any class inheriting GameObject the bounding box will be the same, make this static.
-  private final static  BoundingBox   bounds        = new BoundingBox();
-  
   // Center and dimensions will be re-calculated based on radius.
-  public final  Vector3         center      = new Vector3();
-  public final  Vector3         dimensions  = new Vector3();
-  public        float           radius;
+  public final          Vector3       center        = new Vector3();
+  public final          Vector3       dimensions    = new Vector3();
+  public                float         radius;
 
   // Those are temporaries.
   private final static  Vector3       tmpXAxis      = new Vector3();
@@ -23,16 +20,17 @@ public class GameObject extends ModelInstance {
   private final static  Vector3       tmpZAxis      = new Vector3();
   private final static  Vector3       tmpPosition   = new Vector3();
   private final static  Quaternion    tmpRotation   = new Quaternion();
+  private final static  BoundingBox   tmpBounds     = new BoundingBox();
   
   public GameObject (Model model) {
     super(model);
     recomputeBounds();
   }
   public void recomputeBounds () {
-    calculateBoundingBox  (bounds);
-    bounds.getCenter      (center);
-    bounds.getDimensions  (dimensions);
-    radius                = dimensions.len() / 2f;
+    calculateBoundingBox    (tmpBounds);
+    tmpBounds.getCenter     (center);
+    tmpBounds.getDimensions (dimensions);
+    radius                  = dimensions.len() / 2f;
   }
 
   // Attaches an external ModelInstance to the root node of this instance.
