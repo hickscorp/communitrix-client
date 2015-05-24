@@ -11,10 +11,10 @@ hs_err_pid*
 war/
 www-test/
 gwt-unitCache/
-HTML/war/gwt_bree/
-HTML/gwt-unitCache/
-HTML/war/WEB-INF/deploy/
-HTML/war/WEB-INF/classes/
+html/war
+html/gwt-unitCache/
+html/war/WEB-INF/deploy/
+html/war/WEB-INF/classes/
 
 # Android.
 Android/gen/

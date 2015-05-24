@@ -2,11 +2,11 @@ apply plugin: "java"
 apply plugin: "jetty"
 
 gwt {
-    gwtVersion='2.6.0' // Should match the gwt version used for building the gwt backend
-    maxHeapSize="1G" // Default 256m is not enough for gwt compiler. GWT is HUNGRY
+    gwtVersion='2.6.0'
+    maxHeapSize="1G"
     minHeapSize="1G"
 
-    src = files(file("src/")) // Needs to be in front of "modules" below.
+    src = files(file("src/"))
     modules 'fr.pierreqr.communitrix.GdxDefinition'
     devModules 'fr.pierreqr.communitrix.GdxDefinitionSuperdev'
     project.webAppDirName = 'webapp'

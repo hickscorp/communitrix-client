@@ -25,83 +25,82 @@ public class Communitrix extends Game {
   public  static final  Vector3   CELL_DIMENSIONS   = new Vector3(5, 5, 5);
   public  static final  float     TRANSLATION_SPEED = 20.0f;
   public  static final  float     ROTATION_SPEED    = 120.0f;
-  
+
   // Shared members.
+  public          ApplicationType applicationType;
   public          Stage           uiStage;
   public          Skin            uiSkin;
   public          ModelBuilder    modelBuilder;
   public          ModelBatch      modelBatch;
   public          int             viewWidth, viewHeight;
-  
+
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
   private         HashMap<String, Model>          models          = new HashMap<String, Model>();
-  
-  private         Screen          combatScreen, lobbyScreen;
-  
-  @Override public void create () {
 
+  private         Screen          combatScreen, lobbyScreen;
+
+  @Override public void create () {
+    // Cache application type.
+    applicationType         = Gdx.app.getType();
     // After starting the application, we can query for the desktop dimensions
-    if (Gdx.app.getType()==ApplicationType.Desktop) {
+    if (applicationType==ApplicationType.Desktop) {
       final DisplayMode dm  = Gdx.graphics.getDesktopDisplayMode();
       Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
     }
 
     // Configure assets etc.
-    ShaderLoader.BasePath = "../android/assets/shaders/";
-
-    // Instantiate shared members.
-    uiStage                 = new Stage();
-    uiSkin                  = new Skin(Gdx.files.local("../android/assets/skins/uiskin.json"));
-    modelBuilder            = new ModelBuilder();
-    modelBatch              = new ModelBatch();
-    
-    // Cache viewport size.
-    resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    ShaderLoader.BasePath     = "shaders/";
 
     // Register templaters.
     registerModelTemplater    ("Cube", new CubeModelTemplater());
+
+    // Force cache viewport size.
+    resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+    // Instantiate shared members.
+    uiStage                 = new Stage();
+    uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
+    modelBuilder            = new ModelBuilder();
+    modelBatch              = new ModelBatch();
+
     // Instantiate first game screen.
     lobbyScreenRequestingExit ();
   }
-  
+
   // Occurs when the game exits.
   @Override public void dispose () {
-    final Screen screen  = getScreen();
-    if (screen!=null)
-      screen.dispose();
+    if (combatScreen!=null)   combatScreen.dispose();
+    if (lobbyScreen!=null)    lobbyScreen.dispose();
     clearCaches();
     modelBatch.dispose();
   }
-  
+
   // Occurs whenever the viewport needs to render.
   @Override public void render () {
     super.render();
   }
-  
+
   @Override public void resize (final int width, final int height) {
     viewWidth       = width;
     viewHeight      = height;
     // Update flat UI.
-    uiStage.getViewport().update(viewWidth, viewHeight, true);
+    if (uiStage!=null)
+      uiStage.getViewport().update(viewWidth, viewHeight, true);
     // Propagate change to current screen instance.
     super.resize(width, height);
   }
 
-  
+
   public void combatScreenRequestingExit () {
     uiStage.clear();
-    if (lobbyScreen==null)
-      lobbyScreen   = new LobbyScreen(this);
-    setScreen(lobbyScreen);
+    setScreen(lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen);
   }
   public void lobbyScreenRequestingExit () {
     uiStage.clear();
-    if (combatScreen==null)
-      combatScreen  = new CombatScreen(this);
-    setScreen(combatScreen);
+    setScreen(combatScreen==null ? combatScreen = new CombatScreen(this) : combatScreen);
   }
-  
+
   // Cache clearing methods.
   public void clearCaches () {
     // Get rid of all cached models.
@@ -111,7 +110,7 @@ public class Communitrix extends Game {
     for (final String identifier : modelTemplaters.keySet())
       modelTemplaters.remove(identifier).dispose();
   }
-  
+
   // Registers a templater into the engine.
   public void registerModelTemplater (final String identifier, final ModelTemplater modelTemplater) {
     modelTemplaters.put(identifier, modelTemplater);

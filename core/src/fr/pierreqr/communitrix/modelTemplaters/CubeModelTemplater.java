@@ -14,74 +14,75 @@ public class CubeModelTemplater implements ModelTemplater {
   public Model build (final ModelBuilder b) {
     if (mtlDefault==null)
       mtlDefault    = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    b.begin();
-    b.part(
-        "face1",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(  -1, -1, -1,
-              -1,  1, -1,
-               1,  1, -1,
-               1, -1, -1,
-               0,  0, -1);
-    b.part(
-        "face2",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(
-              -1,  1,  1, 
-              -1, -1,  1,
-               1, -1,  1,
-               1,  1,  1,
-               0,  0,  1);
-    b.part(
-        "face3",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(
-              -1, -1,  1,
-              -1, -1, -1,
-               1, -1, -1,
-               1, -1,  1,
-               0, -1,  0);
-    b.part(
-        "face4",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(
-              -1,  1, -1,
-              -1,  1,  1,
-               1,  1,  1,
-               1,  1, -1,
-               0,  1,  0);
-    b.part(
-        "face5",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(
-              -1, -1,  1,
-              -1,  1,  1,
-              -1,  1, -1,
-              -1, -1, -1,
-              -1,  0,  0);
-    b.part(
-        "face6",
-        GL20.GL_TRIANGLES,
-        Usage.Position | Usage.Normal,
-        mtlDefault)
-      .rect(
-               1, -1, -1,
-               1,  1, -1,
-               1,  1,  1,
-               1, -1,  1,
-               1,  0,  0);
-      
-    return b.end();
+    return b.createBox(2, 2, 2, mtlDefault, Usage.Position | Usage.Normal);
+    //b.begin();
+    //b.part(
+    //    "face1",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(  -1, -1, -1,
+    //          -1,  1, -1,
+    //           1,  1, -1,
+    //           1, -1, -1,
+    //           0,  0, -1);
+    //b.part(
+    //    "face2",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(
+    //          -1,  1,  1, 
+    //          -1, -1,  1,
+    //           1, -1,  1,
+    //           1,  1,  1,
+    //           0,  0,  1);
+    //b.part(
+    //    "face3",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(
+    //          -1, -1,  1,
+    //          -1, -1, -1,
+    //           1, -1, -1,
+    //           1, -1,  1,
+    //           0, -1,  0);
+    //b.part(
+    //    "face4",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(
+    //          -1,  1, -1,
+    //          -1,  1,  1,
+    //           1,  1,  1,
+    //           1,  1, -1,
+    //           0,  1,  0);
+    //b.part(
+    //    "face5",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(
+    //          -1, -1,  1,
+    //          -1,  1,  1,
+    //          -1,  1, -1,
+    //          -1, -1, -1,
+    //          -1,  0,  0);
+    //b.part(
+    //    "face6",
+    //    GL20.GL_TRIANGLES,
+    //    Usage.Position | Usage.Normal,
+    //    mtlDefault)
+    //  .rect(
+    //           1, -1, -1,
+    //           1,  1, -1,
+    //           1,  1,  1,
+    //           1, -1,  1,
+    //           1,  0,  0);
+    //  
+    //return b.end();
   }
   public void dispose () {
   }

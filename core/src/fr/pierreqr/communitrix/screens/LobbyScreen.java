@@ -3,6 +3,7 @@ package fr.pierreqr.communitrix.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -35,10 +36,11 @@ public class LobbyScreen implements Screen {
   private       GameObject            mdlInstCharacter;
   private       GameObject            mdlInstSphere;
   private final Array<GameObject>     instances         = new Array<GameObject>();
-  
-  private final Communitrix           communitrix;
-  
+  // UI Components.
   private       Label                 lblFPS;
+  
+  // Game instance cache.
+  private final Communitrix           communitrix;
   
   public LobbyScreen (final Communitrix communitrixInstance) {
     // Cache our game instance.
@@ -59,15 +61,17 @@ public class LobbyScreen implements Screen {
   private void initPostProcessing () {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    // Add bloom to post-processor.
-    Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
-    blm.setBloomIntesity  (0.7f);
-    blm.setBloomSaturation(0.8f);
-    postProMain.addEffect (blm);
-    // Add motion blur to post-processor.
-    MotionBlur blur       = new MotionBlur();
-    blur.setBlurOpacity   (0.80f);
-    postProMain.addEffect (blur);
+    if (communitrix.applicationType!=ApplicationType.WebGL) {
+      // Add bloom to post-processor.
+      Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
+      blm.setBloomIntesity  (0.7f);
+      blm.setBloomSaturation(0.8f);
+      postProMain.addEffect (blm);
+      // Add motion blur to post-processor.
+      MotionBlur blur       = new MotionBlur();
+      blur.setBlurOpacity   (0.70f);
+      postProMain.addEffect (blur);
+    }
   }
   private void initCamera () {
     // Set up our main camera, and position it.
@@ -89,7 +93,6 @@ public class LobbyScreen implements Screen {
   private void initFlatUI () {
     // Create the FPS label and place it on stage.
     lblFPS                        = new Label("", communitrix.uiSkin);
-    lblFPS.setPosition            (5, communitrix.viewHeight - 15);
     lblFPS.setColor               (Color.WHITE);
   }
   
@@ -205,10 +208,13 @@ public class LobbyScreen implements Screen {
     if (Gdx.input.isKeyPressed(Input.Keys.N) && mdlInstCharacter.nodes.get(0).hasChildren())
       mdlInstCharacter.detachAllNodes();
   }
+
   @Override public void resize (final int width, final int height) {
     // If a post-processor exists, update it.
     if (postProMain!=null)
       postProMain.rebind();
+    // Place flat UI.
+    lblFPS.setPosition            (5, communitrix.viewHeight - 15);
   }
 
   @Override public void pause () {

@@ -1,5 +1,6 @@
 package fr.pierreqr.communitrix.screens;
 
+import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
@@ -33,10 +34,14 @@ public class CombatScreen implements Screen {
   // Various object instances.
   private       GameObject            mdlInstCharacter;
   private final Array<GameObject>     instances         = new Array<GameObject>();
+  // UI Components.
+  private       Label                 lblInstructions, lblFPS;
   
+  // Game instance cache.
   private final Communitrix           communitrix;
   
-  private       Label                 lblInstructions, lblFPS;
+  // Temporaries.
+  private static int                  visibleCount;
   
   public CombatScreen (final Communitrix communitrixInstance) {
     // Cache our game instance.
@@ -57,15 +62,17 @@ public class CombatScreen implements Screen {
   private void initPostProcessing () {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    // Add bloom to post-processor.
-    Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
-    blm.setBloomIntesity  (0.7f);
-    blm.setBloomSaturation(0.8f);
-    postProMain.addEffect (blm);
-    // Add motion blur to post-processor.
-    MotionBlur blur       = new MotionBlur();
-    blur.setBlurOpacity   (0.80f);
-    postProMain.addEffect (blur);
+    if (communitrix.applicationType!=ApplicationType.WebGL) {
+      // Add bloom to post-processor.
+      Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
+      blm.setBloomIntesity  (0.7f);
+      blm.setBloomSaturation(0.8f);
+      postProMain.addEffect (blm);
+      // Add motion blur to post-processor.
+      MotionBlur blur       = new MotionBlur();
+      blur.setBlurOpacity   (0.70f);
+      postProMain.addEffect (blur);
+    }
   }
   private void initCamera () {
     // Set up our main camera, and position it.
@@ -87,10 +94,8 @@ public class CombatScreen implements Screen {
   private void initFlatUI () {
     // Create the FPS label and place it on stage.
     lblFPS                        = new Label("", communitrix.uiSkin);
-    lblFPS.setPosition            (5, 15);
     lblFPS.setColor               (Color.WHITE);
     lblInstructions               = new Label("Press ESC to change screen.", communitrix.uiSkin);
-    lblInstructions.setPosition   (5, communitrix.viewHeight);
     lblInstructions.setColor      (Color.ORANGE);
   }
   
@@ -162,16 +167,19 @@ public class CombatScreen implements Screen {
     // Mark the beginning of our rendering phase.
     communitrix.modelBatch.begin(camMain);
     // Render all instances in our batch array.
+    visibleCount  = 0;
     for (final GameObject instance : instances)
-      if (instance.isVisible(camMain))
+      if (instance.isVisible(camMain)) {
+        visibleCount++;
         communitrix.modelBatch.render(instance, envMain);
+      }
     // Rendering is over.
     communitrix.modelBatch.end();
     // Apply post-processing.
     postProMain.render();
     
     // Update flat UI.
-    lblFPS.setText            ("Combat FPS: " + Gdx.graphics.getFramesPerSecond());
+    lblFPS.setText            ("Combat FPS: " + Gdx.graphics.getFramesPerSecond() + ", Visible Objects: " + visibleCount);
     communitrix.uiStage.act   (delta);
     communitrix.uiStage.draw  ();
   }
@@ -232,6 +240,9 @@ public class CombatScreen implements Screen {
     // If a post-processor exists, update it.
     if (postProMain!=null)
       postProMain.rebind();
+    // Place flat UI.
+    lblFPS.setPosition            (5, 15);
+    lblInstructions.setPosition   (5, communitrix.viewHeight - 20);
   }
 
   @Override public void pause () {
