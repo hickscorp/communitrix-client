@@ -7,6 +7,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -22,7 +23,8 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.GameObject;
+import fr.pierreqr.communitrix.gameObjects.FuelCell;
+import fr.pierreqr.communitrix.gameObjects.GameObject;
 
 public class CombatScreen implements Screen {
 
@@ -50,8 +52,15 @@ public class CombatScreen implements Screen {
     initEnvironment       ();   // Environment dedicated initializer.
     initPostProcessing    ();   // Post-processing dedicated initializer.
     initCamera            ();   // Camera / Camera controller dedicated initializer.
-    initModelsAndInstances();   // Models / Instances dedicated initializer.
     initFlatUI            ();   // Flat UI initializer.
+    initModelsAndInstances();   // Models / Instances dedicated initializer.
+    
+    // Test our fuel cell.
+    Material      mtl       = new Material(ColorAttribute.createDiffuse(Color.WHITE));
+    Model         mdl       = communitrix.modelBuilder.createRect(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mtl, Usage.Position | Usage.Normal);
+    FuelCell      fc        = new FuelCell(mdl, 10, 10, 10, true);
+    instances.add           (fc);
+
   }
   private void initEnvironment () {
     // Set up the scene environment.
@@ -103,37 +112,37 @@ public class CombatScreen implements Screen {
     // Set the input controller.
     Gdx.input.setInputProcessor(camCtrlMain);
     
-    // Cache our cube model.
-    Model   mdlCube     = communitrix.getModel("Cube");
-    // Prepare a blending attribute for our cubes.
-    BlendingAttribute alphaBlend  = new BlendingAttribute();
-    // Create an array of cube for testing.
-    int   iTrans, jTrans;
-    float halfWidth     = Communitrix.CELL_DIMENSIONS.x*5/2.0f;
-    float halfHeight    = Communitrix.CELL_DIMENSIONS.y*5/2.0f;
-    float halfDepth     = Communitrix.CELL_DIMENSIONS.z*5/2.0f;
-    for (int i = 0; i<Communitrix.CELL_DIMENSIONS.x; ++i) {
-      iTrans  = i * 5;
-      for (int j = 0; j<Communitrix.CELL_DIMENSIONS.y; ++j) {
-        jTrans = j * 5;
-        for (int k = 0; k<Communitrix.CELL_DIMENSIONS.z; ++k) {
-          // Create a new cube instance and position it.
-          GameObject instance = new GameObject(mdlCube);
-          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
-          // Because our model might have different materials, reset them all to a diffuse color.
-          for (Material mat : instance.materials)
-            mat.set(
-                ColorAttribute.createDiffuse(
-                    1.0f/Communitrix.CELL_DIMENSIONS.x*i,
-                    1.0f/Communitrix.CELL_DIMENSIONS.y*j,
-                    1.0f/Communitrix.CELL_DIMENSIONS.z*k,
-                    0.70f
-                ), alphaBlend
-          );
-          instances.add(instance);
-        }
-      }
-    }
+//    // Cache our cube model.
+//    Model   mdlCube     = communitrix.getModel("Cube");
+//    // Prepare a blending attribute for our cubes.
+//    BlendingAttribute alphaBlend  = new BlendingAttribute();
+//    // Create an array of cube for testing.
+//    int   iTrans, jTrans;
+//    float halfWidth     = Communitrix.CELL_DIMENSIONS.x*5/2.0f;
+//    float halfHeight    = Communitrix.CELL_DIMENSIONS.y*5/2.0f;
+//    float halfDepth     = Communitrix.CELL_DIMENSIONS.z*5/2.0f;
+//    for (int i = 0; i<Communitrix.CELL_DIMENSIONS.x; ++i) {
+//      iTrans  = i * 5;
+//      for (int j = 0; j<Communitrix.CELL_DIMENSIONS.y; ++j) {
+//        jTrans = j * 5;
+//        for (int k = 0; k<Communitrix.CELL_DIMENSIONS.z; ++k) {
+//          // Create a new cube instance and position it.
+//          GameObject instance = new GameObject(mdlCube);
+//          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
+//          // Because our model might have different materials, reset them all to a diffuse color.
+//          for (Material mat : instance.materials)
+//            mat.set(
+//                ColorAttribute.createDiffuse(
+//                    1.0f/Communitrix.CELL_DIMENSIONS.x*i,
+//                    1.0f/Communitrix.CELL_DIMENSIONS.y*j,
+//                    1.0f/Communitrix.CELL_DIMENSIONS.z*k,
+//                    0.70f
+//                ), alphaBlend
+//          );
+//          instances.add(instance);
+//        }
+//      }
+//    }
     
     // Put our label on stage.
     communitrix.uiStage.addActor  (lblFPS);

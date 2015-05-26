@@ -3,6 +3,7 @@ package fr.pierreqr.communitrix.client;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.backends.gwt.GwtApplication;
 import com.badlogic.gdx.backends.gwt.GwtApplicationConfiguration;
+
 import fr.pierreqr.communitrix.Communitrix;
 
 public class HtmlLauncher extends GwtApplication {

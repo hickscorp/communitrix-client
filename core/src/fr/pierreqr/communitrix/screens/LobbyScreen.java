@@ -23,7 +23,7 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.GameObject;
+import fr.pierreqr.communitrix.gameObjects.GameObject;
 
 public class LobbyScreen implements Screen {
 

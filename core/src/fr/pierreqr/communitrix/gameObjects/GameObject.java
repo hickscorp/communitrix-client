@@ -1,4 +1,4 @@
-package fr.pierreqr.communitrix;
+package fr.pierreqr.communitrix.gameObjects;
 
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -23,8 +23,8 @@ public class GameObject extends ModelInstance {
   private final static  BoundingBox   tmpBounds     = new BoundingBox();
   
   public GameObject (Model model) {
-    super(model);
-    recomputeBounds();
+    super           (model);
+    recomputeBounds ();
   }
   public void recomputeBounds () {
     calculateBoundingBox    (tmpBounds);

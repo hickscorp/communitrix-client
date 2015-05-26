@@ -14,7 +14,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.bitfire.utils.ShaderLoader;
-
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.screens.CombatScreen;
@@ -46,9 +45,9 @@ public class Communitrix extends Game {
     // After starting the application, we can query for the desktop dimensions
     if (applicationType==ApplicationType.Desktop) {
       final DisplayMode dm  = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+      //Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
     }
-
+    
     // Configure assets etc.
     ShaderLoader.BasePath     = "shaders/";
 
@@ -57,13 +56,12 @@ public class Communitrix extends Game {
 
     // Force cache viewport size.
     resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
     // Instantiate shared members.
     uiStage                 = new Stage();
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
-
+        
     // Instantiate first game screen.
     lobbyScreenRequestingExit ();
   }
