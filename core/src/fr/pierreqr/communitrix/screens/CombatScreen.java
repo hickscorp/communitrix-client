@@ -35,6 +35,8 @@ public class CombatScreen implements Screen {
   private       PostProcessor         postProMain;
   // Various object instances.
   private       GameObject            mdlInstCharacter;
+  private final Array<FuelCell>       fuelCellInstances = new Array<FuelCell>();
+  private       int                   randomizeId       = -1;
   private final Array<GameObject>     instances         = new Array<GameObject>();
   // UI Components.
   private       Label                 lblInstructions, lblFPS;
@@ -58,9 +60,15 @@ public class CombatScreen implements Screen {
     // Test our fuel cell.
     Material      mtl       = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     Model         mdl       = communitrix.modelBuilder.createRect(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mtl, Usage.Position | Usage.Normal);
-    FuelCell      fc        = new FuelCell(mdl, 10, 10, 10, true);
-    instances.add           (fc);
-
+    
+    for (int x = 0; x < 5; x ++)
+      for (int y = 0; y < 5; y ++)
+        for (int z = 0; z < 5; z ++) {
+          FuelCell    another     = new FuelCell(mdl, 5, 5, 5, true);
+          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
+          fuelCellInstances.add   (another);
+          instances.add           (another);
+        }
   }
   private void initEnvironment () {
     // Set up the scene environment.
@@ -171,6 +179,15 @@ public class CombatScreen implements Screen {
     
     // Process user inputs.
     handleInputs(delta);
+    if (randomizeId>-1) {
+      FuelCell      fc  = fuelCellInstances.get(randomizeId);
+      fc.clear          ();
+      fc.randomize      ();
+      fc.updateMesh     ();
+      randomizeId++;
+      if (randomizeId>=fuelCellInstances.size)
+        randomizeId     = -1;
+    }
     
     // Capture FBO for post-processing.
     postProMain.capture();
@@ -197,10 +214,13 @@ public class CombatScreen implements Screen {
     // Update camera controller.
     camCtrlMain.update  ();
     
+    // Randomize fuel cell.
+    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER))
+      randomizeId   = 0;
+    
     // Screen change.
-    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
       communitrix.combatScreenRequestingExit();
-    }
     
     // Move character forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))
