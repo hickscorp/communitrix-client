@@ -31,7 +31,7 @@ public class FuelCell extends GameObject {
     for (int x=0; x<width; ++x)
       for (int y=0; y<height; ++y)
         for (int z=0; z<depth; ++z)
-          contents[x][y][z]     = rand.nextInt(100)>90 ? 1 : 0;
+          contents[x][y][z]     = rand.nextInt(100)>95 ? 1 : 0;
   }
   public void clear () {
     // Remove superfluous nodes.
