@@ -25,9 +25,10 @@ import fr.pierreqr.communitrix.screens.LobbyScreen;
 
 public class Communitrix extends Game {
   // Constants.
-  public  static final  Vector3   CELL_DIMENSIONS   = new Vector3(5, 5, 5);
-  public  static final  float     TRANSLATION_SPEED = 20.0f;
-  public  static final  float     ROTATION_SPEED    = 120.0f;
+  public  static final  Vector3   CELL_DIMENSIONS       = new Vector3(5, 5, 5);
+  public  static final  float     TRANSLATION_SPEED     = 20.0f;
+  public  static final  float     ROTATION_SPEED        = 120.0f;
+  public  static final  float     CELL_COMPONENT_RADIUS = 0.5f;
 
   // Shared members.
   public          ApplicationType applicationType;

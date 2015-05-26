@@ -55,16 +55,6 @@ public class CombatScreen implements Screen {
     initCamera            ();   // Camera / Camera controller dedicated initializer.
     initFlatUI            ();   // Flat UI initializer.
     initModelsAndInstances();   // Models / Instances dedicated initializer.
-    
-    // Test our fuel cell.
-    for (int x = 0; x < 10; x ++)
-      for (int y = 0; y < 10; y ++)
-        for (int z = 0; z < 10; z ++) {
-          FuelCell    another     = new FuelCell(5, 5, 5, true);
-          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
-          fuelCellInstances.add   (another);
-          instances.add           (another);
-        }
   }
   private void initEnvironment () {
     // Set up the scene environment.
@@ -149,13 +139,28 @@ public class CombatScreen implements Screen {
 //      }
 //    }
     
+    // Test our fuel cell.
+    for (int x = 0; x < 10; x ++)
+      for (int y = 0; y < 10; y ++)
+        for (int z = 0; z < 10; z ++) {
+          FuelCell    another     = new FuelCell(5, 5, 5, true);
+          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
+          fuelCellInstances.add   (another);
+          instances.add           (another);
+        }
+
+    
     // Put our label on stage.
     communitrix.uiStage.addActor  (lblFPS);
     communitrix.uiStage.addActor  (lblInstructions);
   }
   @Override public void hide () {
+    // Remove all fuel cells.
+    for (FuelCell fc : fuelCellInstances)
+      fc.dispose();
+    fuelCellInstances.clear();
     // Remove all instances except our character.
-    instances.removeRange(1, instances.size - 2);
+    instances.removeRange(1, instances.size - 1);
   }
   
   @Override public void dispose () {

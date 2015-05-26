@@ -14,6 +14,7 @@ public class FuelCell extends GameObject {
   // Internal components.
   public          int[][][]       contents;
   public          int             width, height, depth;
+  public          Model           model;
   // "Empty" model to start from.
   public static   Model           dummyModel;
   // Random generator.
@@ -57,12 +58,11 @@ public class FuelCell extends GameObject {
       node.removeChild(node.getChild(0));
   }
   public void updateMesh () {
-    ModelBuilder  b       = new ModelBuilder();
-    final Node    node    = nodes.get(0);
-    final float   u       = 0.5f;
+    final Node          node    = nodes.get(0);
+    final float         radius  = Communitrix.CELL_COMPONENT_RADIUS;
     
-    b.begin();
-    MeshPartBuilder part  = b.part(
+    Communitrix.getInstance().modelBuilder.begin();
+    MeshPartBuilder part  = Communitrix.getInstance().modelBuilder.part(
         "mainPart",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
@@ -75,50 +75,50 @@ public class FuelCell extends GameObject {
           if (contents[x][y][z]!=0) {
             // Nothing on the left.
             if (x==0 || contents[x-1][y][z]==0) {
-              part.rect(  x-u, y-u, z+u,
-                          x-u, y+u, z+u,
-                          x-u, y+u, z-u,
-                          x-u, y-u, z-u,
+              part.rect(  x-radius, y-radius, z+radius,
+                          x-radius, y+radius, z+radius,
+                          x-radius, y+radius, z-radius,
+                          x-radius, y-radius, z-radius,
                            -1,   0,   0);
             }
             // Nothing on the right.
             if (x==width-1 || contents[x+1][y][z]==0) {
-              part.rect(  x+u, y-u, z-u,
-                          x+u, y+u, z-u,
-                          x+u, y+u, z+u,
-                          x+u, y-u, z+u,
+              part.rect(  x+radius, y-radius, z-radius,
+                          x+radius, y+radius, z-radius,
+                          x+radius, y+radius, z+radius,
+                          x+radius, y-radius, z+radius,
                             1,  0,   0);
             }
             // Nothing on the top.
             if (y==0 || contents[x][y-1][z]==0 ) {
-              part.rect(  x+u, y-u, z+u,
-                          x-u, y-u, z+u,
-                          x-u, y-u, z-u,
-                          x+u, y-u, z-u,
+              part.rect(  x+radius, y-radius, z+radius,
+                          x-radius, y-radius, z+radius,
+                          x-radius, y-radius, z-radius,
+                          x+radius, y-radius, z-radius,
                             0,   0,  -1);
             }
             // Nothing on the bottom.
             if (y==height-1 || contents[x][y+1][z]==0) {
-              part.rect(  x+u, y+u, z-u,
-                          x-u, y+u, z-u,
-                          x-u, y+u, z+u,
-                          x+u, y+u, z+u,
+              part.rect(  x+radius, y+radius, z-radius,
+                          x-radius, y+radius, z-radius,
+                          x-radius, y+radius, z+radius,
+                          x+radius, y+radius, z+radius,
                             0,   0,   1);
             }
             // Nothing in front.
             if (z==0 || contents[x][y][z-1]==0) {
-              part.rect(  x+u, y-u, z-u,
-                          x-u, y-u, z-u,
-                          x-u, y+u, z-u,
-                          x+u, y+u, z-u,
+              part.rect(  x+radius, y-radius, z-radius,
+                          x-radius, y-radius, z-radius,
+                          x-radius, y+radius, z-radius,
+                          x+radius, y+radius, z-radius,
                             0,   1,   0);
             }
             // Nothing behind it.
             if (z==depth-1 || contents[x][y][z+1]==0) {
-              part.rect(  x+u, y+u, z+u,
-                          x-u, y+u, z+u,
-                          x-u, y-u, z+u,
-                          x+u, y-u, z+u,
+              part.rect(  x+radius, y+radius, z+radius,
+                          x-radius, y+radius, z+radius,
+                          x-radius, y-radius, z+radius,
+                          x+radius, y-radius, z+radius,
                             0,  -1,   0);
             }
           }
@@ -126,7 +126,12 @@ public class FuelCell extends GameObject {
       }
     }
     
-    
-    node.addChild(b.end().nodes.get(0));
+    final Model   newModel  = Communitrix.getInstance().modelBuilder.end();
+    if (model!=null)        model.dispose();
+    node.addChild           ( ( model = newModel ).nodes.get(0));
+  }
+  
+  public void dispose () {
+    if (model!=null)  model.dispose();
   }
 }
