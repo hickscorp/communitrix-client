@@ -12,8 +12,8 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -65,8 +65,9 @@ public class CombatScreen implements Screen {
   private void initEnvironment () {
     // Set up the scene environment.
     envMain               = new Environment();
-    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.9f, 0.9f, 0.9f, 1.0f));
+    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.5f, 0.5f, 0.5f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
+    envMain.add           (new DirectionalLight().set(Color.WHITE, -1f, -0.8f, -0.2f));
   }
   private void initPostProcessing () {
     // Set up the main post-processor.
@@ -74,8 +75,8 @@ public class CombatScreen implements Screen {
     if (communitrix.applicationType!=ApplicationType.WebGL) {
       // Add bloom to post-processor.
       Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
-      blm.setBloomIntesity  (0.7f);
-      blm.setBloomSaturation(0.8f);
+      blm.setBloomIntesity  (0.6f);
+      blm.setBloomSaturation(0.7f);
       postProMain.addEffect (blm);
       // Add motion blur to post-processor.
       MotionBlur blur       = new MotionBlur();

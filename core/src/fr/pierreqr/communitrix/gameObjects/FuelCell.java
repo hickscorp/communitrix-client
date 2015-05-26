@@ -5,14 +5,11 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.model.Node;
-import com.badlogic.gdx.graphics.g3d.model.NodePart;
-import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 
 public class FuelCell extends GameObject {
@@ -34,7 +31,7 @@ public class FuelCell extends GameObject {
     for (int x=0; x<width; ++x)
       for (int y=0; y<height; ++y)
         for (int z=0; z<depth; ++z)
-          contents[x][y][z]     = rand.nextInt(2);
+          contents[x][y][z]     = rand.nextInt(100)>90 ? 1 : 0;
   }
   public void clear () {
     // Remove superfluous nodes.
