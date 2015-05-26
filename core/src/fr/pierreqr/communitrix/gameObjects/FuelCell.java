@@ -1,37 +1,51 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.Random;
-
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
-import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+
+import fr.pierreqr.communitrix.Communitrix;
 
 public class FuelCell extends GameObject {
   // Internal components.
   public          int[][][]       contents;
   public          int             width, height, depth;
+  // "Empty" model to start from.
+  public static   Model           dummyModel;
   // Random generator.
   private static  Random          rand                    = new Random();
   
-  public FuelCell (final Model model, final int w, final int h, final int d, final boolean randomize) {
-    super           (model);
+  public FuelCell (final int w, final int h, final int d, final boolean randomize) {
+    super           (initDummyModel());
     contents        = new int[width = w][height = h][depth = d];
-    clear           ();
-    if (randomize)  randomize();
-    updateMesh      ();
+    if (randomize)
+      randomize       ();
+    else {
+      clear           ();
+      updateMesh      ();
+    }
+  }
+  private static Model initDummyModel () {
+    if ( dummyModel==null ) {
+      Communitrix ctx = Communitrix.getInstance();
+      dummyModel      = ctx.modelBuilder.createRect(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ctx.defaultMaterial, Usage.Position | Usage.Normal);
+    }
+    return dummyModel;
   }
   
   public void randomize () {
+    // Remove any existing part from the model instance.
+    clear       ();
     for (int x=0; x<width; ++x)
       for (int y=0; y<height; ++y)
         for (int z=0; z<depth; ++z)
-          contents[x][y][z]     = rand.nextInt(100)>95 ? 1 : 0;
+          contents[x][y][z]     = rand.nextInt(100)>60 ? 1 : 0;
+    // Update the mesh.
+    updateMesh  ();
   }
   public void clear () {
     // Remove superfluous nodes.
@@ -44,7 +58,6 @@ public class FuelCell extends GameObject {
   }
   public void updateMesh () {
     ModelBuilder  b       = new ModelBuilder();
-    Material      mtl     = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     final Node    node    = nodes.get(0);
     final float   u       = 0.5f;
     
@@ -53,7 +66,7 @@ public class FuelCell extends GameObject {
         "mainPart",
         GL20.GL_TRIANGLES,
         Usage.Position | Usage.Normal,
-        mtl);
+        Communitrix.getInstance().defaultMaterial);
     
     for (int x=0; x<width; ++x) {
       for (int y=0; y<height; ++y) {

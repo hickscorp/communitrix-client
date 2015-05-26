@@ -7,13 +7,17 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.bitfire.utils.ShaderLoader;
+
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.screens.CombatScreen;
@@ -31,21 +35,28 @@ public class Communitrix extends Game {
   public          Skin            uiSkin;
   public          ModelBuilder    modelBuilder;
   public          ModelBatch      modelBatch;
+  public          Material        defaultMaterial;
   public          int             viewWidth, viewHeight;
 
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
   private         HashMap<String, Model>          models          = new HashMap<String, Model>();
+  private static  Communitrix                     instance;
 
   private         Screen          combatScreen, lobbyScreen;
-
+  
+  public static Communitrix getInstance() {
+    return instance;
+  }
+  
   @Override public void create () {
+    instance                = this;
     // Cache application type.
     applicationType         = Gdx.app.getType();
     // After starting the application, we can query for the desktop dimensions
     if (applicationType==ApplicationType.Desktop) {
-      final DisplayMode dm  = Gdx.graphics.getDesktopDisplayMode();
-      //Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
     }
     
     // Configure assets etc.
@@ -61,6 +72,7 @@ public class Communitrix extends Game {
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
+    defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
         
     // Instantiate first game screen.
     lobbyScreenRequestingExit ();

@@ -7,7 +7,6 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -58,13 +57,10 @@ public class CombatScreen implements Screen {
     initModelsAndInstances();   // Models / Instances dedicated initializer.
     
     // Test our fuel cell.
-    Material      mtl       = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    Model         mdl       = communitrix.modelBuilder.createRect(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, mtl, Usage.Position | Usage.Normal);
-    
-    for (int x = 0; x < 5; x ++)
-      for (int y = 0; y < 5; y ++)
-        for (int z = 0; z < 5; z ++) {
-          FuelCell    another     = new FuelCell(mdl, 5, 5, 5, true);
+    for (int x = 0; x < 10; x ++)
+      for (int y = 0; y < 10; y ++)
+        for (int z = 0; z < 10; z ++) {
+          FuelCell    another     = new FuelCell(5, 5, 5, true);
           another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
           fuelCellInstances.add   (another);
           instances.add           (another);
@@ -181,9 +177,7 @@ public class CombatScreen implements Screen {
     handleInputs(delta);
     if (randomizeId>-1) {
       FuelCell      fc  = fuelCellInstances.get(randomizeId);
-      fc.clear          ();
       fc.randomize      ();
-      fc.updateMesh     ();
       randomizeId++;
       if (randomizeId>=fuelCellInstances.size)
         randomizeId     = -1;

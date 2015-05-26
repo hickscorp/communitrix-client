@@ -1,20 +1,13 @@
 package fr.pierreqr.communitrix.modelTemplaters;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
-import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import fr.pierreqr.communitrix.Communitrix;
 
 public class CubeModelTemplater implements ModelTemplater {
-  private static    Material    mtlDefault    = null;
-  
   public Model build (final ModelBuilder b) {
-    if (mtlDefault==null)
-      mtlDefault    = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    return b.createBox(2, 2, 2, mtlDefault, Usage.Position | Usage.Normal);
+    return b.createBox(2, 2, 2, Communitrix.getInstance().defaultMaterial, Usage.Position | Usage.Normal);
     //b.begin();
     //b.part(
     //    "face1",
