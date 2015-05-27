@@ -125,7 +125,7 @@ public class FuelCell extends GameObject {
         }
       }
     }
-    
+    recomputeBounds();
     final Model   newModel  = Communitrix.getInstance().modelBuilder.end();
     if (model!=null)        model.dispose();
     node.addChild           ( ( model = newModel ).nodes.get(0));
