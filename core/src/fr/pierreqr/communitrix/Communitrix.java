@@ -15,12 +15,10 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.bitfire.utils.ShaderLoader;
 
 import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
-import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
@@ -39,7 +37,6 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
 
   // Shared members.
   public          ApplicationType   applicationType;
-  public          Stage             uiStage;
   public          Skin              uiSkin;
   public          ModelBuilder      modelBuilder;
   public          ModelBatch        modelBatch;
@@ -78,7 +75,6 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
     // Force cache viewport size.
     resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Instantiate shared members.
-    uiStage                 = new Stage();
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
@@ -107,19 +103,14 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   @Override public void resize (final int width, final int height) {
     viewWidth       = width;
     viewHeight      = height;
-    // Update flat UI.
-    if (uiStage!=null)
-      uiStage.getViewport().update(viewWidth, viewHeight, true);
     // Propagate change to current screen instance.
     super.resize(width, height);
   }
 
   public void combatScreenRequestingExit () {
-    uiStage.clear();
     setScreen(lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen);
   }
   public void lobbyScreenRequestingExit () {
-    uiStage.clear();
     setScreen(combatScreen==null ? combatScreen = new CombatScreen(this) : combatScreen);
   }
 
@@ -161,7 +152,6 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   @Override
   public void onServerMessage (ICBase command) {
     switch (command.code) {
-
       // Server is reporting an error.
       case ICError.CODE:
         Gdx.app.log   ("Communitrix", "The server reported an error: " + ((ICError)command).reason);
@@ -171,11 +161,6 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
       case ICPosition.CODE: {
         final ICPosition pos   = (ICPosition)command;
         if (getScreen()==combatScreen) {
-          Tween
-            .to(combatScreen.mdlInstCharacter, GameObjectAccessor.POSITION_XYZ, 1.0f)
-            .ease(aurelienribon.tweenengine.equations.Quad.INOUT)
-            .target(pos.x, pos.y, pos.z)
-            .start(combatScreen.tweener);
           Tween
             .to(combatScreen.camMain, CameraAccessor.POSITION_XYZ, 1.0f)
             .ease(aurelienribon.tweenengine.equations.Quad.INOUT)

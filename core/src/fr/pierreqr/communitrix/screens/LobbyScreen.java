@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
@@ -28,6 +29,7 @@ import fr.pierreqr.communitrix.gameObjects.GameObject;
 public class LobbyScreen implements Screen {
 
   // Scene setup related objects.
+  public        Stage                 uiStage;
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
   private       CameraInputController camCtrlMain;
@@ -91,6 +93,8 @@ public class LobbyScreen implements Screen {
     instances.add       (mdlInstCharacter);
   }
   private void initFlatUI () {
+    // Prepare stage.
+    uiStage                       = new Stage();
     // Create the FPS label and place it on stage.
     lblFPS                        = new Label("", communitrix.uiSkin);
     lblFPS.setColor               (Color.WHITE);
@@ -113,9 +117,11 @@ public class LobbyScreen implements Screen {
       mat.set(ColorAttribute.createDiffuse(0.5f, 0.5f, 0.5f, 0.7f), alphaBlend);
     
     // Put our label on stage.
-    communitrix.uiStage.addActor  (lblFPS);
+    uiStage.addActor    (lblFPS);
   }
   @Override public void hide () {
+    // Clear flat UI.
+    uiStage.clear();
     // Remove all instances except our character.
     instances.removeRange (1, instances.size - 1);
   }
@@ -153,8 +159,8 @@ public class LobbyScreen implements Screen {
     
     // Update flat UI.
     lblFPS.setText            ("Lobby FPS: " + Gdx.graphics.getFramesPerSecond());
-    communitrix.uiStage.act   (delta);
-    communitrix.uiStage.draw  ();
+    uiStage.act               (delta);
+    uiStage.draw              ();
   }
   private void handleInputs (final float delta) {
     // Update camera controller.
@@ -210,11 +216,12 @@ public class LobbyScreen implements Screen {
   }
 
   @Override public void resize (final int width, final int height) {
+    // Update flat UI.
+    if (uiStage!=null)      uiStage.getViewport().update(width, height, true);
     // If a post-processor exists, update it.
-    if (postProMain!=null)
-      postProMain.rebind();
+    if (postProMain!=null)  postProMain.rebind();
     // Place flat UI.
-    lblFPS.setPosition            (5, communitrix.viewHeight - 15);
+    lblFPS.setPosition      (5, communitrix.viewHeight - 15);
   }
 
   @Override public void pause () {
