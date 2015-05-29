@@ -5,7 +5,6 @@ import java.util.HashMap;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -15,12 +14,10 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.utils.JsonWriter.OutputType;
 import com.bitfire.utils.ShaderLoader;
 
 import fr.pierreqr.communitrix.commands.ICBase;
 import fr.pierreqr.communitrix.commands.ICError;
-import fr.pierreqr.communitrix.commands.OCBase;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
@@ -59,22 +56,18 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   @Override public void create () {
     instance                = this;
     // Cache application type.
-    applicationType         = Gdx.app.getType();
-    // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop) {
-      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-    }
+//    applicationType         = Gdx.app.getType();
+//    // After starting the application, we can query for the desktop dimensions
+//    if (applicationType==ApplicationType.Desktop) {
+//      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+//      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+//    }
     
     // Configure assets etc.
     ShaderLoader.BasePath     = "shaders/";
 
     // Register templaters.
     registerModelTemplater    ("Cube", new CubeModelTemplater());
-
-    // Set up our JSON codecs.
-    ICBase.decoder.setOutputType(OutputType.json);
-    OCBase.encoder.setOutputType(OutputType.json);
 
     // Force cache viewport size.
     resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -93,8 +86,9 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
 
   // Occurs when the game exits.
   @Override public void dispose () {
-    if (combatScreen!=null)   combatScreen.dispose();
-    if (lobbyScreen!=null)    lobbyScreen.dispose();
+    if (networkingManager!=null)  networkingManager.stop();
+    if (combatScreen!=null)       combatScreen.dispose();
+    if (lobbyScreen!=null)        lobbyScreen.dispose();
     clearCaches();
     modelBatch.dispose();
   }
@@ -117,7 +111,6 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   public void combatScreenRequestingExit () {
     uiStage.clear();
     setScreen(lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen);
-    networkingManager.stop();
   }
   public void lobbyScreenRequestingExit () {
     uiStage.clear();

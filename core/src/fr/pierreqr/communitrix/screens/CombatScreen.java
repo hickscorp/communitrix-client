@@ -22,6 +22,7 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.commands.OCJoinCombat;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 
@@ -200,8 +201,10 @@ public class CombatScreen implements Screen {
     // Process user inputs.
     handleInputs(delta);
     if (randomizeId>-1) {
-      FuelCell      fc  = fuelCellInstances.get(randomizeId);
-      fc.randomize      ();
+      if (fuelCellInstances.size>0) {
+        FuelCell      fc  = fuelCellInstances.get(randomizeId);
+        fc.randomize      ();
+      }
       randomizeId++;
       if (randomizeId>=fuelCellInstances.size)
         randomizeId     = -1;
@@ -237,8 +240,10 @@ public class CombatScreen implements Screen {
       randomizeId   = 0;
     
     // Screen change.
-    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
+    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+      communitrix.networkingManager.send(new OCJoinCombat("CBT1"));
       communitrix.combatScreenRequestingExit();
+    }
     
     // Move character forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))

@@ -10,6 +10,7 @@ import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
 
 import fr.pierreqr.communitrix.commands.ICBase;
+import fr.pierreqr.communitrix.commands.OCBase;
 import fr.pierreqr.communitrix.commands.OCJoinCombat;
 
 public class NetworkingManager implements Runnable {
@@ -46,13 +47,13 @@ public class NetworkingManager implements Runnable {
     netInput              = socket.getInputStream();
     netOutput             = socket.getOutputStream();
     
-    // Send a join game command.
     try {
+      Gdx.app.log             ("NetworkingManager", "Sending...");
       netOutput.write         (new OCJoinCombat("CBT1").toJson());
     } catch (IOException e) {
       e.printStackTrace();
     }
-    
+
     String          data       = "";
     int             enclosed   = 0;
     char            b;
@@ -70,14 +71,20 @@ public class NetworkingManager implements Runnable {
       else if (b=='}' || b==']')  --enclosed;
       if (enclosed==0) {
         final ICBase  cmd   = ICBase.fromJson(data);
-        Gdx.app.postRunnable(new Runnable() {
-          @Override public void run() { delegate.onServerMessage(cmd); }
-        });
         data                      = "";
+        Gdx.app.postRunnable(new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); } });
       }
     }
     Gdx.app.error("Communitrix", "Disposing network!");
     socket.dispose();
   }
-
+  
+  public void send (final OCBase command) {
+    try {
+      Gdx.app.log             ("NetworkingManager", "Sending...");
+      netOutput.write         (command.toJson());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 }
