@@ -1,6 +1,5 @@
 package fr.pierreqr.communitrix.screens;
 
-import java.util.Random;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;

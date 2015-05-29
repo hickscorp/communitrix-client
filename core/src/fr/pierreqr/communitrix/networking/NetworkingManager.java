@@ -10,7 +10,6 @@ import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
 
 import fr.pierreqr.communitrix.commands.ICBase;
-import fr.pierreqr.communitrix.commands.ICError;
 import fr.pierreqr.communitrix.commands.OCJoinCombat;
 
 public class NetworkingManager implements Runnable {
