@@ -3,7 +3,8 @@
 <module rename-to="html">
 	<inherits name='com.badlogic.gdx.backends.gdx_backends_gwt' />
 	<inherits name='com.kotcrab.vis.vis-ui' />
+  <inherits name='aurelienribon.tweenengine'/>
 	<inherits name='Communitrix' />
-	<entry-point class='fr.pierreqr.communitrix.client.HtmlLauncher' />	
+	<entry-point class='fr.pierreqr.communitrix.client.HtmlLauncher' />
 	<set-configuration-property name="gdx.assetpath" value="../android/assets" />
 </module>

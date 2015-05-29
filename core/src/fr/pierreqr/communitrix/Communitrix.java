@@ -2,6 +2,10 @@ package fr.pierreqr.communitrix;
 
 import java.util.HashMap;
 
+import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.equations.Bounce;
+import aurelienribon.tweenengine.equations.Quad;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -16,8 +20,10 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.bitfire.utils.ShaderLoader;
 
-import fr.pierreqr.communitrix.commands.ICBase;
-import fr.pierreqr.communitrix.commands.ICError;
+import fr.pierreqr.communitrix.commands.in.ICBase;
+import fr.pierreqr.communitrix.commands.in.ICError;
+import fr.pierreqr.communitrix.commands.in.ICPosition;
+import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
@@ -153,13 +159,25 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   }
 
   @Override
-  public void onServerMessage(ICBase command) {
-    final ICError err   = (ICError)command;
-    if (getScreen()==combatScreen) {
-      combatScreen
-        .mdlInstCharacter
-        .transform
-        .setTranslation(new Vector3(10.0f / 100.0f * err.code, 0, 0));
+  public void onServerMessage (ICBase command) {
+    switch (command.code) {
+
+      // Server is reporting an error.
+      case ICError.CODE:
+        Gdx.app.log   ("Communitrix", "The server reported an error: " + ((ICError)command).reason);
+        break;
+
+      // Server sent us a position update.
+      case ICPosition.CODE: {
+        final ICPosition pos   = (ICPosition)command;
+        if (getScreen()==combatScreen) {
+          Tween
+            .to(combatScreen.mdlInstCharacter, GameObjectAccessor.POSITION_XYZ, 0.9f)
+            .ease(Quad.INOUT)
+            .target(pos.x, pos.y, pos.z)
+            .start(combatScreen.tweener);
+        }
+      }
     }
   }
 }

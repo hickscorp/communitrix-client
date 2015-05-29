@@ -3,12 +3,10 @@
 <module rename-to="html">
 	<inherits name='com.badlogic.gdx.backends.gdx_backends_gwt' />
 	<inherits name='com.kotcrab.vis.vis-ui' />
-
-    <inherits name='fr.pierreqr.communitrix.GdxDefinition' />
-    
-    <collapse-all-properties />
-    
-	<add-linker name="xsiframe"/>	
+	<inherits name='aurelienribon.tweenengine'/>
+  <inherits name='fr.pierreqr.communitrix.GdxDefinition' />
+  <collapse-all-properties />
+	<add-linker name="xsiframe"/>
 	<set-configuration-property name="devModeRedirectEnabled" value="true"/>
-	<set-configuration-property name='xsiframe.failIfScriptTag' value='FALSE'/>	
+	<set-configuration-property name='xsiframe.failIfScriptTag' value='FALSE'/>
 </module>

@@ -1,5 +1,8 @@
 package fr.pierreqr.communitrix.screens;
 
+import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.TweenManager;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -22,23 +25,21 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.commands.OCJoinCombat;
+import fr.pierreqr.communitrix.commands.out.OCJoinCombat;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
+import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 
 public class CombatScreen implements Screen {
   public final static int   MODE_VIEW_HOLOGRAM    = 1;
   public final static int   MODE_MODELING         = 2;
   public final static int   WAITING               = 4;
   
-  // Scene setup related objects.
-  private       int                   currentMode = MODE_VIEW_HOLOGRAM;
-  private       int                   targetMode  = MODE_VIEW_HOLOGRAM;
-  
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
   private       CameraInputController camCtrlMain;
   private       PostProcessor         postProMain;
+  public        TweenManager          tweener;
   // Various object instances.
   public        GameObject            mdlInstCharacter;
   private final Array<FuelCell>       fuelCellInstances = new Array<FuelCell>();
@@ -56,12 +57,16 @@ public class CombatScreen implements Screen {
   public CombatScreen (final Communitrix communitrixInstance) {
     // Cache our game instance.
     communitrix           = communitrixInstance;
-    // Set up our FPS logging object.
+    initTweening          ();   // Set up the motion tween engine.
     initEnvironment       ();   // Environment dedicated initializer.
     initPostProcessing    ();   // Post-processing dedicated initializer.
     initCamera            ();   // Camera / Camera controller dedicated initializer.
     initFlatUI            ();   // Flat UI initializer.
     initModelsAndInstances();   // Models / Instances dedicated initializer.
+  }
+  private void initTweening () {
+    Tween.registerAccessor(GameObject.class, new GameObjectAccessor());
+    tweener               = new TweenManager();
   }
   private void initEnvironment () {
     // Set up the scene environment.
@@ -187,16 +192,8 @@ public class CombatScreen implements Screen {
     Gdx.gl.glEnable(GL20.GL_CULL_FACE);
     Gdx.gl.glCullFace(GL20.GL_BACK);
     
-    if ( currentMode!=targetMode) {
-      switch (targetMode) {
-        case MODE_VIEW_HOLOGRAM:
-          // Move camera. Use a different input handling function.
-          break;
-
-        default :
-          break;
-      }
-    }
+    // Update any pending tweening.
+    tweener.update        (delta);
     
     // Process user inputs.
     handleInputs(delta);
@@ -301,10 +298,5 @@ public class CombatScreen implements Screen {
   @Override public void pause () {
   }
   @Override public void resume () {
-  }
-  
-  public void startTransitioningToMode (final int newMode) {
-    // ...
-    targetMode    = newMode;
   }
 }

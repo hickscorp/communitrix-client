@@ -9,9 +9,9 @@ import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
 
-import fr.pierreqr.communitrix.commands.ICBase;
-import fr.pierreqr.communitrix.commands.OCBase;
-import fr.pierreqr.communitrix.commands.OCJoinCombat;
+import fr.pierreqr.communitrix.commands.in.ICBase;
+import fr.pierreqr.communitrix.commands.out.OCBase;
+import fr.pierreqr.communitrix.commands.out.OCJoinCombat;
 
 public class NetworkingManager implements Runnable {
   public interface Delegate {
@@ -80,11 +80,13 @@ public class NetworkingManager implements Runnable {
   }
   
   public void send (final OCBase command) {
-    try {
-      Gdx.app.log             ("NetworkingManager", "Sending...");
-      netOutput.write         (command.toJson());
-    } catch (IOException e) {
-      e.printStackTrace();
+    synchronized (netOutput) {
+      try {
+        Gdx.app.log             ("NetworkingManager", "Sending...");
+        netOutput.write         (command.toJson());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 }
