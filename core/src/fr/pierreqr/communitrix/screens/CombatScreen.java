@@ -1,5 +1,6 @@
 package fr.pierreqr.communitrix.screens;
 
+import java.util.Random;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -26,14 +27,20 @@ import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 
 public class CombatScreen implements Screen {
-
+  public final static int   MODE_VIEW_HOLOGRAM    = 1;
+  public final static int   MODE_MODELING         = 2;
+  public final static int   WAITING               = 4;
+  
   // Scene setup related objects.
+  private       int                   currentMode = MODE_VIEW_HOLOGRAM;
+  private       int                   targetMode  = MODE_VIEW_HOLOGRAM;
+  
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
   private       CameraInputController camCtrlMain;
   private       PostProcessor         postProMain;
   // Various object instances.
-  private       GameObject            mdlInstCharacter;
+  public        GameObject            mdlInstCharacter;
   private final Array<FuelCell>       fuelCellInstances = new Array<FuelCell>();
   private       int                   randomizeId       = -1;
   private final Array<GameObject>     instances         = new Array<GameObject>();
@@ -139,15 +146,16 @@ public class CombatScreen implements Screen {
 //      }
 //    }
     
-    // Test our fuel cell.
-    for (int x = 0; x < 10; x ++)
-      for (int y = 0; y < 10; y ++)
-        for (int z = 0; z < 10; z ++) {
-          FuelCell    another     = new FuelCell(5, 5, 5, true);
-          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
-          fuelCellInstances.add   (another);
-          instances.add           (another);
-        }
+//    Random  rnd   = new Random();
+//    // Test our fuel cell.
+//    for (int x = 0; x < 10; x ++)
+//      for (int y = 0; y < 10; y ++)
+//        for (int z = 0; z < 10; z ++) {
+//          FuelCell    another     = new FuelCell(5, 5, 5, rnd.nextInt(4)+1, true);
+//          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
+//          fuelCellInstances.add   (another);
+//          instances.add           (another);
+//        }
 
     
     // Put our label on stage.
@@ -160,7 +168,8 @@ public class CombatScreen implements Screen {
       fc.dispose();
     fuelCellInstances.clear();
     // Remove all instances except our character.
-    instances.removeRange(1, instances.size - 1);
+    if (instances.size>1)
+      instances.removeRange(1, instances.size - 1);
   }
   
   @Override public void dispose () {
@@ -177,6 +186,17 @@ public class CombatScreen implements Screen {
     // Enable back-face culling.
     Gdx.gl.glEnable(GL20.GL_CULL_FACE);
     Gdx.gl.glCullFace(GL20.GL_BACK);
+    
+    if ( currentMode!=targetMode) {
+      switch (targetMode) {
+        case MODE_VIEW_HOLOGRAM:
+          // Move camera. Use a different input handling function.
+          break;
+
+        default :
+          break;
+      }
+    }
     
     // Process user inputs.
     handleInputs(delta);
@@ -277,5 +297,10 @@ public class CombatScreen implements Screen {
   @Override public void pause () {
   }
   @Override public void resume () {
+  }
+  
+  public void startTransitioningToMode (final int newMode) {
+    // ...
+    targetMode    = newMode;
   }
 }

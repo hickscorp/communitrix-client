@@ -6,7 +6,6 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics.DisplayMode;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -16,14 +15,19 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.JsonWriter.OutputType;
 import com.bitfire.utils.ShaderLoader;
 
+import fr.pierreqr.communitrix.commands.ICBase;
+import fr.pierreqr.communitrix.commands.ICError;
+import fr.pierreqr.communitrix.commands.OCBase;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
+import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
-public class Communitrix extends Game {
+public class Communitrix extends Game implements NetworkingManager.Delegate {  
   // Constants.
   public  static final  Vector3   CELL_DIMENSIONS       = new Vector3(5, 5, 5);
   public  static final  float     TRANSLATION_SPEED     = 20.0f;
@@ -31,20 +35,22 @@ public class Communitrix extends Game {
   public  static final  float     CELL_COMPONENT_RADIUS = 0.5f;
 
   // Shared members.
-  public          ApplicationType applicationType;
-  public          Stage           uiStage;
-  public          Skin            uiSkin;
-  public          ModelBuilder    modelBuilder;
-  public          ModelBatch      modelBatch;
-  public          Material        defaultMaterial;
-  public          int             viewWidth, viewHeight;
-
+  public          ApplicationType   applicationType;
+  public          Stage             uiStage;
+  public          Skin              uiSkin;
+  public          ModelBuilder      modelBuilder;
+  public          ModelBatch        modelBatch;
+  public          Material          defaultMaterial;
+  public          int               viewWidth, viewHeight;
+  public          NetworkingManager networkingManager;
+  
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
   private         HashMap<String, Model>          models          = new HashMap<String, Model>();
   private static  Communitrix                     instance;
 
-  private         Screen          combatScreen, lobbyScreen;
+  private         LobbyScreen     lobbyScreen;
+  private         CombatScreen    combatScreen;
   
   public static Communitrix getInstance() {
     return instance;
@@ -66,6 +72,10 @@ public class Communitrix extends Game {
     // Register templaters.
     registerModelTemplater    ("Cube", new CubeModelTemplater());
 
+    // Set up our JSON codecs.
+    ICBase.decoder.setOutputType(OutputType.json);
+    OCBase.encoder.setOutputType(OutputType.json);
+
     // Force cache viewport size.
     resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Instantiate shared members.
@@ -74,7 +84,9 @@ public class Communitrix extends Game {
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-        
+    networkingManager       = new NetworkingManager("localhost", 8080, this);
+    new Thread(networkingManager).start();
+    
     // Instantiate first game screen.
     lobbyScreenRequestingExit ();
   }
@@ -102,10 +114,10 @@ public class Communitrix extends Game {
     super.resize(width, height);
   }
 
-
   public void combatScreenRequestingExit () {
     uiStage.clear();
     setScreen(lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen);
+    networkingManager.stop();
   }
   public void lobbyScreenRequestingExit () {
     uiStage.clear();
@@ -145,5 +157,16 @@ public class Communitrix extends Game {
         Gdx.app.error("LogicManager", "A call to getModel was made with an unknown templater identifier: " + identifier + ".");
     }
     return mdl;
+  }
+
+  @Override
+  public void onServerMessage(ICBase command) {
+    final ICError err   = (ICError)command;
+    if (getScreen()==combatScreen) {
+      combatScreen
+        .mdlInstCharacter
+        .transform
+        .setTranslation(new Vector3(10.0f / 100.0f * err.code, 0, 0));
+    }
   }
 }
