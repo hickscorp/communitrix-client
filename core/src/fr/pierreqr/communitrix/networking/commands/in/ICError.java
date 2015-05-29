@@ -1,4 +1,4 @@
-package fr.pierreqr.communitrix.commands.in;
+package fr.pierreqr.communitrix.networking.commands.in;
 
 public class ICError extends ICBase {
   public static final int     CODE        = 1;

@@ -1,15 +1,13 @@
-package fr.pierreqr.communitrix.commands.in;
+package fr.pierreqr.communitrix.networking.commands.in;
 
 import com.badlogic.gdx.utils.Json;
-import com.badlogic.gdx.utils.JsonWriter.OutputType;
 
 // This is the base class for any incoming command.
 public abstract class ICBase {
-  public int  code;
+  public final static Json  decoder   = new Json();
+  public              int   code;
   
   public static ICBase fromJson (final String data) {
-    Json   decoder          = new Json();
-    decoder.setOutputType   (OutputType.json);
     return decoder.fromJson (null, data);
   }
 }

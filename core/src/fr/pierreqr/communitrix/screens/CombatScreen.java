@@ -7,6 +7,7 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -25,10 +26,11 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.commands.out.OCJoinCombat;
+import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
+import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
 
 public class CombatScreen implements Screen {
   public final static int   MODE_VIEW_HOLOGRAM    = 1;
@@ -36,7 +38,7 @@ public class CombatScreen implements Screen {
   public final static int   WAITING               = 4;
   
   private       Environment           envMain;
-  private       PerspectiveCamera     camMain;
+  public        PerspectiveCamera     camMain;
   private       CameraInputController camCtrlMain;
   private       PostProcessor         postProMain;
   public        TweenManager          tweener;
@@ -66,6 +68,7 @@ public class CombatScreen implements Screen {
   }
   private void initTweening () {
     Tween.registerAccessor(GameObject.class, new GameObjectAccessor());
+    Tween.registerAccessor(Camera.class, new CameraAccessor());
     tweener               = new TweenManager();
   }
   private void initEnvironment () {
@@ -73,7 +76,7 @@ public class CombatScreen implements Screen {
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.5f, 0.5f, 0.5f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    envMain.add           (new DirectionalLight().set(Color.WHITE, -1f, -0.8f, -0.2f));
+    envMain.add           (new DirectionalLight().set(new Color(0.6f, 0.6f, 0.6f, 1.0f), -1f, -0.8f, -0.2f));
   }
   private void initPostProcessing () {
     // Set up the main post-processor.
@@ -119,48 +122,16 @@ public class CombatScreen implements Screen {
     // Set the input controller.
     Gdx.input.setInputProcessor(camCtrlMain);
     
-//    // Cache our cube model.
-//    Model   mdlCube     = communitrix.getModel("Cube");
-//    // Prepare a blending attribute for our cubes.
-//    BlendingAttribute alphaBlend  = new BlendingAttribute();
-//    // Create an array of cube for testing.
-//    int   iTrans, jTrans;
-//    float halfWidth     = Communitrix.CELL_DIMENSIONS.x*5/2.0f;
-//    float halfHeight    = Communitrix.CELL_DIMENSIONS.y*5/2.0f;
-//    float halfDepth     = Communitrix.CELL_DIMENSIONS.z*5/2.0f;
-//    for (int i = 0; i<Communitrix.CELL_DIMENSIONS.x; ++i) {
-//      iTrans  = i * 5;
-//      for (int j = 0; j<Communitrix.CELL_DIMENSIONS.y; ++j) {
-//        jTrans = j * 5;
-//        for (int k = 0; k<Communitrix.CELL_DIMENSIONS.z; ++k) {
-//          // Create a new cube instance and position it.
-//          GameObject instance = new GameObject(mdlCube);
-//          instance.transform.setToTranslation(iTrans-halfWidth, jTrans-halfHeight, k*5-halfDepth);
-//          // Because our model might have different materials, reset them all to a diffuse color.
-//          for (Material mat : instance.materials)
-//            mat.set(
-//                ColorAttribute.createDiffuse(
-//                    1.0f/Communitrix.CELL_DIMENSIONS.x*i,
-//                    1.0f/Communitrix.CELL_DIMENSIONS.y*j,
-//                    1.0f/Communitrix.CELL_DIMENSIONS.z*k,
-//                    0.70f
-//                ), alphaBlend
-//          );
-//          instances.add(instance);
-//        }
-//      }
-//    }
-    
-//    Random  rnd   = new Random();
-//    // Test our fuel cell.
-//    for (int x = 0; x < 10; x ++)
-//      for (int y = 0; y < 10; y ++)
-//        for (int z = 0; z < 10; z ++) {
-//          FuelCell    another     = new FuelCell(5, 5, 5, rnd.nextInt(4)+1, true);
-//          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
-//          fuelCellInstances.add   (another);
-//          instances.add           (another);
-//        }
+    // Test our fuel cell.
+    final int   entropy     = 3;
+    for (int x = 0; x < 1; x ++)
+      for (int y = 0; y < 1; y ++)
+        for (int z = 0; z < 1; z ++) {
+          FuelCell    another     = new FuelCell(5, 5, 5, entropy, true);
+          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
+          fuelCellInstances.add   (another);
+          instances.add           (another);
+        }
 
     
     // Put our label on stage.
@@ -192,9 +163,6 @@ public class CombatScreen implements Screen {
     Gdx.gl.glEnable(GL20.GL_CULL_FACE);
     Gdx.gl.glCullFace(GL20.GL_BACK);
     
-    // Update any pending tweening.
-    tweener.update        (delta);
-    
     // Process user inputs.
     handleInputs(delta);
     if (randomizeId>-1) {
@@ -206,6 +174,10 @@ public class CombatScreen implements Screen {
       if (randomizeId>=fuelCellInstances.size)
         randomizeId     = -1;
     }
+
+    // Update any pending tweening.
+    tweener.update        (delta);
+    camMain.update();
     
     // Capture FBO for post-processing.
     postProMain.capture();

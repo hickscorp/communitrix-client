@@ -1,22 +1,20 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import aurelienribon.tweenengine.TweenAccessor;
-import com.badlogic.gdx.math.Vector3;
 
-public class GameObjectAccessor implements TweenAccessor<GameObject> {
+import com.badlogic.gdx.graphics.Camera;
+
+public class CameraAccessor implements TweenAccessor<Camera> {
   public final static   int           POSITION_XYZ  = 1;
   public final static   int           ROTATION_XYZ  = 2;
-  // Those are temporaries.
-  private final static  Vector3       tmpVec3       = new Vector3();
 
   @Override
-  public int getValues(GameObject obj, int type, float[] retVals) {
+  public int getValues(Camera obj, int type, float[] retVals) {
     switch (type) {
       case POSITION_XYZ:
-        obj.transform.getTranslation(tmpVec3);
-        retVals[0]  = tmpVec3.x;
-        retVals[1]  = tmpVec3.y;
-        retVals[2]  = tmpVec3.z;
+        retVals[0]  = obj.position.x;
+        retVals[1]  = obj.position.y;
+        retVals[2]  = obj.position.z;
         return 3;
       case ROTATION_XYZ:
         return 3;
@@ -26,10 +24,10 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     }
   }
   @Override
-  public void setValues(GameObject obj, int type, float[] newVals) {
+  public void setValues(Camera obj, int type, float[] newVals) {
     switch (type) {
       case POSITION_XYZ:
-        obj.transform.setTranslation(tmpVec3.set(newVals));
+        obj.position.set(newVals);
         break;
       case ROTATION_XYZ:
         break;

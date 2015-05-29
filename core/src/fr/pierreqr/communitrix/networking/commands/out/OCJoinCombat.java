@@ -1,4 +1,4 @@
-package fr.pierreqr.communitrix.commands.out;
+package fr.pierreqr.communitrix.networking.commands.out;
 
 public class OCJoinCombat extends OCBase {
   // The unique code for this command.

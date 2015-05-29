@@ -3,12 +3,11 @@ package fr.pierreqr.communitrix;
 import java.util.HashMap;
 
 import aurelienribon.tweenengine.Tween;
-import aurelienribon.tweenengine.equations.Bounce;
-import aurelienribon.tweenengine.equations.Quad;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -20,13 +19,14 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.bitfire.utils.ShaderLoader;
 
-import fr.pierreqr.communitrix.commands.in.ICBase;
-import fr.pierreqr.communitrix.commands.in.ICError;
-import fr.pierreqr.communitrix.commands.in.ICPosition;
+import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
+import fr.pierreqr.communitrix.networking.commands.in.ICBase;
+import fr.pierreqr.communitrix.networking.commands.in.ICError;
+import fr.pierreqr.communitrix.networking.commands.in.ICPosition;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
@@ -62,12 +62,12 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   @Override public void create () {
     instance                = this;
     // Cache application type.
-//    applicationType         = Gdx.app.getType();
-//    // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop) {
-//      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-//      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-//    }
+    applicationType         = Gdx.app.getType();
+    // After starting the application, we can query for the desktop dimensions
+    if (applicationType==ApplicationType.Desktop) {
+      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+    }
     
     // Configure assets etc.
     ShaderLoader.BasePath     = "shaders/";
@@ -172,9 +172,14 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
         final ICPosition pos   = (ICPosition)command;
         if (getScreen()==combatScreen) {
           Tween
-            .to(combatScreen.mdlInstCharacter, GameObjectAccessor.POSITION_XYZ, 0.9f)
-            .ease(Quad.INOUT)
+            .to(combatScreen.mdlInstCharacter, GameObjectAccessor.POSITION_XYZ, 1.0f)
+            .ease(aurelienribon.tweenengine.equations.Quad.INOUT)
             .target(pos.x, pos.y, pos.z)
+            .start(combatScreen.tweener);
+          Tween
+            .to(combatScreen.camMain, CameraAccessor.POSITION_XYZ, 1.0f)
+            .ease(aurelienribon.tweenengine.equations.Quad.INOUT)
+            .target(pos.x + 10, pos.y + 10, pos.z + 10)
             .start(combatScreen.tweener);
         }
       }

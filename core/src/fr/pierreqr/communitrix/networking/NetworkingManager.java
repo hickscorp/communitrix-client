@@ -8,10 +8,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
+import com.badlogic.gdx.utils.JsonWriter.OutputType;
 
-import fr.pierreqr.communitrix.commands.in.ICBase;
-import fr.pierreqr.communitrix.commands.out.OCBase;
-import fr.pierreqr.communitrix.commands.out.OCJoinCombat;
+import fr.pierreqr.communitrix.networking.commands.in.ICBase;
+import fr.pierreqr.communitrix.networking.commands.out.OCBase;
 
 public class NetworkingManager implements Runnable {
   public interface Delegate {
@@ -28,15 +28,16 @@ public class NetworkingManager implements Runnable {
   private boolean shouldRun         = true;
   
   public NetworkingManager (final String h, final int p, final Delegate d) {
+    // Set up decoder.
+    ICBase.decoder.setOutputType   (OutputType.json);
+    ICBase.decoder.addClassTag     ("ICPosition", fr.pierreqr.communitrix.networking.commands.in.ICPosition.class);
+    // Set up encoder.
+    OCBase.encoder.setOutputType   (OutputType.json);
+
+    // Initialize our members.
     host        = h;
     port        = p;
     delegate    = d;
-  }
-  public void stop () {
-    synchronized (delegate) {
-      shouldRun   = false;
-      Thread.currentThread().interrupt();
-    }
   }
   
   @Override
@@ -47,13 +48,6 @@ public class NetworkingManager implements Runnable {
     netInput              = socket.getInputStream();
     netOutput             = socket.getOutputStream();
     
-    try {
-      Gdx.app.log             ("NetworkingManager", "Sending...");
-      netOutput.write         (new OCJoinCombat("CBT1").toJson());
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
     String          data       = "";
     int             enclosed   = 0;
     char            b;
@@ -77,6 +71,12 @@ public class NetworkingManager implements Runnable {
     }
     Gdx.app.error("Communitrix", "Disposing network!");
     socket.dispose();
+  }
+  public void stop () {
+    synchronized (delegate) {
+      shouldRun   = false;
+      Thread.currentThread().interrupt();
+    }
   }
   
   public void send (final OCBase command) {
