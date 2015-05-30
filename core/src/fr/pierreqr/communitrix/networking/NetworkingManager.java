@@ -14,20 +14,21 @@ import fr.pierreqr.communitrix.networking.commands.in.ICBase;
 import fr.pierreqr.communitrix.networking.commands.out.OCBase;
 
 public class NetworkingManager implements Runnable {
-  public interface Delegate {
+  public interface NetworkDelegate {
     void  onServerMessage   (final ICBase command);
   }
   
   // Network related members.
-  public final    String            host;
-  public final    int               port;
-  public          NetJavaSocketImpl socket;
-  public          InputStream       netInput;
-  public          OutputStream      netOutput;
-  public          Delegate          delegate;
-  private boolean shouldRun         = true;
+  private final     String            host;
+  private final     int               port;
+  private           Thread            thread        = null;
+  private           NetJavaSocketImpl socket        = null;
+  private           InputStream       netInput      = null;
+  private           OutputStream      netOutput     = null;
+  private final     NetworkDelegate   delegate;
+  private volatile  boolean           shouldRun     = true;
   
-  public NetworkingManager (final String h, final int p, final Delegate d) {
+  public NetworkingManager (final String h, final int p, final NetworkDelegate d) {
     // Set up decoder.
     ICBase.decoder.setOutputType   (OutputType.json);
     ICBase.decoder.addClassTag     ("ICPosition", fr.pierreqr.communitrix.networking.commands.in.ICPosition.class);
@@ -42,50 +43,78 @@ public class NetworkingManager implements Runnable {
   
   @Override
   public void run() {
-    SocketHints   hints   = new SocketHints();
-    hints.keepAlive       = true;
-    socket                = new NetJavaSocketImpl(Protocol.TCP, host, port, hints);
-    netInput              = socket.getInputStream();
-    netOutput             = socket.getOutputStream();
+    SocketHints hints       = new SocketHints();
+    hints.keepAlive         = true;
+    socket                  = new NetJavaSocketImpl(Protocol.TCP, host, port, hints);
+    netInput                = socket.getInputStream();
+    netOutput               = socket.getOutputStream();
     
-    String          data       = "";
-    int             enclosed   = 0;
-    char            b;
-    while (true) {
-      synchronized (delegate) {
-        if (!shouldRun) break;
-      }
+    StringBuilder sb        = new StringBuilder(4096);
+    int           enclosed  = 0;
+    char        b;
+    while (shouldRun) {
       try {
-        data                      += ( b = (char)netInput.read() );
+        sb.append( b = (char)netInput.read() );
       } catch (IOException e) {
-        e.printStackTrace();
+        e.printStackTrace ();
         continue;
       }
       if      (b=='{' || b=='[')  ++enclosed;
       else if (b=='}' || b==']')  --enclosed;
       if (enclosed==0) {
-        final ICBase  cmd   = ICBase.fromJson(data);
-        data                      = "";
-        Gdx.app.postRunnable(new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); } });
+        try {
+          final ICBase  cmd     = ICBase.fromJson(sb.toString());
+          Gdx.app.postRunnable  (new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); } });
+        }
+        finally { sb.setLength(0); }
       }
     }
-    Gdx.app.error("Communitrix", "Disposing network!");
-    socket.dispose();
+    // Clean all resources.
+    dispose         ();
+    if (shouldRun)  start();
+  }
+  public void start () {
+    synchronized (delegate) {
+      shouldRun = true;
+      if (thread==null) {
+        ( thread = new Thread(this) ).start();
+      }
+    }
   }
   public void stop () {
     synchronized (delegate) {
-      shouldRun   = false;
-      Thread.currentThread().interrupt();
+      shouldRun = false;
+      if (thread!=null) {
+        thread.interrupt  ();
+        thread    = null;
+      }
     }
   }
   
   public void send (final OCBase command) {
-    synchronized (netOutput) {
+    synchronized (delegate) {
+      // Don't send anything if we scheduled the thread for stopping.
+      if (thread==null || netOutput==null || !shouldRun)
+        return;
+      // Send data to the server.
       try {
-        Gdx.app.log             ("NetworkingManager", "Sending...");
-        netOutput.write         (command.toJson());
+        netOutput.write   (command.toJson());
+        netOutput.flush   ();
       } catch (IOException e) {
-        e.printStackTrace();
+        e.printStackTrace ();
+      }
+    }
+  }
+  
+  public void dispose () {
+    stop            ();
+    synchronized (delegate) {
+      if (socket!=null) {
+        socket.dispose  ();
+        socket          = null;
+        netInput        = null;
+        netOutput       = null;
+        thread          = null;
       }
     }
   }

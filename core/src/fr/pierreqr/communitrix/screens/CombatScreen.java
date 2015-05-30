@@ -16,8 +16,6 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
-import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.postprocessing.PostProcessor;
@@ -32,16 +30,13 @@ import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
 
 public class CombatScreen implements Screen {
-  public final static int   MODE_VIEW_HOLOGRAM    = 1;
-  public final static int   MODE_MODELING         = 2;
-  public final static int   WAITING               = 4;
-  
-  public        Environment           envMain;
-  public        PerspectiveCamera     camMain;
-  public        CameraInputController camCtrlMain;
-  public        PostProcessor         postProMain;
-  public        TweenManager          tweener;
+  public        Environment           envMain           = null;
+  public        PerspectiveCamera     camMain           = null;
+  public        PostProcessor         postProMain       = null;
+  public        TweenManager          tweener           = null;
   // Various object instances.
+  private       Model                 envModel          = null;
+  private       FuelCell              myFuelCell        = null;
   private final Array<FuelCell>       fuelCells         = new Array<FuelCell>();
   private final Array<GameObject>     instances         = new Array<GameObject>();
   
@@ -67,14 +62,6 @@ public class CombatScreen implements Screen {
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.5f, 0.5f, 0.5f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
     envMain.add           (new DirectionalLight().set(new Color(0.6f, 0.6f, 0.6f, 1.0f), -1f, -0.8f, -0.2f));
-    
-    UBJsonReader    reader  = new UBJsonReader();
-    G3dModelLoader  loader  = new G3dModelLoader(reader);
-    Model           model   = loader.loadModel(Gdx.files.internal("models/interior.g3db"));
-    GameObject      inst    = new GameObject(model);
-    inst.transform.rotate   (1, 0, 0, -90);
-    inst.transform.scale    (3, 3, 3);
-    instances.add           (inst);
   }
   private void initPostProcessing () {
     // Set up the main post-processor.
@@ -99,36 +86,43 @@ public class CombatScreen implements Screen {
     camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
     camMain.update        ();
-    // Attach a camera controller to the main camera, set it as the main processor.
-    camCtrlMain           = new CameraInputController(camMain);
   }
   
   @Override public void show () {
-    // Set the input controller.
-    Gdx.input.setInputProcessor(camCtrlMain);
+    // Read environment model.
+    UBJsonReader    reader  = new UBJsonReader();
+    G3dModelLoader  loader  = new G3dModelLoader(reader);
+    envModel                = loader.loadModel(Gdx.files.internal("models/interior.g3db"));
     
-    // Test our fuel cell.
-    final int   entropy     = 3;
-    for (int x = 0; x < 1; x ++)
-      for (int y = 0; y < 1; y ++)
-        for (int z = 0; z < 1; z ++) {
-          FuelCell    another     = new FuelCell(5, 5, 5, entropy, true);
-          another.transform.translate(new Vector3(x * 6, y * 6, z * 6));
-          fuelCells.add   (another);
-          instances.add           (another);
-        }
+    // Instanciate environment.
+    GameObject      envInst   = new GameObject(envModel);
+    envInst.transform.rotate  (1, 0, 0, -90);
+    envInst.transform.scale   (3, 3, 3);
+    instances.add             (envInst);
+
+    // Create fuel cell.
+    if (myFuelCell==null) {
+      myFuelCell                = new FuelCell(5, 5, 5, 3, true);
+      fuelCells.add             (myFuelCell);
+      instances.add             (myFuelCell);
+    }
   }
   @Override public void hide () {
     // Remove all fuel cells.
     for (FuelCell fc : fuelCells)
-      fc.dispose();
-    fuelCells.clear();
+      fc.dispose        ();
+    fuelCells.clear     ();
     // Remove all instances except our character.
-    if (instances.size>1)
-      instances.removeRange(1, instances.size - 1);
+    instances.clear     ();
+    // Clear environment model.
+    if (envModel!=null) {
+      envModel.dispose  ();
+      envModel          = null;
+    }
   }
   
   @Override public void dispose () {
+    hide                ();
     postProMain.dispose ();
   }
 
@@ -167,18 +161,18 @@ public class CombatScreen implements Screen {
     postProMain.render();
   }
   private void handleInputs (final float delta) {
-    // Update camera controller.
-    camCtrlMain.update  ();
-    
     // Screen change.
     if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
       communitrix.networkingManager.send(new OCJoinCombat("CBT1"));
       communitrix.combatScreenRequestingExit();
     }
-    
     // Move character forward / backward events.
-    if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {}
-    else if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {}
+    if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+      communitrix.networkingManager.stop();
+    }
+    else if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+      communitrix.networkingManager.start();
+    }
   }
   
   @Override public void resize (final int width, final int height) {

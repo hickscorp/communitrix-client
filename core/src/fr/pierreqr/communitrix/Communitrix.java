@@ -29,7 +29,7 @@ import fr.pierreqr.communitrix.networking.commands.in.ICPosition;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
-public class Communitrix extends Game implements NetworkingManager.Delegate {  
+public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {  
   // Constants.
   public  static final  Vector3   CELL_DIMENSIONS       = new Vector3(5, 5, 5);
   public  static final  float     TRANSLATION_SPEED     = 20.0f;
@@ -82,7 +82,7 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     networkingManager       = new NetworkingManager("localhost", 8080, this);
-    new Thread(networkingManager).start();
+    networkingManager.start ();
     
     fpsLogger               = new FPSLogger();
     
