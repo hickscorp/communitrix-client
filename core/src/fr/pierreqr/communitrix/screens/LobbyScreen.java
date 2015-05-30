@@ -42,11 +42,11 @@ public class LobbyScreen implements Screen {
   private       Label                 lblFPS;
   
   // Game instance cache.
-  private final Communitrix           communitrix;
+  private final Communitrix           ctx;
   
   public LobbyScreen (final Communitrix communitrixInstance) {
     // Cache our game instance.
-    communitrix           = communitrixInstance;
+    ctx           = communitrixInstance;
     // Set up our FPS logging object.
     initEnvironment       ();   // Environment dedicated initializer.
     initPostProcessing    ();   // Post-processing dedicated initializer.
@@ -63,9 +63,9 @@ public class LobbyScreen implements Screen {
   private void initPostProcessing () {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    if (communitrix.applicationType!=ApplicationType.WebGL) {
+    if (ctx.applicationType!=ApplicationType.WebGL) {
       // Add bloom to post-processor.
-      Bloom blm             = new Bloom(communitrix.viewWidth/3, communitrix.viewHeight/3);
+      Bloom blm             = new Bloom(ctx.viewWidth/3, ctx.viewHeight/3);
       blm.setBloomIntesity  (0.7f);
       blm.setBloomSaturation(0.8f);
       postProMain.addEffect (blm);
@@ -77,7 +77,7 @@ public class LobbyScreen implements Screen {
   }
   private void initCamera () {
     // Set up our main camera, and position it.
-    camMain               = new PerspectiveCamera(90, communitrix.viewWidth, communitrix.viewHeight);
+    camMain               = new PerspectiveCamera(90, ctx.viewWidth, ctx.viewHeight);
     camMain.position.set  (25, 25, 25);
     camMain.near          = 1f;
     camMain.far           = 150f;
@@ -88,7 +88,7 @@ public class LobbyScreen implements Screen {
   }
   private void initModelsAndInstances () {
     // Prepare the character model...
-    mdlInstCharacter    = new GameObject(communitrix.getModel("Cube"));
+    mdlInstCharacter    = new GameObject(ctx.getModel("Cube"));
     // As our character model will be rendered with everything else, add it to our instances array.
     instances.add       (mdlInstCharacter);
   }
@@ -96,7 +96,7 @@ public class LobbyScreen implements Screen {
     // Prepare stage.
     uiStage                       = new Stage();
     // Create the FPS label and place it on stage.
-    lblFPS                        = new Label("", communitrix.uiSkin);
+    lblFPS                        = new Label("", ctx.uiSkin);
     lblFPS.setColor               (Color.WHITE);
   }
   
@@ -105,7 +105,7 @@ public class LobbyScreen implements Screen {
     Gdx.input.setInputProcessor(camCtrlMain);
     
     // Cache our cube model.
-    Model   mdlSphere   = communitrix.modelBuilder.createSphere(10, 10, 10, 30, 30, new Material(ColorAttribute.createDiffuse(Color.WHITE)), Usage.Position | Usage.Normal);
+    Model   mdlSphere   = ctx.modelBuilder.createSphere(10, 10, 10, 30, 30, new Material(ColorAttribute.createDiffuse(Color.WHITE)), Usage.Position | Usage.Normal);
     // Prepare a blending attribute for our cubes.
     BlendingAttribute alphaBlend  = new BlendingAttribute();
     // Set up our sphere.
@@ -132,7 +132,7 @@ public class LobbyScreen implements Screen {
 
   @Override public void render (final float delta) {
     // Clear viewport etc.
-    Gdx.gl.glViewport(0, 0, communitrix.viewWidth, communitrix.viewHeight);
+    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
     Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -147,13 +147,13 @@ public class LobbyScreen implements Screen {
     // Capture FBO for post-processing.
     postProMain.capture();
     // Mark the beginning of our rendering phase.
-    communitrix.modelBatch.begin(camMain);
+    ctx.modelBatch.begin(camMain);
     // Render all instances in our batch array.
     for (final GameObject instance : instances)
       if (instance.isVisible(camMain))
-        communitrix.modelBatch.render(instance, envMain);
+        ctx.modelBatch.render(instance, envMain);
     // Rendering is over.
-    communitrix.modelBatch.end();
+    ctx.modelBatch.end();
     // Apply post-processing.
     postProMain.render();
     
@@ -165,11 +165,6 @@ public class LobbyScreen implements Screen {
   private void handleInputs (final float delta) {
     // Update camera controller.
     camCtrlMain.update  ();
-    
-    // Screen change.
-    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-      communitrix.lobbyScreenRequestingExit();
-    }
     
     // Move character forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))
@@ -199,7 +194,7 @@ public class LobbyScreen implements Screen {
       // Prepare an uninitialized model instance pointer.
       ModelInstance mdlInst   = null;
       // Cache our cube model.
-      final Model   mdlCube   = communitrix.getModel("Cube");
+      final Model   mdlCube   = ctx.getModel("Cube");
       // Prepare the green cube...
       mdlInst                 = new ModelInstance(mdlCube);
       for (final Material mtl : mdlInst.materials)
@@ -221,7 +216,7 @@ public class LobbyScreen implements Screen {
     // If a post-processor exists, update it.
     if (postProMain!=null)  postProMain.rebind();
     // Place flat UI.
-    lblFPS.setPosition      (5, communitrix.viewHeight - 15);
+    lblFPS.setPosition      (5, ctx.viewHeight - 15);
   }
 
   @Override public void pause () {

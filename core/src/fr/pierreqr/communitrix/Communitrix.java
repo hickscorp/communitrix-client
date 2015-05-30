@@ -2,8 +2,6 @@ package fr.pierreqr.communitrix;
 
 import java.util.HashMap;
 
-import aurelienribon.tweenengine.Tween;
-
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -14,18 +12,21 @@ import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 
-import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.in.ICBase;
 import fr.pierreqr.communitrix.networking.commands.in.ICError;
-import fr.pierreqr.communitrix.networking.commands.in.ICPosition;
+import fr.pierreqr.communitrix.networking.commands.in.ICCombatStart;
+import fr.pierreqr.communitrix.networking.commands.in.ICWelcome;
+import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
@@ -38,21 +39,24 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
 
   // Shared members.
   public          ApplicationType   applicationType;
-  public          Skin              uiSkin;
-  public          ModelBuilder      modelBuilder;
-  public          ModelBatch        modelBatch;
-  public          Material          defaultMaterial;
   public          int               viewWidth, viewHeight;
-  public          NetworkingManager networkingManager;
-  public          FPSLogger         fpsLogger;
+  public          Skin              uiSkin            = null;
+  public          ModelBuilder      modelBuilder      = null;
+  public          ModelBatch        modelBatch        = null;
+  public          Material          defaultMaterial   = null;
+  public          G3dModelLoader    modelLoader       = null;
+
+  public          NetworkingManager networkingManager = null;
+  public          FPSLogger         fpsLogger         = null;
   
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
   private         HashMap<String, Model>          models          = new HashMap<String, Model>();
   private static  Communitrix                     instance;
 
-  private         LobbyScreen     lobbyScreen;
-  private         CombatScreen    combatScreen;
+  // All our different screens.
+  private         LobbyScreen     lobbyScreen     = null;
+  private         CombatScreen    combatScreen    = null;
   
   public static Communitrix getInstance() {
     return instance;
@@ -62,11 +66,11 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     instance                = this;
     // Cache application type.
     applicationType         = Gdx.app.getType();
-    // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop) {
-      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-    }
+//    // After starting the application, we can query for the desktop dimensions
+//    if (applicationType==ApplicationType.Desktop) {
+//      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+//      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+//    }
     
     // Configure assets etc.
     ShaderLoader.BasePath     = "shaders/";
@@ -83,11 +87,12 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     networkingManager       = new NetworkingManager("localhost", 8080, this);
     networkingManager.start ();
+    // Prepare our shared model loader.
+    UBJsonReader reader     = new UBJsonReader();
+    modelLoader             = new G3dModelLoader(reader);
     
+    // Prepare our FPS logging object.
     fpsLogger               = new FPSLogger();
-    
-    // Instantiate first game screen.
-    lobbyScreenRequestingExit ();
   }
 
   // Occurs when the game exits.
@@ -111,14 +116,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     // Propagate change to current screen instance.
     super.resize(width, height);
   }
-
-  public void combatScreenRequestingExit () {
-    setScreen(lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen);
-  }
-  public void lobbyScreenRequestingExit () {
-    setScreen(combatScreen==null ? combatScreen = new CombatScreen(this) : combatScreen);
-  }
-
+  
   // Cache clearing methods.
   public void clearCaches () {
     // Get rid of all cached models.
@@ -161,18 +159,21 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       case ICError.CODE:
         Gdx.app.log   ("Communitrix", "The server reported an error: " + ((ICError)command).reason);
         break;
+      
+      // Server is welcoming us.
+      case ICWelcome.CODE:
+        Gdx.app.log               ("Communitrix", "Received greetings from server: " + ((ICWelcome)command).message);
+        networkingManager.send    (new OCJoinCombat("CBT1"));
+        break;
 
-      // Server sent us a position update.
-      case ICPosition.CODE: {
-        final ICPosition pos   = (ICPosition)command;
-        if (getScreen()==combatScreen) {
-          Tween
-            .to(combatScreen.camMain, CameraAccessor.POSITION_XYZ, 1.0f)
-            .ease(aurelienribon.tweenengine.equations.Quad.INOUT)
-            .target(pos.x + 10, pos.y + 10, pos.z + 10)
-            .start(combatScreen.tweener);
-        }
-      }
+      // Server sent us a combat start update.
+      case ICCombatStart.CODE:
+        if (combatScreen==null)
+          combatScreen            = new CombatScreen(this);
+        Gdx.app.error             ("Communitrix", "Starting combat...");
+        combatScreen.reconfigure  (combatScreen.new Configuration((ICCombatStart)command));
+        setScreen                 (combatScreen);
+        break;
     }
   }
 }
