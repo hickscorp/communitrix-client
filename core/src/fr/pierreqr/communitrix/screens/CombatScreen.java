@@ -73,6 +73,7 @@ public class CombatScreen implements Screen {
     Model           model   = loader.loadModel(Gdx.files.internal("models/interior.g3db"));
     GameObject      inst    = new GameObject(model);
     inst.transform.rotate   (1, 0, 0, -90);
+    inst.transform.scale    (3, 3, 3);
     instances.add           (inst);
   }
   private void initPostProcessing () {

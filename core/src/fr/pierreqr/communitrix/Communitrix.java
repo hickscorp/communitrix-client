@@ -9,6 +9,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
@@ -43,6 +44,7 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
   public          Material          defaultMaterial;
   public          int               viewWidth, viewHeight;
   public          NetworkingManager networkingManager;
+  public          FPSLogger         fpsLogger;
   
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
@@ -82,6 +84,8 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
     networkingManager       = new NetworkingManager("localhost", 8080, this);
     new Thread(networkingManager).start();
     
+    fpsLogger               = new FPSLogger();
+    
     // Instantiate first game screen.
     lobbyScreenRequestingExit ();
   }
@@ -97,7 +101,8 @@ public class Communitrix extends Game implements NetworkingManager.Delegate {
 
   // Occurs whenever the viewport needs to render.
   @Override public void render () {
-    super.render();
+    super.render  ();
+    fpsLogger.log ();
   }
 
   @Override public void resize (final int width, final int height) {
