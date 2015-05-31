@@ -5,7 +5,6 @@ import java.util.HashMap;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -24,7 +23,7 @@ import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.in.ICBase;
 import fr.pierreqr.communitrix.networking.commands.in.ICError;
-import fr.pierreqr.communitrix.networking.commands.in.ICCombatStart;
+import fr.pierreqr.communitrix.networking.commands.in.ICJoinCombat;
 import fr.pierreqr.communitrix.networking.commands.in.ICWelcome;
 import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
 import fr.pierreqr.communitrix.screens.CombatScreen;
@@ -151,29 +150,50 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     }
     return mdl;
   }
-
-  @Override
-  public void onServerMessage (ICBase command) {
-    switch (command.code) {
-      // Server is reporting an error.
-      case ICError.CODE:
-        Gdx.app.log   ("Communitrix", "The server reported an error: " + ((ICError)command).reason);
+  
+  @Override public void onServerMessage (final ICBase cmd) {
+    if (cmd==null) {
+      Gdx.app.error         ("Communitrix", "Received a NULL command!");
+      return;
+    }
+    switch (cmd.type) {
+      case NetworkingManager.ICError: {
+        final ICError spec = (ICError)cmd;
+        Gdx.app.error           ("Communitrix", "Server just notified us of an error #" + spec.code + ": " + spec.reason);
         break;
-      
-      // Server is welcoming us.
-      case ICWelcome.CODE:
-        Gdx.app.log               ("Communitrix", "Received greetings from server: " + ((ICWelcome)command).message);
-        networkingManager.send    (new OCJoinCombat("CBT1"));
+      }
+      case NetworkingManager.ICWelcome: {
+        final ICWelcome spec = (ICWelcome)cmd;
+        Gdx.app.log             ("Communitrix", "Server is welcoming us: " + spec.message);
+        networkingManager.send  (new OCJoinCombat("CBT1"));
         break;
-
-      // Server sent us a combat start update.
-      case ICCombatStart.CODE:
+      }
+      case NetworkingManager.ICCombatList: {
+        break;
+      }
+      case NetworkingManager.ICJoinCombat: {
+        final ICJoinCombat spec = (ICJoinCombat)cmd;
         if (combatScreen==null)
-          combatScreen            = new CombatScreen(this);
-        Gdx.app.error             ("Communitrix", "Starting combat...");
-        combatScreen.reconfigure  (combatScreen.new Configuration((ICCombatStart)command));
-        setScreen                 (combatScreen);
+          combatScreen      = new CombatScreen(this);
+        Gdx.app.log         ("Communitrix", "Server is ordering us to start combat.");
+        combatScreen.reconfigure(combatScreen.new Configuration(spec));
+        setScreen           (combatScreen);
         break;
+      }
+      case NetworkingManager.ICStartCombat: {
+        break;
+      }
+      case NetworkingManager.ICStartCombatTurn: {
+        break;
+      }
+      case NetworkingManager.ICPlayCombatTurn: {
+        break;
+      }
+      case NetworkingManager.ICCombatEnd: {
+        break;
+      }
+      default:
+        Gdx.app.log         ("Communitrix", "Unhandled command type: " + cmd.type + ".");
     }
   }
 }

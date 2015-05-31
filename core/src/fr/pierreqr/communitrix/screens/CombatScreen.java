@@ -5,7 +5,6 @@ import aurelienribon.tweenengine.TweenManager;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
@@ -25,19 +24,18 @@ import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
-import fr.pierreqr.communitrix.networking.commands.in.ICCombatStart;
-import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
+import fr.pierreqr.communitrix.networking.commands.in.ICJoinCombat;
 
 public class CombatScreen implements Screen {
   // This is the configuration class for this screen.
   public class Configuration {
     public final    String    combatUUID;
     public final    int       minPlayers, maxPlayers, playerCount;
-    public Configuration (ICCombatStart command) {
-      combatUUID    = command.uuid;
-      minPlayers    = command.minPlayers;
-      maxPlayers    = command.maxPlayers;
-      playerCount   = maxPlayers;
+    public Configuration (final ICJoinCombat data) {
+      combatUUID    = data.uuid;
+      minPlayers    = data.minPlayers;
+      maxPlayers    = data.maxPlayers;
+      playerCount   = data.maxPlayers;
     }
   }
   
