@@ -9,34 +9,19 @@ import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
 import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonParser.Feature;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
-import fr.pierreqr.communitrix.networking.commands.in.ICBase;
-import fr.pierreqr.communitrix.networking.commands.out.OCBase;
+import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
 
 public class NetworkingManager implements Runnable {
-  // Inbound commands.
-  public final static   String        ICError             = "Error";
-  public final static   String        ICWelcome           = "Welcome";
-  public final static   String        ICCombatList        = "CombatList";
-  public final static   String        ICJoinCombat        = "JoinCombat";
-  public final static   String        ICStartCombat       = "StartCombat";
-  public final static   String        ICStartCombatTurn   = "StartCombatTurn";
-  public final static   String        ICPlayCombatTurn    = "PlayCombatTurn";
-  public final static   String        ICCombatEnd         = "CombatEnd";
-  // Outbound commands.
-  public final static   String        OCError             = "Error";
-  public final static   String        OCCombatList        = "CombatList";
-  public final static   String        OCJoinCombat        = "JoinCombat";
-  public final static   String        OCPlayCombatTurn    = "PlayCombatTurn";
+  // Constants.
+  private final static  String        LogTag                = "Networking";
   
-  public interface NetworkDelegate { void  onServerMessage (final ICBase cmd); }
+  public interface NetworkDelegate {
+    void  onServerConnected     ();
+    void  onServerMessage       (final RXBase cmd);
+    void  onServerDisconnected  ();
+  }
   
   // Network related members.
   private final     String            host;
@@ -47,7 +32,6 @@ public class NetworkingManager implements Runnable {
   private           OutputStream      netOutput       = null;
   private           ObjectMapper      mapper          = new ObjectMapper();
   private           StringBuilder     sb              = new StringBuilder(2048);
-  private           String            type            = null;
   private final     NetworkDelegate   delegate;
   private volatile  boolean           shouldRun       = true;
   
@@ -62,79 +46,67 @@ public class NetworkingManager implements Runnable {
   }
   
   @Override public void run() {
-    SocketHints hints = new SocketHints();
-    hints.keepAlive   = true;
-    socket            = new NetJavaSocketImpl(Protocol.TCP, host, port, null);
-    netInput          = socket.getInputStream();
-    netOutput         = socket.getOutputStream();
-    char        buff  = 0;
-    while (shouldRun) {
-      try {
-        buff          = (char)netInput.read();
-      } catch (IOException e) {
-        e.printStackTrace ();
-        break;
-      }
-      switch (buff) {
-        case '\r': {
-          type          = sb.toString().substring(8);
-          sb.setLength  (0);
-          break;
-        }
-        case '\n': {
-          // We just got the type for the next payload.
-          Gdx.app.log       ("Net", "Type: " + type + ", Packet: " + sb.toString());
-          if (type!=null && sb.length()>0) {
-            final ICBase  cmd = readValue();
-            Gdx.app.postRunnable( new Runnable() { @Override public void run() {
-              delegate.onServerMessage(cmd);
-            }});
+    boolean   ok        = false;
+    try {
+      SocketHints hints = new SocketHints();
+      hints.keepAlive   = true;
+      socket            = new NetJavaSocketImpl(Protocol.TCP, host, port, null);
+      ok                = socket.isConnected();
+    }
+    catch (Exception e) {
+      Gdx.app.error     (LogTag, "Failed to connect to server: " + e.getMessage());
+    }
+    // Socket is connected, run our loop.
+    if (ok) {
+      String      type  = null;
+      netInput          = socket.getInputStream();
+      netOutput         = socket.getOutputStream();
+      // Signal our delegate.
+      Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerConnected(); }});
+      // Read forever.
+      int         buff  = 0;
+      while (shouldRun && socket.isConnected()) {
+        try {
+          if (( buff = netInput.read() )<0) {
+            Gdx.app.log (LogTag, "Disconnected from server.");
+            break;
           }
-          sb.setLength      (0);
-          type              = null;
+        } catch (IOException e) {
+          e.printStackTrace ();
           break;
         }
-        default:
-          sb.append     (buff);
+        switch (buff) {
+          case '\r': {
+            type          = sb.toString();
+            sb.setLength  (0);
+            break;
+          }
+          case '\n': {
+            // We just got the type for the next payload.
+            if (type!=null && sb.length()>0) {
+              try {
+                final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Rx.valueOf(type).toTypeReference());
+                Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); }});
+              }
+              catch (Exception ex) {
+                ex.printStackTrace();
+                break;
+              }
+            }
+            sb.setLength      (0);
+            type              = null;
+            break;
+          }
+          default:
+            sb.append     ((char)buff);
+        }
       }
     }
+    // Signal our delegate.
+    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerDisconnected();; }});
     // Clean all resources.
     dispose         ();
     if (shouldRun)  start();
-  }
-  private ICBase readValue () {
-    ICBase    cmd     = null;
-    try {
-      switch (type) {
-        case ICError:
-          cmd           = mapper.readValue(sb.toString(), new TypeReference<fr.pierreqr.communitrix.networking.commands.in.ICError>(){});
-          break;
-        case ICWelcome:
-          cmd           = mapper.readValue(sb.toString(), new TypeReference<fr.pierreqr.communitrix.networking.commands.in.ICWelcome>(){});
-          break;
-        case ICCombatList:
-          break;
-        case ICJoinCombat:
-          cmd           = mapper.readValue(sb.toString(), new TypeReference<fr.pierreqr.communitrix.networking.commands.in.ICJoinCombat>(){});
-          break;
-        case ICStartCombat:
-          break;
-        case ICStartCombatTurn:
-          break;
-        case ICPlayCombatTurn:
-          break;
-        case ICCombatEnd:
-          break;
-        default:
-          return null;
-      }
-    }
-    catch (Exception ex) {
-      ex.printStackTrace();
-      return null;
-    }
-    cmd.type  = type;
-    return cmd;
   }
   
   // If the networking thread isn't running, start it.
@@ -157,17 +129,17 @@ public class NetworkingManager implements Runnable {
     }
   }
   // Send data to the server. TODO: This should be asynchroneous.
-  public void send (final OCBase command) {
+  public void send (final fr.pierreqr.communitrix.networking.commands.tx.TXBase command) {
     synchronized (delegate) {
       // Don't send anything if we scheduled the thread for stopping.
       if (thread==null || netOutput==null || !shouldRun)
         return;
       // Send data to the server.
       try {
-        mapper.writeValue (netOutput, command);
-        netOutput.write('\n');
+        mapper.writeValue   (netOutput, command);
+        netOutput.write     ('\n');
       } catch (IOException e) {
-        e.printStackTrace ();
+        e.printStackTrace   ();
       }
     }
   }
@@ -178,10 +150,15 @@ public class NetworkingManager implements Runnable {
       if (socket!=null) {
         socket.dispose  ();
         socket          = null;
+        try { netInput.close  (); }
+        catch (IOException e) {}
+        try { netOutput.close  (); }
+        catch (IOException e) {}
         netInput        = null;
         netOutput       = null;
         thread          = null;
       }
+      sb.setLength      (0);
     }
   }
 }

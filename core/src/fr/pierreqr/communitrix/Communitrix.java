@@ -15,26 +15,26 @@ import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
-import fr.pierreqr.communitrix.networking.commands.in.ICBase;
-import fr.pierreqr.communitrix.networking.commands.in.ICError;
-import fr.pierreqr.communitrix.networking.commands.in.ICJoinCombat;
-import fr.pierreqr.communitrix.networking.commands.in.ICWelcome;
-import fr.pierreqr.communitrix.networking.commands.out.OCJoinCombat;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
+import fr.pierreqr.communitrix.networking.commands.rx.*;
+import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
+import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 
 public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {  
   // Constants.
-  public  static final  Vector3   CELL_DIMENSIONS       = new Vector3(5, 5, 5);
-  public  static final  float     TRANSLATION_SPEED     = 20.0f;
-  public  static final  float     ROTATION_SPEED        = 120.0f;
-  public  static final  float     CELL_COMPONENT_RADIUS = 0.5f;
+  public  static final  float     TranslationSpeed      = 20.0f;
+  public  static final  float     RotationSpeed         = 120.0f;
+  public  static final  Vector3   CellDimensions        = new Vector3(5, 5, 5);
+  public  static final  float     CellComponentRadius   = 0.5f;
+  private static final  String    LogTag                = "Communitrix";
 
   // Shared members.
   public          ApplicationType   applicationType;
@@ -46,6 +46,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   public          G3dModelLoader    modelLoader       = null;
 
   public          NetworkingManager networkingManager = null;
+  public          Timer             networkTimer      = null;
   public          FPSLogger         fpsLogger         = null;
   
   // Where our models will be cached.
@@ -85,10 +86,14 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     networkingManager       = new NetworkingManager("localhost", 8080, this);
+    networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
     UBJsonReader reader     = new UBJsonReader();
     modelLoader             = new G3dModelLoader(reader);
+    
+    // Set default screen.
+    setScreen               (getLobbyScreen());
     
     // Prepare our FPS logging object.
     fpsLogger               = new FPSLogger();
@@ -151,49 +156,86 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     return mdl;
   }
   
-  @Override public void onServerMessage (final ICBase cmd) {
+  @Override public void onServerConnected () {
+    Gdx.app.log             (LogTag, "We are connected to the server.");
+    networkingManager.send  (new TXRegister("Doodloo"));
+  }
+  @Override public void onServerDisconnected () {
+    Gdx.app.log             (LogTag, "We are disconnected from the server. Reconnection scheduled in 3 seconds.");
+    networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 3.0f);
+  }
+  @Override public void onServerMessage (final RXBase cmd) {
     if (cmd==null) {
-      Gdx.app.error         ("Communitrix", "Received a NULL command!");
+      Gdx.app.error         (LogTag, "Received a NULL command!");
       return;
     }
     switch (cmd.type) {
-      case NetworkingManager.ICError: {
-        final ICError spec = (ICError)cmd;
-        Gdx.app.error           ("Communitrix", "Server just notified us of an error #" + spec.code + ": " + spec.reason);
+      case Error: {
+        final RXError spec      = (RXError)cmd;
+        Gdx.app.error           (LogTag, "Server just notified us of an error #" + spec.code + ": " + spec.reason);
         break;
       }
-      case NetworkingManager.ICWelcome: {
-        final ICWelcome spec = (ICWelcome)cmd;
-        Gdx.app.log             ("Communitrix", "Server is welcoming us: " + spec.message);
-        networkingManager.send  (new OCJoinCombat("CBT1"));
+      case Welcome: {
+        final RXWelcome spec    = (RXWelcome)cmd;
+        Gdx.app.log             (LogTag, "Server is welcoming us: " + spec.message);
         break;
       }
-      case NetworkingManager.ICCombatList: {
+      case Registered: {
+        networkingManager.send  (new TXCombatList());
         break;
       }
-      case NetworkingManager.ICJoinCombat: {
-        final ICJoinCombat spec = (ICJoinCombat)cmd;
+      case CombatList: {
+        final RXCombatList spec = (RXCombatList)cmd;
+        Gdx.app.log(LogTag, "Combat list: " + spec.combats.toString());
+        networkingManager.send  (new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin("CBT1"));
+        break;
+      }
+      case CombatJoin: {
+        final RXCombatJoin spec = (RXCombatJoin)cmd;
+        Gdx.app.log             (LogTag, "We joined a combat, it has " + spec.players.size() + " people.");
         if (combatScreen==null)
-          combatScreen      = new CombatScreen(this);
-        Gdx.app.log         ("Communitrix", "Server is ordering us to start combat.");
-        combatScreen.reconfigure(combatScreen.new Configuration(spec));
-        setScreen           (combatScreen);
+          combatScreen          = new CombatScreen(this);
+        setScreen               (combatScreen);
         break;
       }
-      case NetworkingManager.ICStartCombat: {
+      case CombatPlayerJoined: {
+        final RXCombatPlayerJoined spec = (RXCombatPlayerJoined)cmd;
+        Gdx.app.log             (LogTag, "Player " + spec.player + " has joined.");
         break;
       }
-      case NetworkingManager.ICStartCombatTurn: {
+      case CombatPlayerLeft: {
+        final RXCombatPlayerLeft spec = (RXCombatPlayerLeft)cmd;
+        Gdx.app.log             (LogTag, "Player " + spec.player + " has left.");
         break;
       }
-      case NetworkingManager.ICPlayCombatTurn: {
+      case CombatStart: {
+        final RXCombatStart spec = (RXCombatStart)cmd;
+        if (combatScreen==null)
+          combatScreen          = new CombatScreen(this);
+        Gdx.app.log             (LogTag, "Server is ordering us to start combat.");
+        combatScreen            = getCombatScreen();
+        combatScreen.setUp(combatScreen.new Configuration(spec));
+        setScreen               (combatScreen);
         break;
       }
-      case NetworkingManager.ICCombatEnd: {
+      case CombatNewTurn: {
+        break;
+      }
+      case CombatPlayerTurn: {
+        break;
+      }
+      case CombatEnd: {
         break;
       }
       default:
-        Gdx.app.log         ("Communitrix", "Unhandled command type: " + cmd.type + ".");
+        Gdx.app.log         (LogTag, "Unhandled command type: " + cmd.type + ".");
     }
+  }
+  
+  private LobbyScreen getLobbyScreen () {
+    return lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen;
+  }
+  private CombatScreen getCombatScreen () {
+    return combatScreen==null ? combatScreen = new CombatScreen(this) : combatScreen;
   }
 }

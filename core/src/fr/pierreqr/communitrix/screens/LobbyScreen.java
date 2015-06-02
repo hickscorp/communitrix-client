@@ -168,26 +168,26 @@ public class LobbyScreen implements Screen {
     
     // Move character forward / backward events.
     if (Gdx.input.isKeyPressed(Input.Keys.UP))
-      mdlInstCharacter.transform.translate(Communitrix.TRANSLATION_SPEED * delta, 0, 0);
+      mdlInstCharacter.transform.translate(Communitrix.TranslationSpeed * delta, 0, 0);
     else if (Gdx.input.isKeyPressed(Input.Keys.DOWN))
-      mdlInstCharacter.transform.translate(-Communitrix.TRANSLATION_SPEED * delta, 0, 0);
+      mdlInstCharacter.transform.translate(-Communitrix.TranslationSpeed * delta, 0, 0);
     
     // Character rotation relative to camera on X axis.
     if (Gdx.input.isKeyPressed(Input.Keys.I))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.X, -Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X, -Communitrix.RotationSpeed * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.K))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.X,  Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.X,  Communitrix.RotationSpeed * delta);
     // Character rotation relative to camera on Y axis.
     if (Gdx.input.isKeyPressed(Input.Keys.J))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, -Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y, -Communitrix.RotationSpeed * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.L))
-      mdlInstCharacter.relativeRotate(camMain, Vector3.Y,  Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.relativeRotate(camMain, Vector3.Y,  Communitrix.RotationSpeed * delta);
     
     // Left / Right events.
     if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
-      mdlInstCharacter.transform.rotate(Vector3.Y,  Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.transform.rotate(Vector3.Y,  Communitrix.RotationSpeed * delta);
     else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-      mdlInstCharacter.transform.rotate(Vector3.Y, -Communitrix.ROTATION_SPEED * delta);
+      mdlInstCharacter.transform.rotate(Vector3.Y, -Communitrix.RotationSpeed * delta);
 
     // Attach / Detach event.
     if (Gdx.input.isKeyPressed(Input.Keys.M) && !mdlInstCharacter.nodes.get(0).hasChildren()) {

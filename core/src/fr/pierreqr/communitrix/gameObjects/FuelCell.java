@@ -86,7 +86,7 @@ public class FuelCell extends GameObject {
     // Cache actual game instance.
     Communitrix     ctx     = Communitrix.getInstance();
     // Prepare variables.
-    final float     radius  = Communitrix.CELL_COMPONENT_RADIUS;
+    final float     radius  = Communitrix.CellComponentRadius;
     clearMesh               ();
     
     // Start a new part.
