@@ -1,41 +1,37 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import aurelienribon.tweenengine.TweenAccessor;
+
 import com.badlogic.gdx.math.Vector3;
 
 public class GameObjectAccessor implements TweenAccessor<GameObject> {
-  public final static   int           POSITION_XYZ  = 1;
-  public final static   int           ROTATION_XYZ  = 2;
+  public final static   int           POSITION_X    = 1;
+  public final static   int           POSITION_Y    = 2;
+  public final static   int           POSITION_Z    = 4;
+  public final static   int           POSITION_XY   = 3;
+  public final static   int           POSITION_XZ   = 5;
+  public final static   int           POSITION_YZ   = 6;
+  public final static   int           POSITION_XYZ  = 7;
   // Those are temporaries.
+  private static        int           tmpInt        = 0;
   private final static  Vector3       tmpVec3       = new Vector3();
 
   @Override
   public int getValues(GameObject obj, int type, float[] retVals) {
-    switch (type) {
-      case POSITION_XYZ:
-        obj.transform.getTranslation(tmpVec3);
-        retVals[0]  = tmpVec3.x;
-        retVals[1]  = tmpVec3.y;
-        retVals[2]  = tmpVec3.z;
-        return 3;
-      case ROTATION_XYZ:
-        return 3;
-      default:
-        assert false;
-        return -1;
-    }
+    tmpInt       = 0;
+    obj.transform.getTranslation  (tmpVec3);
+    if (( type & POSITION_X )!=0) retVals[tmpInt++] = tmpVec3.x;
+    if (( type & POSITION_Y )!=0) retVals[tmpInt++] = tmpVec3.y;
+    if (( type & POSITION_Z )!=0) retVals[tmpInt++] = tmpVec3.z;
+    return tmpInt;
   }
   @Override
   public void setValues(GameObject obj, int type, float[] newVals) {
-    switch (type) {
-      case POSITION_XYZ:
-        obj.transform.setTranslation(tmpVec3.set(newVals));
-        break;
-      case ROTATION_XYZ:
-        break;
-      default:
-        assert false;
-        break;
-    }
+    tmpInt                        = 0;
+    obj.transform.getTranslation  (tmpVec3);
+    if (( type & POSITION_X )!=0) tmpVec3.x  = newVals[tmpInt++];
+    if (( type & POSITION_Y )!=0) tmpVec3.y  = newVals[tmpInt++];
+    if (( type & POSITION_Z )!=0) tmpVec3.z  = newVals[tmpInt++];
+    obj.transform.setTranslation  (tmpVec3);
   }
 }

@@ -2,7 +2,6 @@ package fr.pierreqr.communitrix.networking.commands.tx;
 
 public class TXBase {
   public enum Tx {
-    Error,              // Error notification.
     Register,           // Register to the server.
     CombatList,         // Asks for a list of combats.
     CombatJoin,         // Asks to join a combat.

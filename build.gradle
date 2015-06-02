@@ -24,7 +24,6 @@ allprojects {
         ashleyVersion = '1.4.0'
         aiVersion = '1.5.0'
     }
-
     repositories {
         mavenCentral()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
@@ -34,8 +33,6 @@ allprojects {
 
 project(":desktop") {
     apply plugin: "java"
-
-
     dependencies {
         compile project(":core")
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
@@ -46,9 +43,7 @@ project(":desktop") {
 
 project(":android") {
     apply plugin: "android"
-
     configurations { natives }
-
     dependencies {
         compile project(":core")
         compile "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
@@ -62,39 +57,36 @@ project(":android") {
 project(":ios") {
     apply plugin: "java"
     apply plugin: "robovm"
-
     configurations { natives }
-
     dependencies {
         compile project(":core")
         compile "org.robovm:robovm-rt:$roboVMVersion"
         compile "org.robovm:robovm-cocoatouch:$roboVMVersion"
         compile "com.badlogicgames.gdx:gdx-backend-robovm:$gdxVersion"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-ios"
+        compile fileTree(dir: '../libs', include: '*.jar')
     }
 }
 
 project(":html") {
     apply plugin: "gwt"
     apply plugin: "war"
-
-
     dependencies {
         compile project(":core")
         compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
         compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
         compile "com.kotcrab.vis:vis-ui:0.7.4:sources"
+        compile fileTree(dir: '../libs', include: '*.jar')
     }
 }
 
 project(":core") {
     apply plugin: "java"
-
-
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.kotcrab.vis:vis-ui:0.7.4"
+        compile fileTree(dir: '../libs', include: '*.jar')
     }
 }
 

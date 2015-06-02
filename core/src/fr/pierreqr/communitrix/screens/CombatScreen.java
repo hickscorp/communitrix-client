@@ -1,12 +1,10 @@
 package fr.pierreqr.communitrix.screens;
 
-import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenManager;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -20,10 +18,8 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
 
 public class CombatScreen implements Screen {
@@ -39,23 +35,21 @@ public class CombatScreen implements Screen {
   
   // Those are private members.
   private final Communitrix           ctx;
-  private       Configuration         config            = null;
-  private       TweenManager          tweener           = null;
-  private       Environment           envMain           = null;
-  private       PerspectiveCamera     camMain           = null;
-  private       PostProcessor         postProMain       = null;
-  private       Model                 envModel          = null;
-  private       FuelCell              myFuelCell        = null;
-  private final Array<FuelCell>       fuelCells         = new Array<FuelCell>();
-  private final Array<GameObject>     instances         = new Array<GameObject>();
+  private       Configuration         config      = null;
+  private       TweenManager          tweener     = null;
+  private       Environment           envMain     = null;
+  private       PerspectiveCamera     camMain     = null;
+  private       PostProcessor         postProMain = null;
+  private       Model                 envModel    = null;
+  private       FuelCell              myFuelCell  = null;
+  private final Array<FuelCell>       fuelCells   = new Array<FuelCell>();
+  private final Array<GameObject>     instances   = new Array<GameObject>();
   
   public CombatScreen (final Communitrix communitrix) {
     // Cache our game instance.
     ctx                   = communitrix;
     
     // Initialize tweening engine.
-    Tween.registerAccessor(GameObject.class, new GameObjectAccessor());
-    Tween.registerAccessor(Camera.class, new CameraAccessor());
     tweener               = new TweenManager();
     
     // Set up the scene environment.
@@ -88,11 +82,11 @@ public class CombatScreen implements Screen {
   }
   
   // Configure this screen.
-  public boolean setUp (final Configuration c) {
+  public CombatScreen setUp (final Configuration c) {
     hide            ();
     config          = c;
     show            ();
-    return          true;
+    return          this;
   }
 
   // Whenever this screen will temporarilly not be used anymore...
@@ -104,7 +98,7 @@ public class CombatScreen implements Screen {
     if (envModel==null)
       envModel        = ctx.modelLoader.loadModel(Gdx.files.internal("models/interior.g3db"));
     
-    // Instanciate environment.
+    // Instantiate environment.
     if (instances.size==0) {
       GameObject      envInst   = new GameObject(envModel);
       envInst.transform.rotate  (1, 0, 0, -90);
@@ -137,12 +131,9 @@ public class CombatScreen implements Screen {
       envModel          = null;
     }
   }
-  @Override public void pause () {
-    //hide                ();
-  }
-  @Override public void resume () {
-    //show                ();
-  }
+  @Override public void pause () {}
+  @Override public void resume () {}
+
   @Override public void dispose () {
     // Most of the dispose code can be achieved just by hidding.
     hide                ();

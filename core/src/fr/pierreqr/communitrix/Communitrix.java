@@ -2,9 +2,13 @@ package fr.pierreqr.communitrix;
 
 import java.util.HashMap;
 
+import aurelienribon.tweenengine.Tween;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -19,11 +23,15 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 
+import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
+import fr.pierreqr.communitrix.gameObjects.GameObject;
+import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
+import fr.pierreqr.communitrix.screens.LobbyScreen.State;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
@@ -97,6 +105,13 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     
     // Prepare our FPS logging object.
     fpsLogger               = new FPSLogger();
+    
+    // Register motion tweening accessors.
+    Tween.registerAccessor(GameObject.class, new GameObjectAccessor());
+    Tween.registerAccessor(Camera.class, new CameraAccessor());
+  }
+  @Override public void setScreen(Screen screen) {
+    if (getScreen()!=screen)  super.setScreen(screen);
   }
 
   // Occurs when the game exits.
@@ -164,6 +179,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     Gdx.app.log             (LogTag, "We are disconnected from the server. Reconnection scheduled in 3 seconds.");
     networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 3.0f);
   }
+  // This method runs after rendering.
   @Override public void onServerMessage (final RXBase cmd) {
     if (cmd==null) {
       Gdx.app.error         (LogTag, "Received a NULL command!");
@@ -178,6 +194,9 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       case Welcome: {
         final RXWelcome spec    = (RXWelcome)cmd;
         Gdx.app.log             (LogTag, "Server is welcoming us: " + spec.message);
+        getLobbyScreen()
+          .setState             (State.Global);
+        setScreen               (lobbyScreen);
         break;
       }
       case Registered: {
@@ -193,29 +212,34 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       case CombatJoin: {
         final RXCombatJoin spec = (RXCombatJoin)cmd;
         Gdx.app.log             (LogTag, "We joined a combat, it has " + spec.players.size() + " people.");
-        if (combatScreen==null)
-          combatScreen          = new CombatScreen(this);
-        setScreen               (combatScreen);
+        setScreen(
+          getLobbyScreen()
+            .setState             (State.Global)
+            .setPlayers           (spec.players)
+        );
         break;
       }
       case CombatPlayerJoined: {
         final RXCombatPlayerJoined spec = (RXCombatPlayerJoined)cmd;
         Gdx.app.log             (LogTag, "Player " + spec.player + " has joined.");
+        getLobbyScreen()
+          .addPlayer            (spec.player);
         break;
       }
       case CombatPlayerLeft: {
         final RXCombatPlayerLeft spec = (RXCombatPlayerLeft)cmd;
         Gdx.app.log             (LogTag, "Player " + spec.player + " has left.");
+        getLobbyScreen()
+          .removePlayer         (spec.player);
         break;
       }
       case CombatStart: {
         final RXCombatStart spec = (RXCombatStart)cmd;
-        if (combatScreen==null)
-          combatScreen          = new CombatScreen(this);
         Gdx.app.log             (LogTag, "Server is ordering us to start combat.");
-        combatScreen            = getCombatScreen();
-        combatScreen.setUp(combatScreen.new Configuration(spec));
-        setScreen               (combatScreen);
+        setScreen(
+          getCombatScreen()
+            .setUp              (combatScreen.new Configuration(spec))
+        );
         break;
       }
       case CombatNewTurn: {
