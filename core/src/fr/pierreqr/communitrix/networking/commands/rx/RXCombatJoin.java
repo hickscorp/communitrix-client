@@ -1,11 +1,9 @@
 package fr.pierreqr.communitrix.networking.commands.rx;
 
-import java.util.ArrayList;
+import fr.pierreqr.communitrix.networking.Combat;
 
 public class RXCombatJoin extends RXBase {
-  public    String              uuid;
-  public    int                 minPlayers, maxPlayers;
-  public    ArrayList<String>   players;
+  public    Combat              combat;
 
   public RXCombatJoin () {
     super (Rx.CombatJoin);

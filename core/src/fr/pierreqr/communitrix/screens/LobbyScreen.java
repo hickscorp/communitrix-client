@@ -1,6 +1,8 @@
 package fr.pierreqr.communitrix.screens;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
@@ -28,6 +30,7 @@ import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
+import fr.pierreqr.communitrix.networking.Player;
 
 public class LobbyScreen implements Screen {
   public        enum                  State         { Global, Joined, Starting }
@@ -41,10 +44,10 @@ public class LobbyScreen implements Screen {
   private       PostProcessor         postProMain;
   // State related members.
   private       State                 state         = State.Global;
-  public        Array<String>         players       = new Array<String>();
+  public        Array<Player>         players       = new Array<Player>();
   // Various object instances.
   private final Array<GameObject>     instances     = new Array<GameObject>();
-  private final Array<GameObject>     characters    = new Array<GameObject>();
+  private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // UI Components.
   private       Label                 lblFPS, lblPlayers;
   
@@ -112,55 +115,73 @@ public class LobbyScreen implements Screen {
     return this;
   }
   // Setter on players, handles list population.
-  public LobbyScreen setPlayers (final ArrayList<String> players) {
+  public LobbyScreen setPlayers (final ArrayList<Player> players) {
     // Remove all character instances.
-    while (characters.size>0)
-      instances.removeValue (characters.removeIndex(0), true);
+    for (final Player player : this.players)
+      instances.removeValue(
+        characters.remove(player.uuid)
+      , true);
     // Clear character list.
     this.players.clear  ();
     // Create our players.
-    for (final String player : players)
+    for (final Player player : players)
       addPlayer(player);
     updatePlayers  ();
     return this;
   }
-  public LobbyScreen addPlayer (final String player) {
-    if (!players.contains(player, false)) {
-      final GameObject obj  = new GameObject(ctx.getModel("Cube"));
-      obj.transform.setTranslation(players.size * 1.5f, 15, 0);
-      Tween
-        .to(obj, GameObjectAccessor.POSITION_Y, 1.2f)
-        .target(0)
-        .ease(Bounce.OUT)
-        .start(tweener);
-      players.add         (player);
-      characters.add      (obj);
-      instances.add       (obj);
-      updatePlayers       ();
-    }
+  public LobbyScreen addPlayer (final Player player) {
+    final GameObject obj  = new GameObject(ctx.getModel("Cube"));
+    obj.transform.setTranslation(players.size * 2.5f, 15, 0);
+    characters.put      (player.uuid, obj);
+    instances.add       (obj);
+    players.add         (player);
+    updatePlayers       ();
+    // Schedule animation.
+    Tween
+      .to(obj, GameObjectAccessor.TransY, 1.2f)
+      .target(0)
+      .ease(Bounce.OUT)
+      .start(tweener);
     return this;
   }
-  public LobbyScreen removePlayer (final String player) {
-    if (players.contains(player, false)) {
-      final GameObject obj  = characters.removeIndex(0);
-      Tween
-        .to(obj, GameObjectAccessor.POSITION_Y, 0.5f)
-        .target(-10)
-        .ease(aurelienribon.tweenengine.equations.Expo.IN)
-        .start(tweener)
-        .setCallback(new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); } });
-      players.removeValue   (player, false);
-      updatePlayers         ();
+  public LobbyScreen removePlayer (final String uuid) {
+    boolean shift   = false;
+    int     idx     = 0;
+    Player  remove  = null;
+    for (final Player player : players) {
+      if (shift) {
+        final GameObject obj  = characters.get(player.uuid);
+        Tween
+          .to(obj, GameObjectAccessor.TransX, 0.5f)
+          .delay(0.3f)
+          .target((idx-1) * 2.5f)
+          .ease(Bounce.OUT)
+          .start(tweener);
+      }
+      else if (player.uuid.equals(uuid)) {
+        final GameObject obj  = characters.remove(player.uuid);
+        remove                = player;
+        shift                 = true;
+        Tween
+          .to(obj, GameObjectAccessor.TransY | GameObjectAccessor.RotX, 0.5f)
+          .target(-10.0f, 180.0f)
+          .ease(aurelienribon.tweenengine.equations.Expo.IN)
+          .start(tweener)
+          .setCallback(new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); } });
+      }
+      ++idx;
     }
+    players.removeValue   (remove, true);
+    updatePlayers         ();
     return this;
   }
   private void updatePlayers() {
     if (players==null)  return;
-    StringBuilder sb    = new StringBuilder(players.size * 32);
-    for (final String player : players) {
+    StringBuilder sb    = new StringBuilder(players.size * 16);
+    for (final Player player : players) {
       if (sb.length()>0)
         sb.append       (", ");
-      sb.append         (player);
+      sb.append         (player.username);
     }
     sb.append           (" (" + players.size + ")");
     lblPlayers.setText  (sb.toString());

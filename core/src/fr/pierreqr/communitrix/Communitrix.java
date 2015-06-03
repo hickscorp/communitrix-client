@@ -126,7 +126,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   // Occurs whenever the viewport needs to render.
   @Override public void render () {
     super.render  ();
-    fpsLogger.log ();
+    //fpsLogger.log ();
   }
 
   @Override public void resize (final int width, final int height) {
@@ -205,17 +205,17 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       }
       case CombatList: {
         final RXCombatList spec = (RXCombatList)cmd;
-        Gdx.app.log(LogTag, "Combat list: " + spec.combats.toString());
+        Gdx.app.log             (LogTag, "Combat list: " + spec.combats.toString());
         networkingManager.send  (new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin("CBT1"));
         break;
       }
       case CombatJoin: {
         final RXCombatJoin spec = (RXCombatJoin)cmd;
-        Gdx.app.log             (LogTag, "We joined a combat, it has " + spec.players.size() + " people.");
+        Gdx.app.log             (LogTag, "We joined a combat, it has " + spec.combat.players.size() + " people.");
         setScreen(
           getLobbyScreen()
             .setState             (State.Global)
-            .setPlayers           (spec.players)
+            .setPlayers           (spec.combat.players)
         );
         break;
       }
@@ -228,9 +228,9 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       }
       case CombatPlayerLeft: {
         final RXCombatPlayerLeft spec = (RXCombatPlayerLeft)cmd;
-        Gdx.app.log             (LogTag, "Player " + spec.player + " has left.");
+        Gdx.app.log             (LogTag, "Player " + spec.uuid + " has left.");
         getLobbyScreen()
-          .removePlayer         (spec.player);
+          .removePlayer         (spec.uuid);
         break;
       }
       case CombatStart: {
