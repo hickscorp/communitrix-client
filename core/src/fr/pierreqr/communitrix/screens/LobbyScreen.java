@@ -12,6 +12,7 @@ import aurelienribon.tweenengine.equations.*;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -20,6 +21,8 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
+import com.badlogic.gdx.math.Quaternion;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Array;
@@ -28,9 +31,12 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.networking.Player;
+import fr.pierreqr.communitrix.networking.Vector;
+import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 
 public class LobbyScreen implements Screen {
   public        enum                  State         { Global, Joined, Starting }
@@ -48,6 +54,8 @@ public class LobbyScreen implements Screen {
   // Various object instances.
   private final Array<GameObject>     instances     = new Array<GameObject>();
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
+  
+  private final FuelCell              myFuelCell;
   // UI Components.
   private       Label                 lblFPS, lblPlayers;
   
@@ -98,6 +106,10 @@ public class LobbyScreen implements Screen {
     lblFPS.setColor       (Color.WHITE);
     lblPlayers            = new Label("", ctx.uiSkin);
     lblPlayers.setColor   (Color.WHITE);
+    
+    myFuelCell            = new FuelCell(10, 10, 10, 1, false);
+    myFuelCell.transform.setTranslation(-3, 0, 0);
+    instances.add         (myFuelCell);
   }
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
@@ -163,7 +175,7 @@ public class LobbyScreen implements Screen {
         remove                = player;
         shift                 = true;
         Tween
-          .to(obj, GameObjectAccessor.TransY | GameObjectAccessor.RotX, 0.5f)
+          .to(obj, GameObjectAccessor.TransYRotX, 0.5f)
           .target(-10.0f, 180.0f)
           .ease(aurelienribon.tweenengine.equations.Expo.IN)
           .start(tweener)
@@ -187,6 +199,11 @@ public class LobbyScreen implements Screen {
     lblPlayers.setText  (sb.toString());
   }
 
+  public LobbyScreen setRemoteFuelCellContents (final Vector[] contents) {
+    myFuelCell.setContents(contents);
+    return this;
+  }
+  
   @Override public void show () {
     // Set the input controller.
     Gdx.input.setInputProcessor(camCtrlMain);
@@ -212,7 +229,10 @@ public class LobbyScreen implements Screen {
   @Override public void dispose () {
     postProMain.dispose ();
   }
-
+  
+  
+  private static final Quaternion   tmpQuat   = new Quaternion();
+  private static final Vector3      tmpVec3   =  new Vector3();
   @Override public void render (final float delta) {
     // Clear viewport etc.
     Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
@@ -225,8 +245,17 @@ public class LobbyScreen implements Screen {
     Gdx.gl.glCullFace(GL20.GL_BACK);
     
     // Update any pending tweening.
-    tweener.update        (delta);
-
+    tweener.update      (delta);
+    
+    if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
+      tmpQuat.mul(new Quaternion(Vector3.Y, 90));
+      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+    }
+    else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
+      tmpQuat.mul(new Quaternion(Vector3.Y, -90));
+      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+    }
+    
     // Update camera controller.
     camCtrlMain.update  ();
     // Update flat UI.

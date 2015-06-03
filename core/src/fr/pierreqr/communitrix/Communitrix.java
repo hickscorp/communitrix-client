@@ -8,7 +8,6 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -23,18 +22,14 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 
-import fr.pierreqr.communitrix.gameObjects.CameraAccessor;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
-import fr.pierreqr.communitrix.screens.CombatScreen;
-import fr.pierreqr.communitrix.screens.LobbyScreen;
-import fr.pierreqr.communitrix.screens.LobbyScreen.State;
+import fr.pierreqr.communitrix.screens.*;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
-import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
-import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
+import fr.pierreqr.communitrix.networking.commands.tx.*;
 
 public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {  
   // Constants.
@@ -101,14 +96,13 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     modelLoader             = new G3dModelLoader(reader);
     
     // Set default screen.
-    setScreen               (getLobbyScreen());
+    setScreen               (getLazyLobbyScreen());
     
     // Prepare our FPS logging object.
     fpsLogger               = new FPSLogger();
     
     // Register motion tweening accessors.
-    Tween.registerAccessor(GameObject.class, new GameObjectAccessor());
-    Tween.registerAccessor(Camera.class, new CameraAccessor());
+    Tween.registerAccessor  (GameObject.class, new GameObjectAccessor());
   }
   @Override public void setScreen(Screen screen) {
     if (getScreen()!=screen)  super.setScreen(screen);
@@ -172,94 +166,80 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   }
   
   @Override public void onServerConnected () {
-    Gdx.app.log             (LogTag, "We are connected to the server.");
     networkingManager.send  (new TXRegister("Doodloo"));
   }
   @Override public void onServerDisconnected () {
-    Gdx.app.log             (LogTag, "We are disconnected from the server. Reconnection scheduled in 3 seconds.");
     networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 3.0f);
   }
   // This method runs after rendering.
-  @Override public void onServerMessage (final RXBase cmd) {
-    if (cmd==null) {
+  @Override public void onServerMessage (final RXBase baseCmd) {
+    if (baseCmd==null) {
       Gdx.app.error         (LogTag, "Received a NULL command!");
       return;
     }
-    switch (cmd.type) {
+    switch (baseCmd.type) {
       case Error: {
-        final RXError spec      = (RXError)cmd;
-        Gdx.app.error           (LogTag, "Server just notified us of an error #" + spec.code + ": " + spec.reason);
+        final RXError cmd = (RXError)baseCmd;
+        Gdx.app.error     (LogTag, "Server just notified us of an error #" + cmd.code + ": " + cmd.reason);
         break;
       }
       case Welcome: {
-        final RXWelcome spec    = (RXWelcome)cmd;
-        Gdx.app.log             (LogTag, "Server is welcoming us: " + spec.message);
-        getLobbyScreen()
-          .setState             (State.Global);
-        setScreen               (lobbyScreen);
+        Gdx.app.log         (LogTag, "Server is welcoming us: " + ((RXWelcome)baseCmd).message);
+        getLazyLobbyScreen()
+          .setState         (LobbyScreen.State.Global);
+        setScreen           (lobbyScreen);
         break;
       }
       case Registered: {
-        networkingManager.send  (new TXCombatList());
+        networkingManager.send(new TXCombatList());
         break;
       }
       case CombatList: {
-        final RXCombatList spec = (RXCombatList)cmd;
-        Gdx.app.log             (LogTag, "Combat list: " + spec.combats.toString());
-        networkingManager.send  (new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin("CBT1"));
+        networkingManager.send(new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin("CBT1"));
         break;
       }
       case CombatJoin: {
-        final RXCombatJoin spec = (RXCombatJoin)cmd;
-        Gdx.app.log             (LogTag, "We joined a combat, it has " + spec.combat.players.size() + " people.");
         setScreen(
-          getLobbyScreen()
-            .setState             (State.Global)
-            .setPlayers           (spec.combat.players)
+          getLazyLobbyScreen()
+            .setState         (LobbyScreen.State.Global)
+            .setPlayers       (((RXCombatJoin)baseCmd).combat.players)
         );
         break;
       }
       case CombatPlayerJoined: {
-        final RXCombatPlayerJoined spec = (RXCombatPlayerJoined)cmd;
-        Gdx.app.log             (LogTag, "Player " + spec.player + " has joined.");
-        getLobbyScreen()
-          .addPlayer            (spec.player);
+        getLazyLobbyScreen()
+          .addPlayer        (((RXCombatPlayerJoined)baseCmd).player);
         break;
       }
       case CombatPlayerLeft: {
-        final RXCombatPlayerLeft spec = (RXCombatPlayerLeft)cmd;
-        Gdx.app.log             (LogTag, "Player " + spec.uuid + " has left.");
-        getLobbyScreen()
-          .removePlayer         (spec.uuid);
+        getLazyLobbyScreen()
+          .removePlayer     (((RXCombatPlayerLeft)baseCmd).uuid);
         break;
       }
       case CombatStart: {
-        final RXCombatStart spec = (RXCombatStart)cmd;
-        Gdx.app.log             (LogTag, "Server is ordering us to start combat.");
         setScreen(
-          getCombatScreen()
-            .setUp              (combatScreen.new Configuration(spec))
+          getLazyCombatScreen()
+            .setUp            (combatScreen.new Configuration((RXCombatStart)baseCmd))
         );
         break;
       }
       case CombatNewTurn: {
-        break;
       }
       case CombatPlayerTurn: {
-        break;
+        RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
+        setScreen(
+          getLazyLobbyScreen()
+            .setRemoteFuelCellContents(cmd.contents)
+        );
+         break;
       }
       case CombatEnd: {
-        break;
       }
       default:
-        Gdx.app.log         (LogTag, "Unhandled command type: " + cmd.type + ".");
+        Gdx.app.log         (LogTag, "Unhandled command type: " + baseCmd.type + ".");
     }
   }
   
-  private LobbyScreen getLobbyScreen () {
-    return lobbyScreen==null ? lobbyScreen = new LobbyScreen(this) : lobbyScreen;
-  }
-  private CombatScreen getCombatScreen () {
-    return combatScreen==null ? combatScreen = new CombatScreen(this) : combatScreen;
-  }
+  private LobbyScreen getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new LobbyScreen(this)   : lobbyScreen; }
+  private CombatScreen getLazyCombatScreen  () { return combatScreen==null  ? combatScreen  = new CombatScreen(this)  : combatScreen; }
 }

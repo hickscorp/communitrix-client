@@ -22,13 +22,13 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
   public final static   int           RotXZ       = RotX | RotZ;
   public final static   int           RotYZ       = RotX | RotZ;
   public final static   int           RotXYZ      = RotX | RotY | RotZ;
+  public final static   int           TransYRotX  = TransY | RotX;
   // Those are temporaries.
   private static        int           tmpInt      = 0;
   private final static  Vector3       tmpVec3     = new Vector3();
   private final static  Quaternion    tmpQuat     = new Quaternion();
 
-  @Override
-  public int getValues(final GameObject obj, final int type, final float[] retVals) {
+  @Override public int getValues (final GameObject obj, final int type, final float[] retVals) {
     tmpInt  = 0;
     // Handle translations if required.
     if ((type & TransX)!=0 || (type & TransY)!=0 || (type & TransZ)!=0) {
@@ -47,7 +47,7 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     return tmpInt;
   }
   @Override
-  public void setValues(final GameObject obj, final int type, float[] newVals) {
+  public void setValues (final GameObject obj, final int type, final float[] newVals) {
     tmpInt                        = 0;
     // Handle translations, if any.
     obj.transform.getTranslation(tmpVec3);
@@ -55,11 +55,9 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     if (( type & TransY )!=0)   tmpVec3.y  = newVals[tmpInt++];
     if (( type & TransZ )!=0)   tmpVec3.z  = newVals[tmpInt++];
     // Handle rotations, if any.
-    if ((type & RotX)!=0 || (type & RotY)!=0 || (type & RotZ)!=0) {
-      if (( type & RotX )!=0)   obj.transform.setToRotation(Vector3.X, newVals[tmpInt++]);
-      if (( type & RotY )!=0)   obj.transform.setToRotation(Vector3.Y, newVals[tmpInt++]); 
-      if (( type & RotZ )!=0)   obj.transform.setToRotation(Vector3.Z, newVals[tmpInt++]);
-    }
+    if (( type & RotX )!=0)   obj.transform.setToRotation(Vector3.X, newVals[tmpInt++]);
+    if (( type & RotY )!=0)   obj.transform.setToRotation(Vector3.Y, newVals[tmpInt++]); 
+    if (( type & RotZ )!=0)   obj.transform.setToRotation(Vector3.Z, newVals[tmpInt++]);
     obj.transform.setTranslation  (tmpVec3);
   }
 }
