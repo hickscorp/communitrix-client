@@ -27,9 +27,10 @@ import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
 import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
-import fr.pierreqr.communitrix.screens.*;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.networking.commands.tx.*;
+import fr.pierreqr.communitrix.screens.CombatScreen;
+import fr.pierreqr.communitrix.screens.LobbyScreen;
 
 public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {  
   // Constants.
@@ -217,10 +218,16 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         break;
       }
       case CombatStart: {
+        final RXCombatStart cmd   = (RXCombatStart)baseCmd;
+        Gdx.app.log(LogTag, "Target count is " + cmd.target.length + " and pieces count is " + cmd.pieces.length + ".");
         setScreen(
-          getLazyCombatScreen()
-            .setUp            (combatScreen.new Configuration((RXCombatStart)baseCmd))
-        );
+            getLazyLobbyScreen()
+              .setRemoteFuelCellContents(cmd.target)
+          );
+//        setScreen(
+//          getLazyCombatScreen()
+//            .setUp            (combatScreen.new Configuration(cmd, lobbyScreen.players))
+//        );
         break;
       }
       case CombatNewTurn: {

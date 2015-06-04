@@ -20,16 +20,17 @@ import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
+import fr.pierreqr.communitrix.networking.Player;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
 
 public class CombatScreen implements Screen {
   // This is the configuration class for this screen.
   public class Configuration {
     public final String         combatUUID;
-    public final String[]       players;
-    public Configuration (final RXCombatStart spec) {
+    public final Array<Player>  players;
+    public Configuration (final RXCombatStart spec, Array<Player> players) {
       combatUUID        = spec.uuid;
-      players           = spec.players;
+      this.players      = players;
     }
   }
   
@@ -107,7 +108,7 @@ public class CombatScreen implements Screen {
   
       // Create fuel cell.
       if (myFuelCell==null) {
-        myFuelCell      = new FuelCell(5, 5, 5, config.players.length, true);
+        myFuelCell      = new FuelCell(5, 5, 5, config.players.size, true);
         fuelCells.add   (myFuelCell);
         instances.add   (myFuelCell);
       }

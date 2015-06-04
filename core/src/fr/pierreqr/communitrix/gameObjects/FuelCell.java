@@ -2,7 +2,6 @@ package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.Random;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -68,8 +67,16 @@ public class FuelCell extends GameObject {
       for (int y=0; y<height; ++y)
         for (int z=0; z<depth; ++z)
           contents[x][y][z]     = 0;
+    int xOff  = 0;
+    int yOff  = 0;
+    int zOff  = 0;
+    for (final Vector p : points) {
+      xOff  = Math.min(p.x, xOff);
+      yOff  = Math.min(p.y, yOff);
+      zOff  = Math.min(p.z, zOff);
+    }
     for (final Vector p : points)
-      contents[p.x+3][p.y+3][p.z+3] = 1;
+      contents[p.x-xOff][p.y-yOff][p.z-zOff] = 1;
     updateMesh();
   }
   public void randomize () {

@@ -7,5 +7,8 @@ public class Vector {
     x   = (int)v.x;
     y   = (int)v.y;
     z   = (int)v.z;
-  } 
+  }
+  public String toString () {
+    return "(" + x + ", " + y + ", " + z + ")";
+  }
 }
