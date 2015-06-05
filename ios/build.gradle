@@ -27,14 +27,11 @@ task copyNatives << {
 // Updates a robovm.xml file.
 task updateRoboVMXML << {
   def xml = file('robovm.xml')
-
   if (!xml.exists()) {
     return
   }
-  
   // Find all native (*.a) libraries beneath libs
   def libtree = fileTree(dir: 'build/libs', include: '**/*.a')
-  
   def config = new groovy.util.XmlParser().parse(xml)
   config.libs.each {libs ->
       libs.children().clear()
@@ -42,7 +39,6 @@ task updateRoboVMXML << {
           libs.appendNode('lib', 'build/libs/ios/' + file.getName())
       }
   }
-  
   def writer = new FileWriter(xml)
   def printer = new XmlNodePrinter(new PrintWriter(writer))
   printer.setPreserveWhitespace true

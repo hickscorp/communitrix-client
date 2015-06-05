@@ -5,6 +5,7 @@ import fr.pierreqr.communitrix.networking.Vector;
 public class RXCombatStart extends RXBase {
   public    String      uuid;
   public    Vector[]    target;
+  public    Vector[][]  cells;
   public    Vector[][]  pieces;
   
   public RXCombatStart () {

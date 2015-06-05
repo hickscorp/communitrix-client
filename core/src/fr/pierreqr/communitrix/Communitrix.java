@@ -32,7 +32,7 @@ import fr.pierreqr.communitrix.networking.commands.tx.*;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
-public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {  
+public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {
   // Constants.
   public  static final  float     TranslationSpeed      = 20.0f;
   public  static final  float     RotationSpeed         = 120.0f;
@@ -52,7 +52,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   public          NetworkingManager networkingManager = null;
   public          Timer             networkTimer      = null;
   public          FPSLogger         fpsLogger         = null;
-  
+
   // Where our models will be cached.
   private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
   private         HashMap<String, Model>          models          = new HashMap<String, Model>();
@@ -61,11 +61,11 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   // All our different screens.
   private         LobbyScreen     lobbyScreen     = null;
   private         CombatScreen    combatScreen    = null;
-  
+
   public static Communitrix getInstance() {
     return instance;
   }
-  
+
   @Override public void create () {
     instance                = this;
     // Cache application type.
@@ -75,7 +75,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
 //      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
 //      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
 //    }
-    
+
     // Configure assets etc.
     ShaderLoader.BasePath     = "shaders/";
 
@@ -89,19 +89,19 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("localhost", 8080, this);
+    networkingManager       = new NetworkingManager("www.pierreqr.fr", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
     UBJsonReader reader     = new UBJsonReader();
     modelLoader             = new G3dModelLoader(reader);
-    
+
     // Set default screen.
     setScreen               (getLazyLobbyScreen());
-    
+
     // Prepare our FPS logging object.
     fpsLogger               = new FPSLogger();
-    
+
     // Register motion tweening accessors.
     Tween.registerAccessor  (GameObject.class, new GameObjectAccessor());
   }
@@ -130,7 +130,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     // Propagate change to current screen instance.
     super.resize(width, height);
   }
-  
+
   // Cache clearing methods.
   public void clearCaches () {
     // Get rid of all cached models.
@@ -165,7 +165,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     }
     return mdl;
   }
-  
+
   @Override public void onServerConnected () {
     networkingManager.send  (new TXRegister("Doodloo"));
   }
@@ -213,21 +213,26 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         break;
       }
       case CombatPlayerLeft: {
+        RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
+        Gdx.app.log(LogTag, "Player " + cmd.uuid + " has left the lobby.");
         getLazyLobbyScreen()
-          .removePlayer     (((RXCombatPlayerLeft)baseCmd).uuid);
+          .removePlayer     (cmd.uuid);
         break;
       }
       case CombatStart: {
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
-        Gdx.app.log(LogTag, "Target count is " + cmd.target.length + " and pieces count is " + cmd.pieces.length + ".");
+        Gdx.app.log(LogTag, "Server is sending us into combat (" +
+                              "UUID: " + cmd.uuid + ", " +
+                              "Target blocks: " + cmd.target.length + ", " +
+                              "Cells: " + cmd.cells.length + ", " +
+                              "Pieces: " + cmd.pieces.length + ").");
         setScreen(
             getLazyLobbyScreen()
               .setRemoteFuelCellContents(cmd.target)
           );
-//        setScreen(
-//          getLazyCombatScreen()
-//            .setUp            (combatScreen.new Configuration(cmd, lobbyScreen.players))
-//        );
+        // Should in fact be this one.
+        getLazyCombatScreen()
+          .setUp            (combatScreen.new Configuration(cmd, lobbyScreen.players));
         break;
       }
       case CombatNewTurn: {
@@ -246,7 +251,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         Gdx.app.log         (LogTag, "Unhandled command type: " + baseCmd.type + ".");
     }
   }
-  
+
   private LobbyScreen getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new LobbyScreen(this)   : lobbyScreen; }
   private CombatScreen getLazyCombatScreen  () { return combatScreen==null  ? combatScreen  = new CombatScreen(this)  : combatScreen; }
 }

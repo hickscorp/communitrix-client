@@ -39,7 +39,8 @@ import fr.pierreqr.communitrix.networking.Vector;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 
 public class LobbyScreen implements Screen {
-  public        enum                  State         { Global, Joined, Starting }
+  public                enum          State         { Global, Joined, Starting }
+  private static final  String        LogTag        = "LobbyScreen";
   
   // Scene setup related objects.
   public        Stage                 uiStage;
@@ -63,6 +64,7 @@ public class LobbyScreen implements Screen {
   private final Communitrix           ctx;
   
   public LobbyScreen (final Communitrix communitrixInstance) {
+    Gdx.app.log           (LogTag, "Constructing.");
     // Cache our game instance.
     ctx                   = communitrixInstance;
 
@@ -114,6 +116,7 @@ public class LobbyScreen implements Screen {
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
     if (this.state!=state) {
+      Gdx.app.log   (LogTag, "Changing state to " + state + ".");
       this.state  = state;
       switch (this.state) {
         case Global:
@@ -128,6 +131,7 @@ public class LobbyScreen implements Screen {
   }
   // Setter on players, handles list population.
   public LobbyScreen setPlayers (final ArrayList<Player> players) {
+    Gdx.app.log         (LogTag, "Setting new player list (" + players.size() + ").");
     // Remove all character instances.
     for (final Player player : this.players)
       instances.removeValue(
@@ -137,38 +141,40 @@ public class LobbyScreen implements Screen {
     this.players.clear  ();
     // Create our players.
     for (final Player player : players)
-      addPlayer(player);
-    updatePlayers  ();
+      addPlayer         (player);
+    updatePlayers       ();
     return this;
   }
   public LobbyScreen addPlayer (final Player player) {
+    Gdx.app.log       (LogTag, "Adding player (" + player.uuid + ").");
     final GameObject obj  = new GameObject(ctx.getModel("Cube"));
     obj.transform.setTranslation(players.size * 2.5f, 15, 0);
-    characters.put      (player.uuid, obj);
-    instances.add       (obj);
-    players.add         (player);
-    updatePlayers       ();
+    characters.put        (player.uuid, obj);
+    instances.add         (obj);
+    players.add           (player);
+    updatePlayers         ();
     // Schedule animation.
     Tween
-      .to(obj, GameObjectAccessor.TransY, 1.2f)
-      .target(0)
-      .ease(Bounce.OUT)
-      .start(tweener);
+      .to                 (obj, GameObjectAccessor.TransY, 1.2f)
+      .target             (0)
+      .ease               (Bounce.OUT)
+      .start              (tweener);
     return this;
   }
   public LobbyScreen removePlayer (final String uuid) {
-    boolean shift   = false;
-    int     idx     = 0;
-    Player  remove  = null;
+    Gdx.app.log       (LogTag, "Removing player (" + uuid + ").");
+    boolean shift     = false;
+    int     idx       = 0;
+    Player  remove    = null;
     for (final Player player : players) {
       if (shift) {
         final GameObject obj  = characters.get(player.uuid);
         Tween
-          .to(obj, GameObjectAccessor.TransX, 0.5f)
-          .delay(0.3f)
-          .target((idx-1) * 2.5f)
-          .ease(Bounce.OUT)
-          .start(tweener);
+          .to             (obj, GameObjectAccessor.TransX, 0.5f)
+          .delay          (0.3f)
+          .target         ((idx-1) * 2.5f)
+          .ease           (Bounce.OUT)
+          .start          (tweener);
       }
       else if (player.uuid.equals(uuid)) {
         final GameObject obj  = characters.remove(player.uuid);
@@ -205,6 +211,7 @@ public class LobbyScreen implements Screen {
   }
   
   @Override public void show () {
+    Gdx.app.log       (LogTag, "Show!");
     // Set the input controller.
     Gdx.input.setInputProcessor(camCtrlMain);
 
@@ -217,6 +224,7 @@ public class LobbyScreen implements Screen {
     uiStage.addActor    (lblPlayers);
   }
   @Override public void hide () {
+    Gdx.app.log       (LogTag, "Hide!");
     // Remove all instances except our character.
     if (instances.size!=0)
       instances.clear   ();
@@ -233,6 +241,7 @@ public class LobbyScreen implements Screen {
   
   private static final Quaternion   tmpQuat   = new Quaternion();
   private static final Vector3      tmpVec3   =  new Vector3();
+  
   @Override public void render (final float delta) {
     // Clear viewport etc.
     Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
