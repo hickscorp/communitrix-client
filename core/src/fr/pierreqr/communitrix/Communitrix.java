@@ -77,19 +77,19 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
 //    }
 
     // Configure assets etc.
-    ShaderLoader.BasePath     = "shaders/";
+    ShaderLoader.BasePath   = "shaders/";
 
     // Register templaters.
-    registerModelTemplater    ("Cube", new CubeModelTemplater());
+    registerModelTemplater  ("Cube", new CubeModelTemplater());
 
     // Force cache viewport size.
-    resize                    (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    resize                  (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Instantiate shared members.
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("www.pierreqr.fr", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
