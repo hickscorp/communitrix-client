@@ -18,7 +18,6 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.Player;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
@@ -42,8 +41,6 @@ public class CombatScreen implements Screen {
   private       PerspectiveCamera     camMain     = null;
   private       PostProcessor         postProMain = null;
   private       Model                 envModel    = null;
-  private       FuelCell              myFuelCell  = null;
-  private final Array<FuelCell>       fuelCells   = new Array<FuelCell>();
   private final Array<GameObject>     instances   = new Array<GameObject>();
   
   public CombatScreen (final Communitrix communitrix) {
@@ -103,26 +100,12 @@ public class CombatScreen implements Screen {
     if (instances.size==0) {
       GameObject      envInst   = new GameObject(envModel);
       envInst.transform.rotate  (1, 0, 0, -90);
-      envInst.transform.scale   (3, 3, 3);
+      envInst.transform.scale   (5, 5, 5);
       instances.add             (envInst);
-  
-      // Create fuel cell.
-      if (myFuelCell==null) {
-        myFuelCell      = new FuelCell(5, 5, 5, config.players.size, true);
-        fuelCells.add   (myFuelCell);
-        instances.add   (myFuelCell);
-      }
     }
   }
   // Whenever this screen becomes available for showing again...
   @Override public void hide () {
-    // Remove all fuel cells.
-    if (fuelCells.size!=0) {
-      for (FuelCell fc : fuelCells)
-        fc.dispose      ();
-      fuelCells.clear   ();
-      myFuelCell        = null;
-    }
     // Remove all instances except our character.
     if (instances.size!=0)
       instances.clear   ();

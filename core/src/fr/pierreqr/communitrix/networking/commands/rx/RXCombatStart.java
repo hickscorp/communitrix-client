@@ -1,12 +1,12 @@
 package fr.pierreqr.communitrix.networking.commands.rx;
 
-import fr.pierreqr.communitrix.networking.Vector;
+import fr.pierreqr.communitrix.networking.Piece;
 
 public class RXCombatStart extends RXBase {
   public    String      uuid;
-  public    Vector[]    target;
-  public    Vector[][]  cells;
-  public    Vector[][]  pieces;
+  public    Piece       target;
+  public    Piece[]     cells;
+  public    Piece[]     pieces;
   
   public RXCombatStart () {
     super   (Rx.CombatStart);

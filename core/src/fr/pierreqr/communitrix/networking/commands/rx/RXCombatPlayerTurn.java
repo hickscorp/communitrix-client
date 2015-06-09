@@ -1,10 +1,10 @@
 package fr.pierreqr.communitrix.networking.commands.rx;
 
-import fr.pierreqr.communitrix.networking.Vector;
+import fr.pierreqr.communitrix.networking.Piece;
 
 public class RXCombatPlayerTurn extends RXBase {
   public    String      playerUUID;
-  public    Vector[]    contents;
+  public    Piece       piece;
   public RXCombatPlayerTurn () {
     super   (Rx.CombatPlayerTurn);
   }

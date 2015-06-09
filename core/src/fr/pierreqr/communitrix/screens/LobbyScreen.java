@@ -36,6 +36,7 @@ import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.networking.Player;
 import fr.pierreqr.communitrix.networking.Vector;
+import fr.pierreqr.communitrix.networking.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 
 public class LobbyScreen implements Screen {
@@ -109,7 +110,7 @@ public class LobbyScreen implements Screen {
     lblPlayers            = new Label("", ctx.uiSkin);
     lblPlayers.setColor   (Color.WHITE);
     
-    myFuelCell            = new FuelCell(30, 30, 30, 1, false);
+    myFuelCell            = new FuelCell(new Vector(30, 30, 30), 1, false);
     myFuelCell.transform.setTranslation(-3, 0, 0);
     instances.add         (myFuelCell);
   }
@@ -205,8 +206,18 @@ public class LobbyScreen implements Screen {
     lblPlayers.setText  (sb.toString());
   }
 
-  public LobbyScreen setRemoteFuelCellContents (final Vector[] contents) {
-    myFuelCell.setContents(contents);
+  public LobbyScreen setRemoteFuelCell (final Piece piece) {
+    myFuelCell.setContents(piece);
+    return this;
+  }
+  public LobbyScreen setPieces (final Piece[] pieces) {
+    int i = 0;
+    for (final Piece piece : pieces) {
+      final FuelCell  fc  = new FuelCell(piece.size, 1, false);
+      fc.setContents  (piece);
+      fc.transform.translate(++i*4f - 8.0f, 0, 5);
+      instances.add   (fc);
+    }
     return this;
   }
   

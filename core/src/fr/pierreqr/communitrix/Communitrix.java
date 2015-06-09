@@ -89,7 +89,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
+    networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
@@ -223,12 +223,13 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
         Gdx.app.log(LogTag, "Server is sending us into combat (" +
                               "UUID: " + cmd.uuid + ", " +
-                              "Target blocks: " + cmd.target.length + ", " +
+                              "Target blocks: " + cmd.target.size.toString() + ", " +
                               "Cells: " + cmd.cells.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
         setScreen(
             getLazyLobbyScreen()
-              .setRemoteFuelCellContents(cmd.target)
+              .setRemoteFuelCell(cmd.target)
+              .setPieces(cmd.pieces)
           );
         // Should in fact be this one.
         getLazyCombatScreen()
@@ -241,7 +242,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
         setScreen(
           getLazyLobbyScreen()
-            .setRemoteFuelCellContents(cmd.contents)
+            .setRemoteFuelCell(cmd.piece)
         );
          break;
       }
