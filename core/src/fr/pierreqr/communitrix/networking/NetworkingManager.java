@@ -31,7 +31,7 @@ public class NetworkingManager implements Runnable {
   private           InputStream       netInput        = null;
   private           OutputStream      netOutput       = null;
   private           ObjectMapper      mapper          = new ObjectMapper();
-  private           StringBuilder     sb              = new StringBuilder(2048);
+  private           StringBuilder     sb              = new StringBuilder(8192);
   private final     NetworkDelegate   delegate;
   private volatile  boolean           shouldRun       = true;
   

@@ -110,7 +110,7 @@ public class LobbyScreen implements Screen {
     lblPlayers            = new Label("", ctx.uiSkin);
     lblPlayers.setColor   (Color.WHITE);
     
-    myFuelCell            = new FuelCell(new Vector(30, 30, 30), 1, false);
+    myFuelCell            = new FuelCell(new Vector(20, 20, 20), 1, false);
     myFuelCell.transform.setTranslation(-3, 0, 0);
     instances.add         (myFuelCell);
   }
