@@ -9,7 +9,4 @@ public class SHCell {
     this.z      = z;
     this.value  = value;
   }
-  public String toString () {
-    return "(" + x + ", " + y + ", " + z + "=" + value + ")";
-  }
 }

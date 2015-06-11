@@ -3,13 +3,11 @@ package fr.pierreqr.communitrix.screens;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
-
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -22,10 +20,8 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Quaternion;
-import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -165,10 +161,10 @@ public class LobbyScreen implements Screen {
     Gdx.app.log       (LogTag, "Adding player (" + player.uuid + ").");
     
     final GameObject obj  = new GameObject(characterModel);
-    
-    obj.transform.setTranslation(players.size * 2.5f, 0, 0);
+   
+    obj.transform.setTranslation(players.size * 2.5f, 30, 0);
     characters.put        (player.uuid, obj);
-    //instances.add         (obj);
+    instances.add         (obj);
     players.add           (player);
     updatePlayers         ();
     // Schedule animation.
@@ -189,8 +185,8 @@ public class LobbyScreen implements Screen {
         final GameObject obj  = characters.get(player.uuid);
         Tween
           .to             (obj, GameObjectAccessor.TransX, 0.5f)
-          .delay          (0.3f)
           .target         ((idx-1) * 2.5f)
+          .delay          (0.3f)
           .ease           (Bounce.OUT)
           .start          (tweener);
       }
@@ -199,11 +195,13 @@ public class LobbyScreen implements Screen {
         remove                = player;
         shift                 = true;
         Tween
-          .to(obj, GameObjectAccessor.TransYRotX, 0.5f)
-          .target(-10.0f, 180.0f)
-          .ease(aurelienribon.tweenengine.equations.Expo.IN)
-          .start(tweener)
-          .setCallback(new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); } });
+          .to             (obj, GameObjectAccessor.TransYRotX, 0.5f)
+          .target         (-30.0f, 180.0f)
+          .ease           (aurelienribon.tweenengine.equations.Expo.IN)
+          .start          (tweener)
+          .setCallback    (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) {
+            instances.removeValue (obj, true);
+          } });
       }
       ++idx;
     }

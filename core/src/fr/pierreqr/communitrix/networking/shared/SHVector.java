@@ -13,4 +13,8 @@ public class SHVector {
   public int volume () {
     return x * y * z;
   }
+  
+  public String toString () {
+    return String.format("(%d, %d, %d)", x, y, z);
+  }
 }

@@ -1,11 +1,8 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.HashMap;
-
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -14,16 +11,14 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 
 public class Piece extends GameObject {
-  private   HashMap<Integer,Material> materials;
-  private   Model                     model;
+  private static final  String                    LogTag      = "Piece";
+  private               HashMap<Integer,Material> materials;
+  private               Model                     model;
 
   public Piece (final SHPiece piece) {
     super               (Communitrix.getInstance().dummyModel);
@@ -42,8 +37,6 @@ public class Piece extends GameObject {
     final float       radius  = Communitrix.CellComponentRadius;
     prepareMaterials          (piece);
     
-    // Make the temporary contents array.
-    final int[][][]   contents  = new int[piece.size.x][piece.size.y][piece.size.z];
     // Compute negative offsets.
     int xOff  = Integer.MAX_VALUE;
     int yOff  = Integer.MAX_VALUE;
@@ -53,9 +46,18 @@ public class Piece extends GameObject {
       yOff  = Math.min(p.y, yOff);
       zOff  = Math.min(p.z, zOff);
     }
+    // Cache size absolute values.
+    final int   xSize = Math.abs(piece.size.x);
+    final int   ySize = Math.abs(piece.size.y);
+    final int   zSize = Math.abs(piece.size.z);
+    Gdx.app.log(LogTag, "Reported size is " + piece.size.toString() + ".");
+
+    // Make the temporary contents array.
+    final int[][][]   contents  = new int[xSize][ySize][zSize];
     // Finally build the content array.
-    for (final SHCell cell : piece.content)
+    for (final SHCell cell : piece.content) {
       contents[cell.x-xOff][cell.y-yOff][cell.z-zOff] = cell.value;
+    }
 
     // Create as many builders as there are indices.
     HashMap<Integer,MeshBuilder> builders = new HashMap<Integer, MeshBuilder>();
@@ -66,9 +68,9 @@ public class Piece extends GameObject {
       builders.put                  (index, builder);
     }
     // Start building faces.
-    for (int x=0; x<piece.size.x; ++x) {
-      for (int y=0; y<piece.size.y; ++y) {
-        for (int z=0; z<piece.size.z; ++z) {
+    for (int x=0; x<xSize; ++x) {
+      for (int y=0; y<ySize; ++y) {
+        for (int z=0; z<zSize; ++z) {
           // Retrieve content hint at current position.
           final int index = contents[x][y][z];
           // Current content is empty, or current content isn't belonging to the part being built.
@@ -84,7 +86,7 @@ public class Piece extends GameObject {
                         1, 0, 0);
           }
           // Nothing on the right.
-          if (x==piece.size.x-1 || contents[x+1][y][z]==0) {
+          if (x==xSize-1 || contents[x+1][y][z]==0) {
             mesh.rect(  x+radius, y-radius, z-radius,
                         x+radius, y+radius, z-radius,
                         x+radius, y+radius, z+radius,
@@ -100,7 +102,7 @@ public class Piece extends GameObject {
                         0, 1, 0);
           }
           // Nothing on the bottom.
-          if (y==piece.size.y-1 || contents[x][y+1][z]==0) {
+          if (y==ySize-1 || contents[x][y+1][z]==0) {
             mesh.rect(  x+radius, y+radius, z-radius,
                         x-radius, y+radius, z-radius,
                         x-radius, y+radius, z+radius,
@@ -116,7 +118,7 @@ public class Piece extends GameObject {
                         0, 0, 1);
           }
           // Nothing behind it.
-          if (z==piece.size.z-1 || contents[x][y][z+1]==0) {
+          if (z==zSize-1 || contents[x][y][z+1]==0) {
             mesh.rect(  x+radius, y+radius, z+radius,
                         x-radius, y+radius, z+radius,
                         x-radius, y-radius, z+radius,
@@ -137,11 +139,10 @@ public class Piece extends GameObject {
           materials.get(index));
     }
     model                     = ctx.modelBuilder.end();
-    
-    Gdx.app.log               ("Piece", "New model has " + model.nodes.size + " node(s).");
+    Gdx.app.log               (LogTag, "New model has " + model.nodes.size + " node(s).");
     for (int index=0; index<model.nodes.size; ++index) {
       final   Node  newNode     = model.nodes.get(index);
-      newNode.translation.add   (-piece.size.x/2, -piece.size.y/2, -piece.size.z/2);
+      newNode.translation.add   (-xSize/2, -ySize/2, -zSize/2);
       newNode.calculateTransforms(true);
       nodes.add                 (newNode);
     }
@@ -162,14 +163,17 @@ public class Piece extends GameObject {
     for (final SHCell cell : piece.content) {
       final int index = cell.value;
       if (!newMaterials.containsKey(index)) {
-        final Material mat = materials.getOrDefault(index, new Material(
-            ColorAttribute.createDiffuse(
-                0.4f + 0.1f*ctx.rand.nextInt(5),
-                0.4f + 0.1f*ctx.rand.nextInt(5),
-                0.4f + 0.1f*ctx.rand.nextInt(5),
-                1.0f),
-            spec, shine, blend
-          ));
+        final Material mat = materials.getOrDefault(
+            index,
+            new Material(
+              ColorAttribute.createDiffuse(
+                  0.4f + 0.1f*ctx.rand.nextInt(5),
+                  0.4f + 0.1f*ctx.rand.nextInt(5),
+                  0.4f + 0.1f*ctx.rand.nextInt(5),
+                  1.0f),
+              spec, shine, blend
+            )
+          );
         newMaterials.put (cell.value, mat);
       }
     }
