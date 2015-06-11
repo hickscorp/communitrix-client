@@ -1,6 +1,6 @@
 package fr.pierreqr.communitrix;
 
-import java.util.HashMap;
+import java.util.Random;
 
 import aurelienribon.tweenengine.Tween;
 
@@ -24,8 +24,6 @@ import com.bitfire.utils.ShaderLoader;
 
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
-import fr.pierreqr.communitrix.modelTemplaters.CubeModelTemplater;
-import fr.pierreqr.communitrix.modelTemplaters.ModelTemplater;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.networking.commands.tx.*;
@@ -48,24 +46,24 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   public          ModelBatch        modelBatch        = null;
   public          Material          defaultMaterial   = null;
   public          G3dModelLoader    modelLoader       = null;
+  public          Model             dummyModel        = null;
+  // Random generator.
+  public          Random            rand              = null;
 
   public          NetworkingManager networkingManager = null;
   public          Timer             networkTimer      = null;
   public          FPSLogger         fpsLogger         = null;
 
-  // Where our models will be cached.
-  private         HashMap<String, ModelTemplater> modelTemplaters = new HashMap<String, ModelTemplater>();
-  private         HashMap<String, Model>          models          = new HashMap<String, Model>();
-  private static  Communitrix                     instance;
+  private static  Communitrix       instance          = null;
 
   // All our different screens.
-  private         LobbyScreen     lobbyScreen     = null;
-  private         CombatScreen    combatScreen    = null;
+  private         LobbyScreen       lobbyScreen       = null;
+  private         CombatScreen      combatScreen      = null;
 
   public static Communitrix getInstance() {
     return instance;
   }
-
+  
   @Override public void create () {
     instance                = this;
     // Cache application type.
@@ -79,15 +77,14 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     // Configure assets etc.
     ShaderLoader.BasePath   = "shaders/";
 
-    // Register templaters.
-    registerModelTemplater  ("Cube", new CubeModelTemplater());
-
     // Force cache viewport size.
     resize                  (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Instantiate shared members.
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
+    dummyModel              = new Model();
+    rand                    = new Random();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkTimer            = new Timer();
@@ -114,7 +111,6 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     if (networkingManager!=null)  networkingManager.stop();
     if (combatScreen!=null)       combatScreen.dispose();
     if (lobbyScreen!=null)        lobbyScreen.dispose();
-    clearCaches();
     modelBatch.dispose();
   }
 
@@ -129,41 +125,6 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     viewHeight      = height;
     // Propagate change to current screen instance.
     super.resize(width, height);
-  }
-
-  // Cache clearing methods.
-  public void clearCaches () {
-    // Get rid of all cached models.
-    for (final String identifier : models.keySet())
-      models.remove(identifier).dispose();
-    // Get rid of all model templaters.
-    for (final String identifier : modelTemplaters.keySet())
-      modelTemplaters.remove(identifier).dispose();
-  }
-
-  // Registers a templater into the engine.
-  public void registerModelTemplater (final String identifier, final ModelTemplater modelTemplater) {
-    modelTemplaters.put(identifier, modelTemplater);
-  }
-  // Gets a model based on its identifier.
-  public Model getModel (final String identifier) {
-    // Get the requested model from our cache.
-    Model     mdl     = models.get(identifier);
-    // The model was not found in our cache.
-    if (mdl==null) {
-      Gdx.app.debug("LogicManager", "Getting templater for model " + identifier + "...");
-      // Let's find if we have a templater matching the identifier.
-      final ModelTemplater templater   = modelTemplaters.get(identifier);
-      // Templater found, use it.
-      if ( templater!=null ) {
-        Gdx.app.debug("LogicManager", "Templater found, building model " + identifier + ". This should happend only once!");
-        models.put(identifier, mdl = templater.build(modelBuilder));
-      }
-      // No templater found, log this as an error.
-      else
-        Gdx.app.error("LogicManager", "A call to getModel was made with an unknown templater identifier: " + identifier + ".");
-    }
-    return mdl;
   }
 
   @Override public void onServerConnected () {
@@ -196,7 +157,12 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         break;
       }
       case CombatList: {
-        networkingManager.send(new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin("CBT1"));
+        final RXCombatList cmd = (RXCombatList)baseCmd;
+        if (cmd.combats.isEmpty()) {
+          Gdx.app.log(LogTag, "No combat found on server!");
+        } else {
+          networkingManager.send(new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin(cmd.combats.get(0)));
+        }
         break;
       }
       case CombatJoin: {
@@ -213,7 +179,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         break;
       }
       case CombatPlayerLeft: {
-        RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
+        final RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
         Gdx.app.log(LogTag, "Player " + cmd.uuid + " has left the lobby.");
         getLazyLobbyScreen()
           .removePlayer     (cmd.uuid);
@@ -223,12 +189,12 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
         Gdx.app.log(LogTag, "Server is sending us into combat (" +
                               "UUID: " + cmd.uuid + ", " +
-                              "Target blocks: " + cmd.target.size.toString() + ", " +
+                              "Target blocks: " + cmd.target.size.volume() + ", " +
                               "Cells: " + cmd.cells.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
         setScreen(
             getLazyLobbyScreen()
-              .setRemoteFuelCell(cmd.target)
+              .setRemotePiece(cmd.target)
               .setPieces(cmd.pieces)
           );
         // Should in fact be this one.
@@ -242,7 +208,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
         setScreen(
           getLazyLobbyScreen()
-            .setRemoteFuelCell(cmd.piece)
+            .setRemotePiece(cmd.piece)
         );
          break;
       }

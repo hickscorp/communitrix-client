@@ -19,15 +19,15 @@ import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.networking.Player;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
+import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 
 public class CombatScreen implements Screen {
   // This is the configuration class for this screen.
   public class Configuration {
     public final String         combatUUID;
-    public final Array<Player>  players;
-    public Configuration (final RXCombatStart spec, Array<Player> players) {
+    public final Array<SHPlayer>  players;
+    public Configuration (final RXCombatStart spec, Array<SHPlayer> players) {
       combatUUID        = spec.uuid;
       this.players      = players;
     }

@@ -8,7 +8,7 @@ import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
-import aurelienribon.tweenengine.equations.*;
+import aurelienribon.tweenengine.equations.Bounce;
 
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
@@ -17,11 +17,15 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Quaternion;
+import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -31,13 +35,12 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.gameObjects.FuelCell;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
-import fr.pierreqr.communitrix.networking.Player;
-import fr.pierreqr.communitrix.networking.Vector;
-import fr.pierreqr.communitrix.networking.Piece;
+import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
+import fr.pierreqr.communitrix.networking.shared.SHPiece;
+import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 
 public class LobbyScreen implements Screen {
   public                enum          State         { Global, Joined, Starting }
@@ -52,12 +55,13 @@ public class LobbyScreen implements Screen {
   private       PostProcessor         postProMain;
   // State related members.
   private       State                 state         = State.Global;
-  public        Array<Player>         players       = new Array<Player>();
+  public        Array<SHPlayer>       players       = new Array<SHPlayer>();
   // Various object instances.
+  private final Model                 characterModel;
   private final Array<GameObject>     instances     = new Array<GameObject>();
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   
-  private final FuelCell              myFuelCell;
+  private final Piece                 myPiece;
   // UI Components.
   private       Label                 lblFPS, lblPlayers;
   
@@ -74,9 +78,9 @@ public class LobbyScreen implements Screen {
     
     // Set up the scene environment.
     envMain               = new Environment();
-    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.5f, 0.5f, 0.5f, 1.0f));
+    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.7f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    envMain.add           (new DirectionalLight().set(new Color(0.6f, 0.6f, 0.6f, 1.0f), -1f, -0.8f, -0.2f));
+    envMain.add           (new DirectionalLight().set(new Color(0.7f, 0.7f, 0.7f, 1.0f), -1f, -0.8f, -0.2f));
 
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
@@ -110,9 +114,20 @@ public class LobbyScreen implements Screen {
     lblPlayers            = new Label("", ctx.uiSkin);
     lblPlayers.setColor   (Color.WHITE);
     
-    myFuelCell            = new FuelCell(new Vector(20, 20, 20), 1, false);
-    myFuelCell.transform.setTranslation(-3, 0, 0);
-    instances.add         (myFuelCell);
+    characterModel        = ctx.modelBuilder.createBox(
+                                2, 2, 2,
+                                ctx.defaultMaterial,
+                                Usage.Position | Usage.Normal);
+
+    
+    myPiece               = new Piece(null);
+    myPiece.transform.rotate(Vector3.X, 15);
+    myPiece.transform.rotate(Vector3.Z, 15);
+    instances.add         (myPiece);
+    
+    final Model       xyz   = ctx.modelBuilder.createXYZCoordinates(1, ctx.defaultMaterial, Usage.Position | Usage.Normal);
+    final GameObject  obj   = new GameObject(xyz);
+    instances.add(obj);
   }
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
@@ -131,27 +146,29 @@ public class LobbyScreen implements Screen {
     return this;
   }
   // Setter on players, handles list population.
-  public LobbyScreen setPlayers (final ArrayList<Player> players) {
+  public LobbyScreen setPlayers (final ArrayList<SHPlayer> players) {
     Gdx.app.log         (LogTag, "Setting new player list (" + players.size() + ").");
     // Remove all character instances.
-    for (final Player player : this.players)
+    for (final SHPlayer player : this.players)
       instances.removeValue(
         characters.remove(player.uuid)
       , true);
     // Clear character list.
     this.players.clear  ();
     // Create our players.
-    for (final Player player : players)
+    for (final SHPlayer player : players)
       addPlayer         (player);
     updatePlayers       ();
     return this;
   }
-  public LobbyScreen addPlayer (final Player player) {
+  public LobbyScreen addPlayer (final SHPlayer player) {
     Gdx.app.log       (LogTag, "Adding player (" + player.uuid + ").");
-    final GameObject obj  = new GameObject(ctx.getModel("Cube"));
-    obj.transform.setTranslation(players.size * 2.5f, 15, 0);
+    
+    final GameObject obj  = new GameObject(characterModel);
+    
+    obj.transform.setTranslation(players.size * 2.5f, 0, 0);
     characters.put        (player.uuid, obj);
-    instances.add         (obj);
+    //instances.add         (obj);
     players.add           (player);
     updatePlayers         ();
     // Schedule animation.
@@ -166,8 +183,8 @@ public class LobbyScreen implements Screen {
     Gdx.app.log       (LogTag, "Removing player (" + uuid + ").");
     boolean shift     = false;
     int     idx       = 0;
-    Player  remove    = null;
-    for (final Player player : players) {
+    SHPlayer  remove    = null;
+    for (final SHPlayer player : players) {
       if (shift) {
         final GameObject obj  = characters.get(player.uuid);
         Tween
@@ -197,7 +214,7 @@ public class LobbyScreen implements Screen {
   private void updatePlayers() {
     if (players==null)  return;
     StringBuilder sb    = new StringBuilder(players.size * 16);
-    for (final Player player : players) {
+    for (final SHPlayer player : players) {
       if (sb.length()>0)
         sb.append       (", ");
       sb.append         (player.username);
@@ -206,18 +223,11 @@ public class LobbyScreen implements Screen {
     lblPlayers.setText  (sb.toString());
   }
 
-  public LobbyScreen setRemoteFuelCell (final Piece piece) {
-    myFuelCell.setContents(piece);
+  public LobbyScreen setRemotePiece (final SHPiece piece) {
+    myPiece.setFromSharedPiece(piece);
     return this;
   }
-  public LobbyScreen setPieces (final Piece[] pieces) {
-    int i = 0;
-    for (final Piece piece : pieces) {
-      final FuelCell  fc  = new FuelCell(piece.size, 1, false);
-      fc.setContents  (piece);
-      fc.transform.translate(++i*4f - 8.0f, 0, 5);
-      instances.add   (fc);
-    }
+  public LobbyScreen setPieces (final SHPiece[] pieces) {
     return this;
   }
   
@@ -246,6 +256,7 @@ public class LobbyScreen implements Screen {
   @Override public void resume () {}
   
   @Override public void dispose () {
+    characterModel.dispose();
     postProMain.dispose ();
   }
   
@@ -273,6 +284,14 @@ public class LobbyScreen implements Screen {
     }
     else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
       tmpQuat.mul(new Quaternion(Vector3.Y, -90));
+      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+    }
+    else if (Gdx.input.isKeyJustPressed(Keys.UP)) {
+      tmpQuat.mul(new Quaternion(Vector3.X, -90));
+      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+    }
+    else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
+      tmpQuat.mul(new Quaternion(Vector3.X, 90));
       ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
     }
     

@@ -1,12 +1,12 @@
 package fr.pierreqr.communitrix.networking.commands.rx;
 
-import fr.pierreqr.communitrix.networking.Piece;
+import fr.pierreqr.communitrix.networking.shared.SHPiece;
 
 public class RXCombatStart extends RXBase {
   public    String      uuid;
-  public    Piece       target;
-  public    Piece[]     cells;
-  public    Piece[]     pieces;
+  public    SHPiece       target;
+  public    SHPiece[]     cells;
+  public    SHPiece[]     pieces;
   
   public RXCombatStart () {
     super   (Rx.CombatStart);
