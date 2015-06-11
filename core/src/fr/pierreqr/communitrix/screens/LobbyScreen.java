@@ -162,7 +162,7 @@ public class LobbyScreen implements Screen {
     
     final GameObject obj  = new GameObject(characterModel);
    
-    obj.transform.setTranslation(players.size * 2.5f, 30, 0);
+    obj.transform.setTranslation(players.size * 2.5f, 30, 10);
     characters.put        (player.uuid, obj);
     instances.add         (obj);
     players.add           (player);

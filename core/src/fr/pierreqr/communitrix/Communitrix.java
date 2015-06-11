@@ -1,7 +1,9 @@
 package fr.pierreqr.communitrix;
 
 import java.util.Random;
+
 import aurelienribon.tweenengine.Tween;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -19,11 +21,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
+
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.networking.commands.tx.*;
+import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
@@ -83,7 +87,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     dummyModel              = new Model();
     rand                    = new Random();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("www.pierreqr.fr", 9003, this);
+    networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
@@ -186,9 +190,12 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
         Gdx.app.log(LogTag, "Server is sending us into combat (" +
                               "UUID: " + cmd.uuid + ", " +
-                              "Target blocks: " + cmd.target.size.volume() + ", " +
+                              "Target blocks: " + cmd.target.content.length + ", " +
                               "Cells: " + cmd.cells.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
+        for (final SHPiece p : cmd.pieces) {
+          Gdx.app.log(LogTag, "  - Piece with " + p.content.length + "cells.");
+        }
         setScreen(
             getLazyLobbyScreen()
               .setRemotePiece(cmd.target)
