@@ -58,6 +58,7 @@ public class LobbyScreen implements Screen {
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   
   private final Piece                 myPiece;
+  private       Piece[]               myPieces;                 
   // UI Components.
   private       Label                 lblFPS, lblPlayers;
   
@@ -116,9 +117,9 @@ public class LobbyScreen implements Screen {
                                 Usage.Position | Usage.Normal);
 
     
-    myPiece               = new Piece(null);
-    myPiece.transform.rotate(Vector3.X, 15);
-    myPiece.transform.rotate(Vector3.Z, 15);
+    myPiece               = new Piece(null,null);
+//    myPiece.transform.rotate(Vector3.X, 15);
+//    myPiece.transform.rotate(Vector3.Z, 15);
     instances.add         (myPiece);
     
     final Model       xyz   = ctx.modelBuilder.createXYZCoordinates(1, ctx.defaultMaterial, Usage.Position | Usage.Normal);
@@ -222,10 +223,15 @@ public class LobbyScreen implements Screen {
   }
 
   public LobbyScreen setRemotePiece (final SHPiece piece) {
-    myPiece.setFromSharedPiece(piece);
+    myPiece.setFromSharedPiece(piece,Vector3.Zero);
     return this;
   }
   public LobbyScreen setPieces (final SHPiece[] pieces) {
+    myPieces = new Piece[pieces.length];
+//    for(int i = 0; i< pieces.length; i++){
+//      myPieces[i] = new Piece(pieces[i], new Vector3(i*5 -pieces.length*3,0,-10));
+//      instances.add(myPieces[i]);
+//    }
     return this;
   }
   

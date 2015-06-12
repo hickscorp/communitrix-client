@@ -194,6 +194,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
                               "Cells: " + cmd.cells.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
         for (final SHPiece p : cmd.pieces) {
+          Gdx.app.log(LogTag, "SIZE ==== " + p.size);
           Gdx.app.log(LogTag, "  - Piece with " + p.content.length + "cells.");
         }
         setScreen(

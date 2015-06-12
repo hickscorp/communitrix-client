@@ -50,7 +50,7 @@ public class NetworkingManager implements Runnable {
     try {
       SocketHints hints = new SocketHints();
       hints.keepAlive   = true;
-      socket            = new NetJavaSocketImpl(Protocol.TCP, host, port, null);
+      socket            = new NetJavaSocketImpl(Protocol.TCP, host, port, hints);
       ok                = socket.isConnected();
     }
     catch (Exception e) {

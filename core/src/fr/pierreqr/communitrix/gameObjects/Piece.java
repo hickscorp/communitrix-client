@@ -1,6 +1,7 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.HashMap;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
@@ -11,6 +12,8 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
+import com.badlogic.gdx.math.Vector3;
+
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
@@ -20,13 +23,13 @@ public class Piece extends GameObject {
   private               HashMap<Integer,Material> materials;
   private               Model                     model;
 
-  public Piece (final SHPiece piece) {
+  public Piece (final SHPiece piece, final Vector3 worldPosition) {
     super               (Communitrix.getInstance().dummyModel);
     materials           = new HashMap<Integer,Material>(0);
-    setFromSharedPiece  (piece);
+    setFromSharedPiece  (piece, worldPosition);
   }
   
-  public void setFromSharedPiece (final SHPiece piece) {
+  public void setFromSharedPiece (final SHPiece piece, final Vector3 worldPosition) {
     // Reset.
     clear();
     // No piece?
@@ -50,7 +53,6 @@ public class Piece extends GameObject {
     final int   xSize = Math.abs(piece.size.x);
     final int   ySize = Math.abs(piece.size.y);
     final int   zSize = Math.abs(piece.size.z);
-    Gdx.app.log(LogTag, "Reported size is " + piece.size.toString() + ".");
 
     // Make the temporary contents array.
     final int[][][]   contents  = new int[xSize][ySize][zSize];
@@ -142,7 +144,7 @@ public class Piece extends GameObject {
     Gdx.app.log               (LogTag, "New model has " + model.nodes.size + " node(s).");
     for (int index=0; index<model.nodes.size; ++index) {
       final   Node  newNode     = model.nodes.get(index);
-      newNode.translation.add   (-xSize/2, -ySize/2, -zSize/2);
+      newNode.translation.add   (-xSize/2 + worldPosition.x, -ySize/2 + worldPosition.y, -zSize/2 + worldPosition.z);
       newNode.calculateTransforms(true);
       nodes.add                 (newNode);
     }
