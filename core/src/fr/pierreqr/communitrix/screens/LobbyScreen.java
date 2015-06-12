@@ -228,10 +228,10 @@ public class LobbyScreen implements Screen {
   }
   public LobbyScreen setPieces (final SHPiece[] pieces) {
     myPieces = new Piece[pieces.length];
-//    for(int i = 0; i< pieces.length; i++){
-//      myPieces[i] = new Piece(pieces[i], new Vector3(i*5 -pieces.length*3,0,-10));
-//      instances.add(myPieces[i]);
-//    }
+    for(int i = 0; i< pieces.length; i++){
+      myPieces[i] = new Piece(pieces[i], new Vector3(i*5 -pieces.length*3,0,-10));
+      instances.add(myPieces[i]);
+    }
     return this;
   }
   

@@ -56,8 +56,10 @@ public class Piece extends GameObject {
 
     // Make the temporary contents array.
     final int[][][]   contents  = new int[xSize][ySize][zSize];
+    Gdx.app.log(LogTag, "Size: " + xSize + ", " + ySize + ", " + zSize);
     // Finally build the content array.
     for (final SHCell cell : piece.content) {
+      Gdx.app.log(LogTag, "Coords: " + cell.x + ", " + cell.y + ", " + cell.z);
       contents[cell.x-xOff][cell.y-yOff][cell.z-zOff] = cell.value;
     }
 

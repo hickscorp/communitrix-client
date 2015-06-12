@@ -13,7 +13,7 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
   public final static   int           RotX        = 8;
   public final static   int           RotY        = 16;
   public final static   int           RotZ        = 32;
-  // Combinations. Only related are grouped, but it's possible to combine tranlation and rotations.
+  // Combinations. Only related are grouped, but it's possible to combine translation and rotations.
   public final static   int           TransXY     = TransX | TransY;
   public final static   int           TransXZ     = TransX | TransZ;
   public final static   int           TransYZ     = TransX | TransZ;

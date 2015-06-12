@@ -85,7 +85,7 @@ public class NetworkingManager implements Runnable {
             // We just got the type for the next payload.
             if (type!=null && sb.length()>0) {
               try {
-                //Gdx.app.log(LogTag, type + " -> " + sb.toString());
+                Gdx.app.log(LogTag, type + " -> " + sb.toString());
                 final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Rx.valueOf(type).toTypeReference());
                 Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); }});
               }
