@@ -1,7 +1,6 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.HashMap;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
@@ -12,8 +11,6 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
-import com.badlogic.gdx.math.Vector3;
-
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
@@ -22,14 +19,17 @@ public class Piece extends GameObject {
   private static final  String                    LogTag      = "Piece";
   private               HashMap<Integer,Material> materials;
   private               Model                     model;
-
-  public Piece (final SHPiece piece, final Vector3 worldPosition) {
+  
+  public Piece () {
+    this(null);
+  }
+  public Piece (final SHPiece piece) {
     super               (Communitrix.getInstance().dummyModel);
     materials           = new HashMap<Integer,Material>(0);
-    setFromSharedPiece  (piece, worldPosition);
+    setFromSharedPiece  (piece);
   }
   
-  public void setFromSharedPiece (final SHPiece piece, final Vector3 worldPosition) {
+  public void setFromSharedPiece (final SHPiece piece) {
     // Reset.
     clear();
     // No piece?
@@ -140,13 +140,12 @@ public class Piece extends GameObject {
           GL20.GL_TRIANGLES,
           materials.get(index));
     }
-    model                     = ctx.modelBuilder.end();
-    Gdx.app.log               (LogTag, "New piece model has " + model.nodes.size + " node(s).");
+    model                         = ctx.modelBuilder.end();
+    Gdx.app.log                   (LogTag, "New piece model has " + model.nodes.size + " node(s).");
     for (int index=0; index<model.nodes.size; ++index) {
-      final   Node  newNode     = model.nodes.get(index);
-      newNode.translation.add   (-xSize/2 + worldPosition.x, -ySize/2 + worldPosition.y, -zSize/2 + worldPosition.z);
-      newNode.calculateTransforms(true);
-      nodes.add                 (newNode);
+      final   Node  newNode       = model.nodes.get(index);
+      newNode.calculateTransforms (true);
+      nodes.add                   (newNode);
     }
   }
   

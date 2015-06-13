@@ -1,14 +1,17 @@
 package fr.pierreqr.communitrix.networking.commands.tx;
 
-public class TXCombatPlayTurn extends TXBase {
-  public    String      uuid;
-  public    fr.pierreqr.communitrix.networking.shared.SHQuaternion  rotation;
-  public    fr.pierreqr.communitrix.networking.shared.SHVector      translation;
+import fr.pierreqr.communitrix.networking.shared.SHQuaternion;
+import fr.pierreqr.communitrix.networking.shared.SHVector;
 
-  public TXCombatPlayTurn (final String uuid, final com.badlogic.gdx.math.Quaternion rotation, final com.badlogic.gdx.math.Vector3 translation) {
+public class TXCombatPlayTurn extends TXBase {
+  public    int           pieceIndex;
+  public    SHQuaternion  rotation;
+  public    SHVector      translation;
+
+  public TXCombatPlayTurn (final int pieceIndex, final com.badlogic.gdx.math.Quaternion rotation, final com.badlogic.gdx.math.Vector3 translation) {
     super         (Tx.CombatPlayTurn);
-    this.uuid         = uuid;
-    this.rotation     = new fr.pierreqr.communitrix.networking.shared.SHQuaternion(rotation);
-    this.translation  = new fr.pierreqr.communitrix.networking.shared.SHVector(translation);
+    this.pieceIndex   = pieceIndex;
+    this.rotation     = new SHQuaternion(rotation);
+    this.translation  = new SHVector(translation);
   }
 }

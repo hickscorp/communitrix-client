@@ -25,11 +25,12 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
-
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
@@ -39,37 +40,36 @@ import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 
 public class LobbyScreen implements Screen {
-  public                enum          State         { Global, Joined, Starting }
+  public                enum          State         { Unknown, Global, Joined, Starting }
   private static final  String        LogTag        = "LobbyScreen";
   
+  // Game instance cache.
+  private final Communitrix           ctx;
+  // Flat UI.
+  private       LobbyUIManager        ui;
   // Scene setup related objects.
-  public        Stage                 uiStage;
-  private       TweenManager          tweener       = null;
-  private       Environment           envMain;
-  private       PerspectiveCamera     camMain;
-  private       CameraInputController camCtrlMain;
-  private       PostProcessor         postProMain;
+  private final TweenManager          tweener;
+  private final Environment           envMain;
+  private final PerspectiveCamera     camMain;
+  private final CameraInputController camCtrlMain;
+  private final PostProcessor         postProMain;
   // State related members.
-  private       State                 state         = State.Global;
-  public        Array<SHPlayer>       players       = new Array<SHPlayer>();
+  private       State                 state         = State.Unknown;
+  public final  Array<SHPlayer>       players       = new Array<SHPlayer>();
   // Various object instances.
   private final Model                 characterModel;
   private final Array<GameObject>     instances     = new Array<GameObject>();
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
-  
+  // Model instances.
   private final Piece                 myPiece;
-  private       Piece[]               myPieces;                 
-  // UI Components.
-  private       Label                 lblFPS, lblPlayers;
-  
-  // Game instance cache.
-  private final Communitrix           ctx;
+  private       Piece[]               myPieces;     
   
   public LobbyScreen (final Communitrix communitrixInstance) {
     Gdx.app.log           (LogTag, "Constructing.");
     // Cache our game instance.
     ctx                   = communitrixInstance;
-
+    // Initialize our UI manager.
+    ui                    = new LobbyUIManager();
     // Initialize tweening engine.
     tweener               = new TweenManager();
     
@@ -103,44 +103,38 @@ public class LobbyScreen implements Screen {
     // Attach a camera controller to the main camera, set it as the main processor.
     camCtrlMain           = new CameraInputController(camMain);
 
-    // Initialize flat UI.
-    uiStage               = new Stage();
-    // Create the various UI elements.
-    lblFPS                = new Label("", ctx.uiSkin);
-    lblFPS.setColor       (Color.WHITE);
-    lblPlayers            = new Label("", ctx.uiSkin);
-    lblPlayers.setColor   (Color.WHITE);
-    
+    // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(
                                 2, 2, 2,
                                 ctx.defaultMaterial,
                                 Usage.Position | Usage.Normal);
 
-    
-    myPiece               = new Piece(null,null);
-//    myPiece.transform.rotate(Vector3.X, 15);
-//    myPiece.transform.rotate(Vector3.Z, 15);
+    // Create main fuel cell.
+    myPiece               = new Piece();
     instances.add         (myPiece);
-    
-    final Model       xyz   = ctx.modelBuilder.createXYZCoordinates(1, ctx.defaultMaterial, Usage.Position | Usage.Normal);
-    final GameObject  obj   = new GameObject(xyz);
-    instances.add(obj);
   }
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
     if (this.state!=state) {
-      Gdx.app.log   (LogTag, "Changing state to " + state + ".");
-      this.state  = state;
-      switch (this.state) {
+      Gdx.app.log         (LogTag, "Changing state to " + state + ".");
+      ui.setState         (this.state = state);
+      switch (state) {
         case Global:
           break;
         case Joined:
           break;
         case Starting:
           break;
+        default :
+          break;
       }
     }
     return this;
+  }
+  // Whenever the server updates the client with a combat list, this gets called.
+  public LobbyScreen setCombats (final String[] combats) {
+    ui.setCombats (combats);
+    return        this;
   }
   // Setter on players, handles list population.
   public LobbyScreen setPlayers (final ArrayList<SHPlayer> players) {
@@ -155,7 +149,6 @@ public class LobbyScreen implements Screen {
     // Create our players.
     for (final SHPlayer player : players)
       addPlayer         (player);
-    updatePlayers       ();
     return this;
   }
   public LobbyScreen addPlayer (final SHPlayer player) {
@@ -167,7 +160,6 @@ public class LobbyScreen implements Screen {
     characters.put        (player.uuid, obj);
     instances.add         (obj);
     players.add           (player);
-    updatePlayers         ();
     // Schedule animation.
     Tween
       .to                 (obj, GameObjectAccessor.TransY, 1.2f)
@@ -207,30 +199,21 @@ public class LobbyScreen implements Screen {
       ++idx;
     }
     players.removeValue   (remove, true);
-    updatePlayers         ();
     return this;
-  }
-  private void updatePlayers() {
-    if (players==null)  return;
-    StringBuilder sb    = new StringBuilder(players.size * 16);
-    for (final SHPlayer player : players) {
-      if (sb.length()>0)
-        sb.append       (", ");
-      sb.append         (player.username);
-    }
-    sb.append           (" (" + players.size + ")");
-    lblPlayers.setText  (sb.toString());
   }
 
   public LobbyScreen setRemotePiece (final SHPiece piece) {
-    myPiece.setFromSharedPiece(piece,Vector3.Zero);
+    myPiece.setFromSharedPiece(piece);
     return this;
   }
   public LobbyScreen setPieces (final SHPiece[] pieces) {
     myPieces = new Piece[pieces.length];
-    for(int i = 0; i< pieces.length; i++){
-      myPieces[i] = new Piece(pieces[i], new Vector3(i*5 -pieces.length*3,0,-10));
-      instances.add(myPieces[i]);
+    for (int i=0; i<pieces.length; i++) {
+      final Piece   obj       = new Piece(pieces[i]);
+      final Vector3 shift     = new Vector3(i * 5 - pieces.length * 5, 0, -10);
+      obj.transform.translate (shift);
+      myPieces[i]             = obj;
+      instances.add           (myPieces[i]);
     }
     return this;
   }
@@ -238,30 +221,23 @@ public class LobbyScreen implements Screen {
   @Override public void show () {
     Gdx.app.log       (LogTag, "Show!");
     // Set the input controller.
-    Gdx.input.setInputProcessor(camCtrlMain);
-
+    //Gdx.input.setInputProcessor(camCtrlMain);
     // Instantiate environment.
     if (instances.size==0) {
     }
-
-    // Put our label on stage.
-    uiStage.addActor    (lblFPS);
-    uiStage.addActor    (lblPlayers);
   }
   @Override public void hide () {
     Gdx.app.log       (LogTag, "Hide!");
     // Remove all instances except our character.
     if (instances.size!=0)
       instances.clear   ();
-    // Clear flat UI.
-    uiStage.clear();
   }
   @Override public void pause () {}
   @Override public void resume () {}
   
   @Override public void dispose () {
-    characterModel.dispose();
-    postProMain.dispose ();
+    characterModel.dispose  ();
+    postProMain.dispose     ();
   }
   
   
@@ -284,25 +260,23 @@ public class LobbyScreen implements Screen {
     
     if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
       tmpQuat.mul(new Quaternion(Vector3.Y, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
     }
     else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
       tmpQuat.mul(new Quaternion(Vector3.Y, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
     }
     else if (Gdx.input.isKeyJustPressed(Keys.UP)) {
       tmpQuat.mul(new Quaternion(Vector3.X, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
     }
     else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
       tmpQuat.mul(new Quaternion(Vector3.X, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
+      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
     }
     
     // Update camera controller.
     camCtrlMain.update  ();
-    // Update flat UI.
-    uiStage.act         (delta);
 
     // Capture FBO for post-processing.
     postProMain.capture();
@@ -318,20 +292,15 @@ public class LobbyScreen implements Screen {
     
     // Apply post-processing.
     postProMain.render();
-    
+
     // Update flat UI.
-    lblFPS.setText            ("Lobby FPS: " + Gdx.graphics.getFramesPerSecond());
-    uiStage.act               (delta);
-    uiStage.draw              ();
+    ui.actAndDraw             (delta);
   }
 
   @Override public void resize (final int width, final int height) {
     // Update flat UI.
-    if (uiStage!=null)      uiStage.getViewport().update(width, height, true);
+    ui.resize           (width, height);
     // If a post-processor exists, update it.
-    if (postProMain!=null)  postProMain.rebind();
-    // Place flat UI.
-    lblFPS.setPosition      (5, ctx.viewHeight - 15);
-    lblPlayers.setPosition  (5, 15);
+    postProMain.rebind  ();
   }
 }

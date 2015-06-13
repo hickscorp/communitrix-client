@@ -83,7 +83,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     dummyModel              = new Model();
     rand                    = new Random();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
+    networkingManager       = new NetworkingManager("127.0.0.1", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
@@ -155,17 +155,13 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       }
       case CombatList: {
         final RXCombatList cmd = (RXCombatList)baseCmd;
-        if (cmd.combats.isEmpty()) {
-          Gdx.app.log(LogTag, "No combat found on server!");
-        } else {
-          networkingManager.send(new fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin(cmd.combats.get(0)));
-        }
+        lobbyScreen.setCombats  (cmd.combats);
         break;
       }
       case CombatJoin: {
         setScreen(
           getLazyLobbyScreen()
-            .setState         (LobbyScreen.State.Global)
+            .setState         (LobbyScreen.State.Joined)
             .setPlayers       (((RXCombatJoin)baseCmd).combat.players)
         );
         break;
@@ -200,6 +196,9 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
         break;
       }
       case CombatNewTurn: {
+        RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
+        Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
+        break;
       }
       case CombatPlayerTurn: {
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
