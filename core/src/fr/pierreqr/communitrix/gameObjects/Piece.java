@@ -147,6 +147,7 @@ public class Piece extends GameObject {
       newNode.calculateTransforms (true);
       nodes.add                   (newNode);
     }
+    recomputeBounds();
   }
   
   // This method takes care of creating the required numbers of materials based on the number of indices

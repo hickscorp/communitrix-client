@@ -3,11 +3,13 @@ package fr.pierreqr.communitrix.screens;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -78,7 +80,7 @@ public class LobbyScreen implements Screen {
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.7f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
     envMain.add           (new DirectionalLight().set(new Color(0.7f, 0.7f, 0.7f, 1.0f), -1f, -0.8f, -0.2f));
-
+    
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
     if (ctx.applicationType!=ApplicationType.WebGL) {
@@ -95,13 +97,14 @@ public class LobbyScreen implements Screen {
 
     // Set up our main camera, and position it.
     camMain               = new PerspectiveCamera(90, ctx.viewWidth, ctx.viewHeight);
-    camMain.position.set  (-5, 3, 5);
+    camMain.position.set  (0f, 10f, -15f);
     camMain.near          = 1f;
     camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
     camMain.update        ();
+
     // Attach a camera controller to the main camera, set it as the main processor.
-    camCtrlMain           = new CameraInputController(camMain);
+    camCtrlMain           = new CameraInputController(camMain); 
 
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(
@@ -240,10 +243,6 @@ public class LobbyScreen implements Screen {
     postProMain.dispose     ();
   }
   
-  
-  private static final Quaternion   tmpQuat   = new Quaternion();
-  private static final Vector3      tmpVec3   =  new Vector3();
-  
   @Override public void render (final float delta) {
     // Clear viewport etc.
     Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
@@ -257,24 +256,8 @@ public class LobbyScreen implements Screen {
     
     // Update any pending tweening.
     tweener.update      (delta);
-    
-    if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
-      tmpQuat.mul(new Quaternion(Vector3.Y, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
-      tmpQuat.mul(new Quaternion(Vector3.Y, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.UP)) {
-      tmpQuat.mul(new Quaternion(Vector3.X, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
-      tmpQuat.mul(new Quaternion(Vector3.X, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn(0, tmpQuat, tmpVec3));
-    }
-    
+
+
     // Update camera controller.
     camCtrlMain.update  ();
 

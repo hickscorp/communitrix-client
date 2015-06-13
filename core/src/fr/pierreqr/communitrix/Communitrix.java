@@ -83,7 +83,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     dummyModel              = new Model();
     rand                    = new Random();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    networkingManager       = new NetworkingManager("127.0.0.1", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkTimer            = new Timer();
     networkingManager.start ();
     // Prepare our shared model loader.
