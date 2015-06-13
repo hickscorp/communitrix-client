@@ -56,10 +56,8 @@ public class Piece extends GameObject {
 
     // Make the temporary contents array.
     final int[][][]   contents  = new int[xSize][ySize][zSize];
-    Gdx.app.log(LogTag, "Size: " + xSize + ", " + ySize + ", " + zSize);
     // Finally build the content array.
     for (final SHCell cell : piece.content) {
-      Gdx.app.log(LogTag, "Coords: " + cell.x + ", " + cell.y + ", " + cell.z);
       contents[cell.x-xOff][cell.y-yOff][cell.z-zOff] = cell.value;
     }
 
@@ -143,7 +141,7 @@ public class Piece extends GameObject {
           materials.get(index));
     }
     model                     = ctx.modelBuilder.end();
-    Gdx.app.log               (LogTag, "New model has " + model.nodes.size + " node(s).");
+    Gdx.app.log               (LogTag, "New piece model has " + model.nodes.size + " node(s).");
     for (int index=0; index<model.nodes.size; ++index) {
       final   Node  newNode     = model.nodes.get(index);
       newNode.translation.add   (-xSize/2 + worldPosition.x, -ySize/2 + worldPosition.y, -zSize/2 + worldPosition.z);
