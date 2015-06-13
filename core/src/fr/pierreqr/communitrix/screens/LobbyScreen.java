@@ -3,11 +3,13 @@ package fr.pierreqr.communitrix.screens;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
+
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -37,6 +39,7 @@ import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
+import fr.pierreqr.communitrix.utils.CombatInputController;
 
 public class LobbyScreen implements Screen {
   public                enum          State         { Global, Joined, Starting }
@@ -47,7 +50,7 @@ public class LobbyScreen implements Screen {
   private       TweenManager          tweener       = null;
   private       Environment           envMain;
   private       PerspectiveCamera     camMain;
-  private       CameraInputController camCtrlMain;
+  private       CombatInputController combCtrlMain;
   private       PostProcessor         postProMain;
   // State related members.
   private       State                 state         = State.Global;
@@ -95,13 +98,13 @@ public class LobbyScreen implements Screen {
 
     // Set up our main camera, and position it.
     camMain               = new PerspectiveCamera(90, ctx.viewWidth, ctx.viewHeight);
-    camMain.position.set  (-5, 3, 5);
+    camMain.position.set  (0f, 10f, -15f);
     camMain.near          = 1f;
     camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
     camMain.update        ();
     // Attach a camera controller to the main camera, set it as the main processor.
-    camCtrlMain           = new CameraInputController(camMain);
+    combCtrlMain          = new CombatInputController(camMain, instances); 
 
     // Initialize flat UI.
     uiStage               = new Stage();
@@ -118,6 +121,7 @@ public class LobbyScreen implements Screen {
 
     
     myPiece               = new Piece(null,null);
+    myPiece.transform.translate(new Vector3(0,5,0));
 //    myPiece.transform.rotate(Vector3.X, 15);
 //    myPiece.transform.rotate(Vector3.Z, 15);
     instances.add         (myPiece);
@@ -229,7 +233,7 @@ public class LobbyScreen implements Screen {
   public LobbyScreen setPieces (final SHPiece[] pieces) {
     myPieces = new Piece[pieces.length];
     for(int i = 0; i< pieces.length; i++){
-      myPieces[i] = new Piece(pieces[i], new Vector3(i*5 -pieces.length*3,0,-10));
+      myPieces[i] = new Piece(pieces[i], new Vector3(i*6 -pieces.length*2,0,-8));
       instances.add(myPieces[i]);
     }
     return this;
@@ -238,7 +242,7 @@ public class LobbyScreen implements Screen {
   @Override public void show () {
     Gdx.app.log       (LogTag, "Show!");
     // Set the input controller.
-    Gdx.input.setInputProcessor(camCtrlMain);
+    Gdx.input.setInputProcessor(combCtrlMain);
 
     // Instantiate environment.
     if (instances.size==0) {
@@ -264,10 +268,6 @@ public class LobbyScreen implements Screen {
     postProMain.dispose ();
   }
   
-  
-  private static final Quaternion   tmpQuat   = new Quaternion();
-  private static final Vector3      tmpVec3   =  new Vector3();
-  
   @Override public void render (final float delta) {
     // Clear viewport etc.
     Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
@@ -281,26 +281,10 @@ public class LobbyScreen implements Screen {
     
     // Update any pending tweening.
     tweener.update      (delta);
-    
-    if (Gdx.input.isKeyJustPressed(Keys.RIGHT)) {
-      tmpQuat.mul(new Quaternion(Vector3.Y, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) {
-      tmpQuat.mul(new Quaternion(Vector3.Y, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.UP)) {
-      tmpQuat.mul(new Quaternion(Vector3.X, -90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
-    }
-    else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) {
-      tmpQuat.mul(new Quaternion(Vector3.X, 90));
-      ctx.networkingManager.send(new TXCombatPlayTurn("none", tmpQuat, tmpVec3));
-    }
-    
+   
     // Update camera controller.
-    camCtrlMain.update  ();
+    combCtrlMain.update  ();
+
     // Update flat UI.
     uiStage.act         (delta);
 

@@ -63,23 +63,4 @@ public class GameObject extends ModelInstance {
     tmpPosition.add(center);
     return cam.frustum.sphereInFrustum(tmpPosition, radius);
   }
-  
-  public void relativeRotate (final Camera cam, final Vector3 axis, final float angle) {
-    // Get rotation axis based on camera.
-    tmpZAxis.set(cam.direction).scl(-1);
-    tmpXAxis.set(tmpZAxis).crs(cam.up);
-    tmpYAxis.set(tmpXAxis).crs(cam.direction);
-    // Store original position / rotation.
-    transform.getTranslation(tmpPosition);
-    transform.getRotation(tmpRotation).nor();
-    transform.idt();
-    // Rotate model.
-    if (axis==Vector3.X)
-      transform.rotate(tmpXAxis, angle);
-    else if (axis==Vector3.Y)
-      transform.rotate(tmpYAxis, angle);
-    // Restore to the previous rotation and translation.
-    transform.rotate(tmpRotation);
-    transform.trn(tmpPosition);
-  }
 }
