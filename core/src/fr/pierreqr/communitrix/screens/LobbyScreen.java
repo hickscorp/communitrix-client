@@ -19,7 +19,6 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
@@ -31,6 +30,7 @@ import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
+import fr.pierreqr.communitrix.utils.CombatInputController;
 
 public class LobbyScreen implements Screen {
   public                enum          State         { Unknown, Global, Joined, Starting }
@@ -44,7 +44,7 @@ public class LobbyScreen implements Screen {
   private final TweenManager          tweener;
   private final Environment           envMain;
   private final PerspectiveCamera     camMain;
-  private final CameraInputController camCtrlMain;
+  private final CombatInputController combCtrlMain;
   private final PostProcessor         postProMain;
   // State related members.
   private       State                 state         = State.Unknown;
@@ -55,7 +55,7 @@ public class LobbyScreen implements Screen {
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
   private final Piece                 myPiece;
-  private       Piece[]               myPieces;     
+  private final Array<Piece>          pieces;
   
   public LobbyScreen (final Communitrix communitrixInstance) {
     Gdx.app.log           (LogTag, "Constructing.");
@@ -93,9 +93,9 @@ public class LobbyScreen implements Screen {
     camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
     camMain.update        ();
-
+    
     // Attach a camera controller to the main camera, set it as the main processor.
-    camCtrlMain           = new CameraInputController(camMain); 
+    combCtrlMain          = new CombatInputController(camMain, instances); 
 
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(
@@ -105,6 +105,7 @@ public class LobbyScreen implements Screen {
 
     // Create main fuel cell.
     myPiece               = new Piece();
+    pieces                = new Array<Piece>();
     instances.add         (myPiece);
   }
   // Setter on state, handles transitions.
@@ -116,10 +117,10 @@ public class LobbyScreen implements Screen {
           Gdx.input.setInputProcessor (ui.getStage());
           break;
         case Joined:
-          Gdx.input.setInputProcessor (camCtrlMain);
+          Gdx.input.setInputProcessor (combCtrlMain);
           break;
         case Starting:
-          Gdx.input.setInputProcessor (camCtrlMain);
+          Gdx.input.setInputProcessor (combCtrlMain);
           break;
         default :
           break;
@@ -198,19 +199,20 @@ public class LobbyScreen implements Screen {
     return this;
   }
 
-  public LobbyScreen prepare (final SHPiece target, final SHPiece[] pieces) {
+  public LobbyScreen prepare (final SHPiece target, final SHPiece[] newPieces) {
     // Set up the target.
     if (target!=null)
       myPiece.setFromSharedPiece(target);
     // Place all my pieces.
-    if (pieces!=null) {
-      myPieces = new Piece[pieces.length];
-      for (int i=0; i<pieces.length; i++) {
-        final Piece   obj       = new Piece(pieces[i]);
-        final Vector3 shift     = new Vector3(i * 5 - pieces.length * 5, 0, -10);
+    if (newPieces!=null) {
+      pieces.clear();
+      for (int i=0; i<newPieces.length; i++) {
+        final Piece   obj       = new Piece(newPieces[i]);
+        pieces.add              (obj);
+
+        final Vector3 shift     = new Vector3(i * 5 - newPieces.length * 5, 0, -10);
         obj.transform.translate (shift);
-        myPieces[i]             = obj;
-        instances.add           (myPieces[i]);
+        instances.add           (obj);
       }
     }
     return this;
@@ -241,7 +243,7 @@ public class LobbyScreen implements Screen {
     tweener.update      (delta);
 
     // Update camera controller.
-    camCtrlMain.update  ();
+    combCtrlMain.update ();
 
     // Capture FBO for post-processing.
     postProMain.capture();

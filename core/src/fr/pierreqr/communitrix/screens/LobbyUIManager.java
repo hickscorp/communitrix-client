@@ -45,7 +45,7 @@ public class LobbyUIManager extends InputAdapter {
     tblMain.top();
     stage.addActor          (tblMain);
     // Prepare our username field.
-    txtUsername             = new TextField("", ctx.uiSkin);
+    txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
   public Stage getStage() {
     return stage;
