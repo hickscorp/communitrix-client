@@ -104,7 +104,7 @@ public class NetworkingManager implements Runnable {
       }
     }
     // Signal our delegate.
-    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerDisconnected();; }});
+    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerDisconnected(); }});
     // Clean all resources.
     dispose         ();
     if (shouldRun)  start();
@@ -130,19 +130,20 @@ public class NetworkingManager implements Runnable {
     }
   }
   // Send data to the server. TODO: This should be asynchroneous.
-  public void send (final fr.pierreqr.communitrix.networking.commands.tx.TXBase command) {
+  public NetworkingManager send (final fr.pierreqr.communitrix.networking.commands.tx.TXBase command) {
     synchronized (delegate) {
       // Don't send anything if we scheduled the thread for stopping.
-      if (thread==null || netOutput==null || !shouldRun)
-        return;
-      // Send data to the server.
-      try {
-        mapper.writeValue   (netOutput, command);
-        netOutput.write     ('\n');
-      } catch (IOException e) {
-        e.printStackTrace   ();
+      if (thread!=null && netOutput!=null && shouldRun) {
+        // Send data to the server.
+        try {
+          mapper.writeValue   (netOutput, command);
+          netOutput.write     ('\n');
+        } catch (IOException e) {
+          e.printStackTrace   ();
+        }
       }
     }
+    return this;
   }
   
   public void dispose () {

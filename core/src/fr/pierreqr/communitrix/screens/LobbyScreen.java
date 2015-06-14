@@ -3,16 +3,13 @@ package fr.pierreqr.communitrix.screens;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
-
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -23,12 +20,7 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
@@ -37,7 +29,6 @@ import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
-import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 
@@ -119,14 +110,16 @@ public class LobbyScreen implements Screen {
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
     if (this.state!=state) {
-      Gdx.app.log         (LogTag, "Changing state to " + state + ".");
       ui.setState         (this.state = state);
       switch (state) {
         case Global:
+          Gdx.input.setInputProcessor (ui.getStage());
           break;
         case Joined:
+          Gdx.input.setInputProcessor (camCtrlMain);
           break;
         case Starting:
+          Gdx.input.setInputProcessor (camCtrlMain);
           break;
         default :
           break;
@@ -205,37 +198,27 @@ public class LobbyScreen implements Screen {
     return this;
   }
 
-  public LobbyScreen setRemotePiece (final SHPiece piece) {
-    myPiece.setFromSharedPiece(piece);
-    return this;
-  }
-  public LobbyScreen setPieces (final SHPiece[] pieces) {
-    myPieces = new Piece[pieces.length];
-    for (int i=0; i<pieces.length; i++) {
-      final Piece   obj       = new Piece(pieces[i]);
-      final Vector3 shift     = new Vector3(i * 5 - pieces.length * 5, 0, -10);
-      obj.transform.translate (shift);
-      myPieces[i]             = obj;
-      instances.add           (myPieces[i]);
+  public LobbyScreen prepare (final SHPiece target, final SHPiece[] pieces) {
+    // Set up the target.
+    if (target!=null)
+      myPiece.setFromSharedPiece(target);
+    // Place all my pieces.
+    if (pieces!=null) {
+      myPieces = new Piece[pieces.length];
+      for (int i=0; i<pieces.length; i++) {
+        final Piece   obj       = new Piece(pieces[i]);
+        final Vector3 shift     = new Vector3(i * 5 - pieces.length * 5, 0, -10);
+        obj.transform.translate (shift);
+        myPieces[i]             = obj;
+        instances.add           (myPieces[i]);
+      }
     }
     return this;
   }
   
-  @Override public void show () {
-    Gdx.app.log       (LogTag, "Show!");
-    // Set the input controller.
-    //Gdx.input.setInputProcessor(camCtrlMain);
-    // Instantiate environment.
-    if (instances.size==0) {
-    }
-  }
-  @Override public void hide () {
-    Gdx.app.log       (LogTag, "Hide!");
-    // Remove all instances except our character.
-    if (instances.size!=0)
-      instances.clear   ();
-  }
-  @Override public void pause () {}
+  @Override public void show ()   {}
+  @Override public void hide ()   {}
+  @Override public void pause ()  {}
   @Override public void resume () {}
   
   @Override public void dispose () {
@@ -256,7 +239,6 @@ public class LobbyScreen implements Screen {
     
     // Update any pending tweening.
     tweener.update      (delta);
-
 
     // Update camera controller.
     camCtrlMain.update  ();

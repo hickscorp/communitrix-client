@@ -1,97 +1,100 @@
 package fr.pierreqr.communitrix.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
+import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 
-public class LobbyUIManager {
+public class LobbyUIManager extends InputAdapter {
   private       Communitrix         ctx;
-  private       String[]            combats;
   private       LobbyScreen.State   state;
+  private final boolean             debug       = false;
+  private final int                 pad         = 5;
   
-  private       Stage               uiStage;
-  private       Table               tblMain;
-  private       TextField           txtUsername;
+  private       String[]            combats;
+  
+  private       Stage               stage;
+  private       Skin                skin;
+  private       Table               tblMain     = null;
+  private       Table               tblCombats  = null;
+  private       TextField           txtUsername = null;
   
   public LobbyUIManager () {
-    ctx                         = Communitrix.getInstance();
-    uiStage                     = new Stage();
-    tblMain                     = new Table(ctx.uiSkin);
-    tblMain.setFillParent       (true);
-    uiStage.addActor            (tblMain);
-    Gdx.input.setInputProcessor (uiStage);
-    
-    txtUsername = new TextField("", ctx.uiSkin);
+    // Cache some global things.
+    ctx                     = Communitrix.getInstance();
+    skin                    = ctx.uiSkin;
+    // Create our flat UI stage.
+    stage                   = new Stage();
+    // Prepare main root table.
+    stage.addActor          (tblMain = new Table());
+    // Prepare the main table.
+    tblMain                 = new Table(ctx.uiSkin);
+    tblMain.setFillParent   (true);
+    tblMain.pad             (pad);
+    tblMain.setDebug        (debug);
+    tblMain.top();
+    stage.addActor          (tblMain);
+    // Prepare our username field.
+    txtUsername             = new TextField("", ctx.uiSkin);
+  }
+  public Stage getStage() {
+    return stage;
   }
   
   public void show() {
-    uiStage.clear ();
-    setState      (state);
+    setState          (state);
   }
   public void hide() {
-    uiStage.clear ();
+    tblMain.clear     ();
   }
   public void actAndDraw (final float delta) {
-    uiStage.act         (delta);
-    uiStage.draw        ();
+    stage.act         (delta);
+    stage.draw        ();
   }
   public void resize (final int width, final int height) {
-    uiStage.getViewport().update(width, height, true);
+    stage.getViewport().update(width, height, true);
   }
   
   public LobbyUIManager setState (final LobbyScreen.State state) {
-    Gdx.app.log       ("LobbyUI", "Changing state to " + state + ".");
-    this.state        = state;
-    final Skin skin   = tblMain.getSkin();
-    tblMain.clear     ();
+    Gdx.app.log                 ("LobbyUI", "Changing state to " + state + ".");
+    this.state                  = state;
+    // Remove everything from the UI.
+    tblMain.clear               ();
     switch (state) {
-      case Global :
+      case Global:
         // Title row.
-        tblMain.add     ("Global State.");
-        tblMain.row     ();
+        tblMain.add       ("Global State.").colspan(2).pad(pad).center();
+        tblMain.row       ();
         // Login row.
-        tblMain.add     ("Username");
-        tblMain.add     (txtUsername);
-        tblMain.row     ();
-        
-        if (combats==null)
-          break;
-        final Table tblCombats  = new Table();
-        tblCombats.setSkin      (skin);
-        for (final String combat : combats) {
-          // Button row.
-          final TextButton btnJoin = new TextButton("Join", skin);
-          btnJoin.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) {
-              ctx
-                .networkingManager
-                .send(new TXRegister(txtUsername.getText()));
-              ctx
-                .networkingManager
-                .send(new TXCombatJoin(combat));
-            }
-          });
-          tblCombats.add        (combat);
-          tblCombats.add        (btnJoin);
-          tblCombats.row        ();
-        }
-        tblMain.add     (tblCombats);
+        tblMain.add       ("Username:").pad(pad);
+        tblMain.add       (txtUsername).pad(pad);
+        tblMain.row       ();
+        // Refresh combats list.
+        updateCombats     ();
         break;
       case Joined:
-        tblMain.add     ("Joined State.");
+        // Clear combats table.
+        tblCombats.clear  ();
+        tblCombats        = null;
+        // Title row.
+        tblMain.add       ("Joined state.").pad(pad).expandX().left();
+        tblMain.row       ().left();
         break;
       case Starting:
-        tblMain.add     ("Starting State.");
+        // Title row.
+        tblMain.add       ("Starting combat. Please stand by...").pad(pad).expandX().left();
+        tblMain.row       ().left();
         break;
       default :
         break;
@@ -101,7 +104,57 @@ public class LobbyUIManager {
   
   public LobbyUIManager setCombats (final String[] combats) {
     this.combats    = combats;
-    setState        (state);
+    updateCombats   ();
     return          this;
+  }
+  
+  public void updateCombats () {
+    if (tblCombats==null) {
+      // Add the combat table to the root table.
+      tblCombats              = new Table();
+      tblCombats.pad          (5);
+      tblCombats.setSkin      (skin);
+      tblCombats.setDebug     (debug);
+      tblMain.add             (tblCombats).colspan(2).pad(5);
+    }
+    else
+      tblCombats.clear  ();
+    
+    // Add title row.
+    final Label lblTitle = tblCombats.add("Press the Refresh button.").center().getActor();
+    tblCombats.row();
+    
+    // Add the combats list.
+    if (combats!=null) {
+      lblTitle.setText(String.format("Combat List: %d", combats.length));
+      for (final String combat : combats) {
+        // Button row.
+        final TextButton btnJoin = new TextButton("Join", skin);
+        btnJoin.addListener(new ClickListener() {
+          @Override public void clicked(final InputEvent e, final float x, final float y) {
+            ctx
+              .networkingManager
+              .send(new TXCombatJoin(combat))
+              .send(new TXRegister(txtUsername.getText()));
+          }
+        });
+        tblCombats.add        (combat).pad(pad).right();
+        tblCombats.add        (btnJoin).pad(pad).left();
+        tblCombats.row        ();
+      }
+    }
+
+    // Add the refresh button to the combat screen.
+    final TextButton btnRefresh = new TextButton("Refresh", skin);
+    btnRefresh.addListener(new ClickListener() {
+      @Override public void clicked(final InputEvent e, final float x, final float y) {
+        lblTitle.setText  ("Loading combats list...");
+        ctx
+          .networkingManager
+          .send           (new TXCombatList());
+      }
+    });
+    tblCombats.add            (btnRefresh).colspan(2).center();
+    tblCombats.row            ();    
   }
 }
