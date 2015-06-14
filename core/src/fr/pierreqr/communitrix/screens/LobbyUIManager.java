@@ -20,15 +20,15 @@ public class LobbyUIManager extends InputAdapter {
   private       LobbyScreen.State   state;
   private final boolean             debug       = false;
   private final int                 pad         = 5;
-  
+
   private       String[]            combats;
-  
+
   private       Stage               stage;
   private       Skin                skin;
   private       Table               tblMain, tblCombats;
   private       Label               lblTitle;
   private       TextField           txtUsername;
-  
+
   public LobbyUIManager () {
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
@@ -44,14 +44,13 @@ public class LobbyUIManager extends InputAdapter {
     tblMain.setDebug        (debug);
     tblMain.top();
     stage.addActor          (tblMain);
-    // Prepare our static fields field.
     lblTitle                = new Label("Please wait...", ctx.uiSkin);
     txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
   public Stage getStage() {
     return stage;
   }
-  
+
   public void show() {
     setState          (state);
   }
@@ -65,7 +64,7 @@ public class LobbyUIManager extends InputAdapter {
   public void resize (final int width, final int height) {
     stage.getViewport().update(width, height, true);
   }
-  
+
   public LobbyUIManager setState (final LobbyScreen.State state) {
     Gdx.app.log                 ("LobbyUI", "Changing state to " + state + ".");
     this.state                  = state;
@@ -101,13 +100,13 @@ public class LobbyUIManager extends InputAdapter {
     }
     return this;
   }
-  
+
   public LobbyUIManager setCombats (final String[] combats) {
     this.combats    = combats;
     updateCombats   ();
     return          this;
   }
-  
+
   public void updateCombats () {
     if (tblCombats==null) {
       // Add the combat table to the root table.
@@ -119,11 +118,11 @@ public class LobbyUIManager extends InputAdapter {
     }
     else
       tblCombats.clear  ();
-    
+
     // Add title row.
     tblCombats.add(lblTitle).center().getActor();
     tblCombats.row();
-    
+
     // Add the combats list.
     if (combats!=null) {
       lblTitle.setText(String.format("Combat List: %d", combats.length));
@@ -152,9 +151,9 @@ public class LobbyUIManager extends InputAdapter {
       }
     });
     tblCombats.add            (btnRefresh).colspan(2).center();
-    tblCombats.row            ();    
+    tblCombats.row            ();
   }
-  
+
   public LobbyUIManager loadCombatList () {
     lblTitle.setText  ("Loading combats list...");
     ctx
