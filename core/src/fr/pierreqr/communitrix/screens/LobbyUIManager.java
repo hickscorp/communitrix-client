@@ -25,9 +25,9 @@ public class LobbyUIManager extends InputAdapter {
   
   private       Stage               stage;
   private       Skin                skin;
-  private       Table               tblMain     = null;
-  private       Table               tblCombats  = null;
-  private       TextField           txtUsername = null;
+  private       Table               tblMain, tblCombats;
+  private       Label               lblTitle;
+  private       TextField           txtUsername;
   
   public LobbyUIManager () {
     // Cache some global things.
@@ -44,7 +44,8 @@ public class LobbyUIManager extends InputAdapter {
     tblMain.setDebug        (debug);
     tblMain.top();
     stage.addActor          (tblMain);
-    // Prepare our username field.
+    // Prepare our static fields field.
+    lblTitle                = new Label("Please wait...", ctx.uiSkin);
     txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
   public Stage getStage() {
@@ -120,7 +121,7 @@ public class LobbyUIManager extends InputAdapter {
       tblCombats.clear  ();
     
     // Add title row.
-    final Label lblTitle = tblCombats.add("Press the Refresh button.").center().getActor();
+    tblCombats.add(lblTitle).center().getActor();
     tblCombats.row();
     
     // Add the combats list.
@@ -147,13 +148,18 @@ public class LobbyUIManager extends InputAdapter {
     final TextButton btnRefresh = new TextButton("Refresh", skin);
     btnRefresh.addListener(new ClickListener() {
       @Override public void clicked(final InputEvent e, final float x, final float y) {
-        lblTitle.setText  ("Loading combats list...");
-        ctx
-          .networkingManager
-          .send           (new TXCombatList());
+        loadCombatList();
       }
     });
     tblCombats.add            (btnRefresh).colspan(2).center();
     tblCombats.row            ();    
+  }
+  
+  public LobbyUIManager loadCombatList () {
+    lblTitle.setText  ("Loading combats list...");
+    ctx
+      .networkingManager
+      .send           (new TXCombatList());
+    return            this;
   }
 }

@@ -114,6 +114,7 @@ public class LobbyScreen implements Screen {
       ui.setState         (this.state = state);
       switch (state) {
         case Global:
+          ui.loadCombatList();
           Gdx.input.setInputProcessor (ui.getStage());
           break;
         case Joined:
