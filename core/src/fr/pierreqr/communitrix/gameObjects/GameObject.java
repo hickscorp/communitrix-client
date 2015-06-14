@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.model.Node;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
@@ -15,11 +14,7 @@ public class GameObject extends ModelInstance {
   public                float         radius;
 
   // Those are temporaries.
-  private final static  Vector3       tmpXAxis      = new Vector3();
-  private final static  Vector3       tmpYAxis      = new Vector3();
-  private final static  Vector3       tmpZAxis      = new Vector3();
   private final static  Vector3       tmpPosition   = new Vector3();
-  private final static  Quaternion    tmpRotation   = new Quaternion();
   private final static  BoundingBox   tmpBounds     = new BoundingBox();
   
   public GameObject (Model model) {

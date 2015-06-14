@@ -98,7 +98,7 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     // Start talking with the server.
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("localhost", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkingManager.start ();
     // Prepare our shared model loader.
     modelLoader             = new G3dModelLoader(new UBJsonReader());
@@ -112,12 +112,9 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
       networkTimer.stop       ();
       networkingManager.stop  ();
     }
-    if (dummyModel!=null)
-      dummyModel.dispose      ();
-    if (combatScreen!=null)
-      combatScreen.dispose    ();
-    if (lobbyScreen!=null)
-      lobbyScreen.dispose     ();
+    if (dummyModel!=null)     dummyModel.dispose();
+    if (combatScreen!=null)   combatScreen.dispose();
+    if (lobbyScreen!=null)    lobbyScreen.dispose();
     modelBatch.dispose      ();
   }
 
