@@ -9,8 +9,8 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
-import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
+import com.badlogic.gdx.math.Matrix4;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
@@ -20,13 +20,19 @@ public class Piece extends GameObject {
   private               HashMap<Integer,Material> materials;
   private               Model                     model;
   
+  public                Matrix4                   targetTransform;
+  
   public Piece () {
     this(null);
   }
   public Piece (final SHPiece piece) {
     super               (Communitrix.getInstance().dummyModel);
+    targetTransform     = new Matrix4();
     materials           = new HashMap<Integer,Material>(0);
     setFromSharedPiece  (piece);
+  }
+  public void resetTargetTransform () {
+    targetTransform.set (transform);
   }
   
   public void setFromSharedPiece (final SHPiece piece) {
@@ -70,17 +76,20 @@ public class Piece extends GameObject {
       builders.put                  (index, builder);
     }
     // Start building faces.
-    for (int x=0; x<xSize; ++x) {
-      for (int y=0; y<ySize; ++y) {
-        for (int z=0; z<zSize; ++z) {
+    for (int iX=0; iX<xSize; ++iX) {
+      final int x = iX - xSize/2;
+      for (int iY=0; iY<ySize; ++iY) {
+        final int y = iY - ySize/2;
+        for (int iZ=0; iZ<zSize; ++iZ) {
+          final int z = iZ - zSize/2;
           // Retrieve content hint at current position.
-          final int index = contents[x][y][z];
+          final int index = contents[iX][iY][iZ];
           // Current content is empty, or current content isn't belonging to the part being built.
           if (index==0) continue;
           // Get the part builder for the matching index.
           final MeshBuilder mesh = builders.get(index);
           // Nothing on the left.
-          if (x==0 || contents[x-1][y][z]==0) {
+          if (iX==0 || contents[iX-1][iY][iZ]==0) {
             mesh.rect(  x-radius, y-radius, z+radius,
                         x-radius, y+radius, z+radius,
                         x-radius, y+radius, z-radius,
@@ -88,7 +97,7 @@ public class Piece extends GameObject {
                         1, 0, 0);
           }
           // Nothing on the right.
-          if (x==xSize-1 || contents[x+1][y][z]==0) {
+          if (iX==xSize-1 || contents[iX+1][iY][iZ]==0) {
             mesh.rect(  x+radius, y-radius, z-radius,
                         x+radius, y+radius, z-radius,
                         x+radius, y+radius, z+radius,
@@ -96,7 +105,7 @@ public class Piece extends GameObject {
                         -1, 0, 0);
           }
           // Nothing on the top.
-          if (y==0 || contents[x][y-1][z]==0 ) {
+          if (iY==0 || contents[iX][iY-1][iZ]==0 ) {
             mesh.rect(  x+radius, y-radius, z+radius,
                         x-radius, y-radius, z+radius,
                         x-radius, y-radius, z-radius,
@@ -104,7 +113,7 @@ public class Piece extends GameObject {
                         0, 1, 0);
           }
           // Nothing on the bottom.
-          if (y==ySize-1 || contents[x][y+1][z]==0) {
+          if (iY==ySize-1 || contents[iX][iY+1][iZ]==0) {
             mesh.rect(  x+radius, y+radius, z-radius,
                         x-radius, y+radius, z-radius,
                         x-radius, y+radius, z+radius,
@@ -112,7 +121,7 @@ public class Piece extends GameObject {
                         0, -1, 0);
           }
           // Nothing in front.
-          if (z==0 || contents[x][y][z-1]==0) {
+          if (iZ==0 || contents[iX][iY][iZ-1]==0) {
             mesh.rect(  x+radius, y-radius, z-radius,
                         x-radius, y-radius, z-radius,
                         x-radius, y+radius, z-radius,
@@ -120,7 +129,7 @@ public class Piece extends GameObject {
                         0, 0, 1);
           }
           // Nothing behind it.
-          if (z==zSize-1 || contents[x][y][z+1]==0) {
+          if (iZ==zSize-1 || contents[iX][iY][iZ+1]==0) {
             mesh.rect(  x+radius, y+radius, z+radius,
                         x-radius, y+radius, z+radius,
                         x-radius, y-radius, z+radius,
@@ -132,22 +141,18 @@ public class Piece extends GameObject {
     }
     
     // Start building our final model, which will be the sum of all meshes.
-    ctx.modelBuilder.begin    ();
+    ctx.modelBuilder.begin  ();
     for (int index : builders.keySet()) {
       ctx.modelBuilder.part(
-          String.format("piece%d", index),
+          String.format("node%d", index),
           builders.get(index).end(),
           GL20.GL_TRIANGLES,
           materials.get(index));
     }
-    model                         = ctx.modelBuilder.end();
-    Gdx.app.log                   (LogTag, "New piece model has " + model.nodes.size + " node(s).");
-    for (int index=0; index<model.nodes.size; ++index) {
-      final   Node  newNode       = model.nodes.get(index);
-      newNode.calculateTransforms (true);
-      nodes.add                   (newNode);
-    }
-    recomputeBounds();
+    model                   = ctx.modelBuilder.end();
+    Gdx.app.log             (LogTag, "New piece model has " + model.nodes.size + " node(s).");
+    nodes.addAll            (model.nodes);
+    recomputeBounds         ();
   }
   
   // This method takes care of creating the required numbers of materials based on the number of indices

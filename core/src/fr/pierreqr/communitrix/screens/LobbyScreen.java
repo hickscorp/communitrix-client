@@ -63,6 +63,7 @@ public class LobbyScreen implements Screen {
     ctx                   = communitrixInstance;
     // Initialize our UI manager.
     ui                    = new LobbyUIManager();
+    ctx.setErrorResponder (ui);
     // Initialize tweening engine.
     tweener               = new TweenManager();
     
@@ -94,9 +95,6 @@ public class LobbyScreen implements Screen {
     camMain.lookAt        (0, 0, 0);
     camMain.update        ();
     
-    // Attach a camera controller to the main camera, set it as the main processor.
-    combCtrlMain          = new CombatInputController(camMain, instances); 
-
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(
                                 2, 2, 2,
@@ -107,6 +105,9 @@ public class LobbyScreen implements Screen {
     myPiece               = new Piece();
     pieces                = new Array<Piece>();
     instances.add         (myPiece);
+    
+    // Instanciate our interraction controller.
+    combCtrlMain          = new CombatInputController(camMain, pieces, tweener);
   }
   // Setter on state, handles transitions.
   public LobbyScreen setState (final State state) {
@@ -206,13 +207,14 @@ public class LobbyScreen implements Screen {
       myPiece.setFromSharedPiece(target);
     // Place all my pieces.
     if (newPieces!=null) {
-      pieces.clear();
+      pieces.clear            ();
+      final Vector3 shift     = new Vector3(0, 0, -10);
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece(newPieces[i]);
         pieces.add              (obj);
-
-        final Vector3 shift     = new Vector3(i * 5 - newPieces.length * 5, 0, -10);
+        shift.x                 = i * 5 - newPieces.length * 5;
         obj.transform.translate (shift);
+        obj.resetTargetTransform();
         instances.add           (obj);
       }
     }

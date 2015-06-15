@@ -2,6 +2,7 @@ package fr.pierreqr.communitrix.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -10,46 +11,66 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Timer;
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 
-public class LobbyUIManager extends InputAdapter {
+public class LobbyUIManager extends InputAdapter implements ErrorResponder {
   private       Communitrix         ctx;
   private       LobbyScreen.State   state;
   private final boolean             debug       = false;
   private final int                 pad         = 5;
 
   private       String[]            combats;
-
-  private       Stage               stage;
-  private       Skin                skin;
-  private       Table               tblMain, tblCombats;
-  private       Label               lblTitle;
-  private       TextField           txtUsername;
+  
+  private final Timer               timer;
+  private final Stage               stage;
+  private final Skin                skin;
+  private final Table               tblMain, tblCombats;
+  private final Label               lblTitle, lblStatus;
+  private final TextField           txtUsername;
 
   public LobbyUIManager () {
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
     skin                    = ctx.uiSkin;
+    // Prepare UI timer.
+    timer                   = new Timer();
     // Create our flat UI stage.
     stage                   = new Stage();
-    // Prepare main root table.
-    stage.addActor          (tblMain = new Table());
     // Prepare the main table.
     tblMain                 = new Table(ctx.uiSkin);
     tblMain.setFillParent   (true);
     tblMain.pad             (pad);
     tblMain.setDebug        (debug);
-    tblMain.top();
+    tblMain.top             ();
     stage.addActor          (tblMain);
-    lblTitle                = new Label("Please wait...", ctx.uiSkin);
+    // Prepare combats table.
+    tblCombats              = new Table(ctx.uiSkin);
+    tblCombats.pad          (pad);
+    tblCombats.setDebug     (debug);
+    tblCombats.top          ();
+    // Prepare the title field.
+    lblTitle                = new Label("", skin);
+    lblTitle.setFontScale   (1.3f);
+    // Prepare the status field.
+    lblStatus               = new Label("", skin);
+    lblStatus.setColor      (Color.RED);
+    // Prepare the username input text field.
     txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
-  public Stage getStage() {
-    return stage;
+
+  // ErrorResponder implementation.
+  public void setLastError (final int code, final String reason) {
+    lblStatus.setText (String.format("Error #%d: %s", code, reason));
+    timer.scheduleTask(new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 3.0f);
   }
+  
+  // Getters
+  public Stage getStage() { return stage; }
 
   public void show() {
     setState          (state);
@@ -66,18 +87,27 @@ public class LobbyUIManager extends InputAdapter {
   }
 
   public LobbyUIManager setState (final LobbyScreen.State state) {
-    Gdx.app.log                 ("LobbyUI", "Changing state to " + state + ".");
-    this.state                  = state;
+    Gdx.app.log       ("LobbyUI", "Changing state to " + state + ".");
+    this.state        = state;
     // Remove everything from the UI.
-    tblMain.clear               ();
+    tblMain.clear     ();
+    // Add title row.
+    tblMain.add       (lblTitle).colspan(2).center();
+    tblMain.row       ();
+    // Add status row.
+    tblMain.add       (lblStatus).colspan(2).center();
+    tblMain.row       ();
+
     switch (state) {
       case Global:
         // Title row.
-        tblMain.add       ("Global State.").colspan(2).pad(pad).center();
-        tblMain.row       ();
+        lblTitle.setText  ("Global State.");
         // Login row.
-        tblMain.add       ("Username:").pad(pad);
-        tblMain.add       (txtUsername).pad(pad);
+        tblMain.add       ("Username:").pad(pad).right();
+        tblMain.add       (txtUsername).pad(pad).left();
+        tblMain.row       ();
+        // Add the combats table to the main table.
+        tblMain.add       (tblCombats).colspan(2).pad(5);
         tblMain.row       ();
         // Refresh combats list.
         updateCombats     ();
@@ -85,15 +115,12 @@ public class LobbyUIManager extends InputAdapter {
       case Joined:
         // Clear combats table.
         tblCombats.clear  ();
-        tblCombats        = null;
         // Title row.
-        tblMain.add       ("Joined state.").pad(pad).expandX().left();
-        tblMain.row       ().left();
+        lblTitle.setText  ("Joined state.");
         break;
       case Starting:
         // Title row.
-        tblMain.add       ("Starting combat. Please stand by...").pad(pad).expandX().left();
-        tblMain.row       ().left();
+        lblTitle.setText  ("Starting combat...");
         break;
       default :
         break;
@@ -108,24 +135,11 @@ public class LobbyUIManager extends InputAdapter {
   }
 
   public void updateCombats () {
-    if (tblCombats==null) {
-      // Add the combat table to the root table.
-      tblCombats              = new Table();
-      tblCombats.pad          (5);
-      tblCombats.setSkin      (skin);
-      tblCombats.setDebug     (debug);
-      tblMain.add             (tblCombats).colspan(2).pad(5);
-    }
-    else
-      tblCombats.clear  ();
-
-    // Add title row.
-    tblCombats.add(lblTitle).center().getActor();
-    tblCombats.row();
-
+    // Remove combats list.
+    tblCombats.clear  ();
     // Add the combats list.
     if (combats!=null) {
-      lblTitle.setText(String.format("Combat List: %d", combats.length));
+      lblStatus.setText(String.format("Loaded %d combat(s).", combats.length));
       for (final String combat : combats) {
         // Button row.
         final TextButton btnJoin = new TextButton("Join", skin);
@@ -155,7 +169,7 @@ public class LobbyUIManager extends InputAdapter {
   }
 
   public LobbyUIManager loadCombatList () {
-    lblTitle.setText  ("Loading combats list...");
+    lblStatus.setText  ("Loading combats list...");
     ctx
       .networkingManager
       .send           (new TXCombatList());

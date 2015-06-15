@@ -33,7 +33,7 @@ import fr.pierreqr.communitrix.networking.commands.rx.RXWelcome;
 import fr.pierreqr.communitrix.screens.CombatScreen;
 import fr.pierreqr.communitrix.screens.LobbyScreen;
 
-public class Communitrix extends Game implements NetworkingManager.NetworkDelegate {
+public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
   // Constants.
   public  static final  float     TranslationSpeed      = 20.0f;
   public  static final  float     RotationSpeed         = 120.0f;
@@ -52,12 +52,15 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
   public          Model             dummyModel;
   // Random generator.
   public          Random            rand;
-
+  // Network-related objects.
   public          NetworkingManager networkingManager;
   public          Timer             networkTimer;
-
+  // The current error responder if any.
+  private         ErrorResponder    errorResponder;
+  
+  // The singleton isntance.
   private static  Communitrix       instance;
-    
+  
   // All our different screens.
   private         LobbyScreen       lobbyScreen;
   private         CombatScreen      combatScreen;
@@ -75,6 +78,10 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     rand                    = new Random();
     // Register motion tweening accessors.
     Tween.registerAccessor  (GameObject.class, new GameObjectAccessor());
+  }
+  // Getters / Setters.
+  public void setErrorResponder (final ErrorResponder er) {
+    errorResponder          = er;
   }
   
   @Override public void create () {
@@ -100,12 +107,19 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     networkTimer            = new Timer();
     networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkingManager.start ();
+    // Set up our default error responder.
+    errorResponder          = this;
     // Prepare our shared model loader.
     modelLoader             = new G3dModelLoader(new UBJsonReader());
     // Set default screen.
     setScreen               (getLazyLobbyScreen());
   }
-
+  
+  // ErrorResponder implementation.
+  public void setLastError (final int code, final String reason) {
+    Gdx.app.log     (LogTag, "An error has occured: #" + code + " - " + reason);
+  };
+  
   // Occurs when the game exits.
   @Override public void dispose () {
     if (networkingManager!=null) {
@@ -144,7 +158,9 @@ public class Communitrix extends Game implements NetworkingManager.NetworkDelega
     switch (baseCmd.type) {
       case Error: {
         final RXError cmd = (RXError)baseCmd;
-        Gdx.app.error     (LogTag, "Server just notified us of an error #" + cmd.code + ": " + cmd.reason);
+        if (errorResponder==null)
+          errorResponder  = this;
+        errorResponder.setLastError(cmd.code, cmd.reason);
         break;
       }
       case Welcome: {
