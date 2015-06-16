@@ -22,7 +22,7 @@ import fr.pierreqr.communitrix.screens.SCLobby;
 public class UILobby extends InputAdapter implements ErrorResponder {
   private       Communitrix         ctx;
   private       SCLobby.State   state;
-  private final boolean             debug       = true;
+  private final boolean             debug       = false;
   private final int                 pad         = 5;
 
   private       String[]            combats;
