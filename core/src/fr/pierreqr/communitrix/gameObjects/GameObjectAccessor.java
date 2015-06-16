@@ -1,7 +1,6 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import aurelienribon.tweenengine.TweenAccessor;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 
@@ -27,7 +26,6 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
   private static        int           tmpInt      = 0;
   private final static  Vector3       tmpVec3     = new Vector3();
   private final static  Quaternion    tmpQuat     = new Quaternion();
-  private final static  Vector3       tmpAngles   = new Vector3();
 
   @Override public int getValues (final GameObject obj, final int type, final float[] retVals) {
     tmpInt  = 0;
@@ -40,11 +38,9 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     }
     // Handle rotations if required.
     if ((type & RotX)!=0 || (type & RotY)!=0 || (type & RotZ)!=0) {
-      obj.transform
-        .getRotation            (tmpQuat);
-      if (( type & RotX )!=0)   retVals[tmpInt++] = tmpQuat.getPitch();
-      if (( type & RotY )!=0)   retVals[tmpInt++] = tmpQuat.getYaw();
-      if (( type & RotZ )!=0)   retVals[tmpInt++] = tmpQuat.getRoll();
+      if (( type & RotX )!=0)   retVals[tmpInt++] = obj.currentAngles.x;
+      if (( type & RotY )!=0)   retVals[tmpInt++] = obj.currentAngles.y;
+      if (( type & RotZ )!=0)   retVals[tmpInt++] = obj.currentAngles.z;
     }
     return tmpInt;
   }
@@ -58,12 +54,12 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     if (( type & TransZ )!=0)     tmpVec3.z  = newVals[tmpInt++];
     // Handle rotations, if any.
     if (( type & RotX )!=0 || ( type & RotY )!=0 || ( type & RotZ )!=0) {
-      obj.transform
-        .getRotation              (tmpQuat)
-        .nor();
-      if (( type & RotX )!=0)     obj.transform.rotate(Vector3.X, newVals[tmpInt++] - tmpQuat.getPitch());
-      if (( type & RotY )!=0)     obj.transform.rotate(Vector3.Y, newVals[tmpInt++] - tmpQuat.getYaw());
-      if (( type & RotZ )!=0)     obj.transform.rotate(Vector3.Z, newVals[tmpInt++] - tmpQuat.getRoll());
+      if (( type & RotX )!=0)     obj.currentAngles.x = newVals[tmpInt++];
+      if (( type & RotY )!=0)     obj.currentAngles.y = newVals[tmpInt++];
+      if (( type & RotZ )!=0)     obj.currentAngles.z = newVals[tmpInt++];
+      tmpQuat
+        .setEulerAngles(obj.currentAngles.x, obj.currentAngles.y, obj.currentAngles.z);
+      obj.transform.set (tmpVec3, tmpQuat);
     } else {
       obj.transform.setTranslation(tmpVec3);
     }

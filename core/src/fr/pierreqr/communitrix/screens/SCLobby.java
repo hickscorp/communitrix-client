@@ -30,21 +30,22 @@ import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
-import fr.pierreqr.communitrix.utils.CombatInputController;
+import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
+import fr.pierreqr.communitrix.screens.ui.UILobby;
 
-public class LobbyScreen implements Screen {
+public class SCLobby implements Screen {
   public                enum          State         { Unknown, Global, Joined, Starting }
   private static final  String        LogTag        = "LobbyScreen";
   
   // Game instance cache.
   private final Communitrix           ctx;
   // Flat UI.
-  private       LobbyUIManager        ui;
+  private       UILobby        ui;
   // Scene setup related objects.
   private final TweenManager          tweener;
   private final Environment           envMain;
   private final PerspectiveCamera     camMain;
-  private final CombatInputController combCtrlMain;
+  private final ICLobby combCtrlMain;
   private final PostProcessor         postProMain;
   // State related members.
   private       State                 state         = State.Unknown;
@@ -57,12 +58,12 @@ public class LobbyScreen implements Screen {
   private final Piece                 myPiece;
   private final Array<Piece>          pieces;
   
-  public LobbyScreen (final Communitrix communitrixInstance) {
+  public SCLobby (final Communitrix communitrix) {
     Gdx.app.log           (LogTag, "Constructing.");
     // Cache our game instance.
-    ctx                   = communitrixInstance;
+    ctx                   = communitrix;
     // Initialize our UI manager.
-    ui                    = new LobbyUIManager();
+    ui                    = new UILobby();
     ctx.setErrorResponder (ui);
     // Initialize tweening engine.
     tweener               = new TweenManager();
@@ -71,7 +72,7 @@ public class LobbyScreen implements Screen {
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.7f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    envMain.add           (new DirectionalLight().set(new Color(0.7f, 0.7f, 0.7f, 1.0f), -1f, -0.8f, -0.2f));
+    envMain.add           (new DirectionalLight().set(new Color(1.0f, 1.0f, 1.0f, 1.0f), -1f, -0.8f, -0.2f));
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
@@ -107,10 +108,10 @@ public class LobbyScreen implements Screen {
     instances.add         (myPiece);
     
     // Instanciate our interraction controller.
-    combCtrlMain          = new CombatInputController(camMain, pieces, tweener);
+    combCtrlMain          = new ICLobby(camMain, pieces, tweener);
   }
   // Setter on state, handles transitions.
-  public LobbyScreen setState (final State state) {
+  public SCLobby setState (final State state) {
     if (this.state!=state) {
       ui.setState         (this.state = state);
       switch (state) {
@@ -131,12 +132,12 @@ public class LobbyScreen implements Screen {
     return this;
   }
   // Whenever the server updates the client with a combat list, this gets called.
-  public LobbyScreen setCombats (final String[] combats) {
+  public SCLobby setCombats (final String[] combats) {
     ui.setCombats (combats);
     return        this;
   }
   // Setter on players, handles list population.
-  public LobbyScreen setPlayers (final ArrayList<SHPlayer> players) {
+  public SCLobby setPlayers (final ArrayList<SHPlayer> players) {
     Gdx.app.log         (LogTag, "Setting new player list (" + players.size() + ").");
     // Remove all character instances.
     for (final SHPlayer player : this.players)
@@ -150,7 +151,7 @@ public class LobbyScreen implements Screen {
       addPlayer         (player);
     return this;
   }
-  public LobbyScreen addPlayer (final SHPlayer player) {
+  public SCLobby addPlayer (final SHPlayer player) {
     Gdx.app.log       (LogTag, "Adding player (" + player.uuid + ").");
     
     final GameObject obj  = new GameObject(characterModel);
@@ -167,7 +168,7 @@ public class LobbyScreen implements Screen {
       .start              (tweener);
     return this;
   }
-  public LobbyScreen removePlayer (final String uuid) {
+  public SCLobby removePlayer (final String uuid) {
     Gdx.app.log       (LogTag, "Removing player (" + uuid + ").");
     boolean shift     = false;
     int     idx       = 0;
@@ -201,7 +202,7 @@ public class LobbyScreen implements Screen {
     return this;
   }
 
-  public LobbyScreen prepare (final SHPiece target, final SHPiece[] newPieces) {
+  public SCLobby prepare (final SHPiece target, final SHPiece[] newPieces) {
     // Set up the target.
     if (target!=null)
       myPiece.setFromSharedPiece(target);

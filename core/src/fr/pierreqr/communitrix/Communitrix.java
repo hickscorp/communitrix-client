@@ -5,6 +5,7 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -30,8 +31,8 @@ import fr.pierreqr.communitrix.networking.commands.rx.RXCombatPlayerTurn;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
 import fr.pierreqr.communitrix.networking.commands.rx.RXError;
 import fr.pierreqr.communitrix.networking.commands.rx.RXWelcome;
-import fr.pierreqr.communitrix.screens.CombatScreen;
-import fr.pierreqr.communitrix.screens.LobbyScreen;
+import fr.pierreqr.communitrix.screens.SCCombat;
+import fr.pierreqr.communitrix.screens.SCLobby;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
   // Constants.
@@ -62,8 +63,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   private static  Communitrix       instance;
   
   // All our different screens.
-  private         LobbyScreen       lobbyScreen;
-  private         CombatScreen      combatScreen;
+  private         SCLobby       lobbyScreen;
+  private         SCCombat      combatScreen;
 
   public static Communitrix getInstance() {
     return instance;
@@ -89,10 +90,10 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType         = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    //if (applicationType==ApplicationType.Desktop) {
-    //  final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-    //  Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-    //}
+    if (applicationType==ApplicationType.Desktop) {
+      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+    }
 
     // Force cache viewport size.
     resize                  (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -166,7 +167,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       case Welcome: {
         Gdx.app.log         (LogTag, "Server is welcoming us: " + ((RXWelcome)baseCmd).message);
         getLazyLobbyScreen()
-          .setState         (LobbyScreen.State.Global);
+          .setState         (SCLobby.State.Global);
         setScreen           (lobbyScreen);
         break;
       }
@@ -181,7 +182,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       case CombatJoin: {
         setScreen(
           getLazyLobbyScreen()
-            .setState         (LobbyScreen.State.Joined)
+            .setState         (SCLobby.State.Joined)
             .setPlayers       (((RXCombatJoin)baseCmd).combat.players)
         );
         break;
@@ -234,6 +235,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     }
   }
 
-  private LobbyScreen getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new LobbyScreen(this)   : lobbyScreen; }
-  private CombatScreen getLazyCombatScreen  () { return combatScreen==null  ? combatScreen  = new CombatScreen(this)  : combatScreen; }
+  private SCLobby getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new SCLobby(this)   : lobbyScreen; }
+  private SCCombat getLazyCombatScreen  () { return combatScreen==null  ? combatScreen  = new SCCombat(this)  : combatScreen; }
 }

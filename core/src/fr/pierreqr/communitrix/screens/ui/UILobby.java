@@ -1,4 +1,4 @@
-package fr.pierreqr.communitrix.screens;
+package fr.pierreqr.communitrix.screens.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
@@ -17,11 +17,12 @@ import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
+import fr.pierreqr.communitrix.screens.SCLobby;
 
-public class LobbyUIManager extends InputAdapter implements ErrorResponder {
+public class UILobby extends InputAdapter implements ErrorResponder {
   private       Communitrix         ctx;
-  private       LobbyScreen.State   state;
-  private final boolean             debug       = false;
+  private       SCLobby.State   state;
+  private final boolean             debug       = true;
   private final int                 pad         = 5;
 
   private       String[]            combats;
@@ -33,7 +34,7 @@ public class LobbyUIManager extends InputAdapter implements ErrorResponder {
   private final Label               lblTitle, lblStatus;
   private final TextField           txtUsername;
 
-  public LobbyUIManager () {
+  public UILobby () {
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
     skin                    = ctx.uiSkin;
@@ -86,7 +87,7 @@ public class LobbyUIManager extends InputAdapter implements ErrorResponder {
     stage.getViewport().update(width, height, true);
   }
 
-  public LobbyUIManager setState (final LobbyScreen.State state) {
+  public UILobby setState (final SCLobby.State state) {
     Gdx.app.log       ("LobbyUI", "Changing state to " + state + ".");
     this.state        = state;
     // Remove everything from the UI.
@@ -128,7 +129,7 @@ public class LobbyUIManager extends InputAdapter implements ErrorResponder {
     return this;
   }
 
-  public LobbyUIManager setCombats (final String[] combats) {
+  public UILobby setCombats (final String[] combats) {
     this.combats    = combats;
     updateCombats   ();
     return          this;
@@ -147,8 +148,8 @@ public class LobbyUIManager extends InputAdapter implements ErrorResponder {
           @Override public void clicked(final InputEvent e, final float x, final float y) {
             ctx
               .networkingManager
-              .send(new TXCombatJoin(combat))
-              .send(new TXRegister(txtUsername.getText()));
+              .send(new TXRegister(txtUsername.getText()))
+              .send(new TXCombatJoin(combat));
           }
         });
         tblCombats.add        (combat).pad(pad).right();
@@ -168,7 +169,7 @@ public class LobbyUIManager extends InputAdapter implements ErrorResponder {
     tblCombats.row            ();
   }
 
-  public LobbyUIManager loadCombatList () {
+  public UILobby loadCombatList () {
     lblStatus.setText  ("Loading combats list...");
     ctx
       .networkingManager

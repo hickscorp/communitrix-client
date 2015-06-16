@@ -1,14 +1,11 @@
 package fr.pierreqr.communitrix.gameObjects;
 
 import java.util.HashMap;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.math.Matrix4;
 import fr.pierreqr.communitrix.Communitrix;
@@ -16,14 +13,11 @@ import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 
 public class Piece extends GameObject {
-  private static final  String                    LogTag      = "Piece";
   private               HashMap<Integer,Material> materials;
   private               Model                     model;
   
-  public                Matrix4                   targetTransform;
-  
   public Piece () {
-    this(null);
+    this  (null);
   }
   public Piece (final SHPiece piece) {
     super               (Communitrix.getInstance().dummyModel);
@@ -72,8 +66,8 @@ public class Piece extends GameObject {
     for (Integer index : materials.keySet()) {
       // Create a new builder.
       final MeshBuilder builder = new MeshBuilder();
-      builder.begin                 (Usage.Position | Usage.Normal, GL20.GL_TRIANGLES);
-      builders.put                  (index, builder);
+      builder.begin             (Usage.Position | Usage.Normal, GL20.GL_TRIANGLES);
+      builders.put              (index, builder);
     }
     // Start building faces.
     for (int iX=0; iX<xSize; ++iX) {
@@ -150,7 +144,6 @@ public class Piece extends GameObject {
           materials.get(index));
     }
     model                   = ctx.modelBuilder.end();
-    Gdx.app.log             (LogTag, "New piece model has " + model.nodes.size + " node(s).");
     nodes.addAll            (model.nodes);
     recomputeBounds         ();
   }
@@ -164,9 +157,6 @@ public class Piece extends GameObject {
     // Prepare a new array of materials.
     final HashMap<Integer,Material> newMaterials = new HashMap<Integer, Material>();
     // First, count the unique indices.
-    final ColorAttribute      spec    = ColorAttribute.createSpecular(0.7f, 0.7f, 0.7f, 1.0f);
-    final FloatAttribute      shine   = FloatAttribute.createShininess(0.5f);
-    final BlendingAttribute   blend   = new BlendingAttribute(true, 0.7f);
     for (final SHCell cell : piece.content) {
       final int index = cell.value;
       if (!newMaterials.containsKey(index)) {
@@ -174,11 +164,10 @@ public class Piece extends GameObject {
             index,
             new Material(
               ColorAttribute.createDiffuse(
-                  0.4f + 0.1f*ctx.rand.nextInt(5),
-                  0.4f + 0.1f*ctx.rand.nextInt(5),
-                  0.4f + 0.1f*ctx.rand.nextInt(5),
-                  1.0f),
-              spec, shine, blend
+                  0.5f + 0.1f*ctx.rand.nextInt(5),
+                  0.5f + 0.1f*ctx.rand.nextInt(5),
+                  0.5f + 0.1f*ctx.rand.nextInt(5),
+                  1.0f)
             )
           );
         newMaterials.put (cell.value, mat);

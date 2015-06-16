@@ -1,11 +1,8 @@
-package fr.pierreqr.communitrix.utils;
+package fr.pierreqr.communitrix.screens.inputControllers;
 
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenManager;
-import aurelienribon.tweenengine.equations.Bounce;
 import aurelienribon.tweenengine.equations.Expo;
-import aurelienribon.tweenengine.equations.Linear;
-import aurelienribon.tweenengine.equations.Quad;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Input.Keys;
@@ -16,12 +13,10 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
-import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 
-public class CombatInputController extends InputAdapter{
+public class ICLobby extends InputAdapter{
   private final static  Vector3             positiveX   = new Vector3( 1,  0,  0);
   private final static  Vector3             positiveZ   = new Vector3( 0,  0,  1);
   private final static  Vector3             negativeX   = new Vector3(-1,  0,  0);
@@ -34,7 +29,7 @@ public class CombatInputController extends InputAdapter{
   private final         Vector3             dragOffset;
   private final         Vector3             position;
   
-  public CombatInputController (final PerspectiveCamera camMain, final Array<Piece> instances, final TweenManager tweener) {
+  public ICLobby (final PerspectiveCamera camMain, final Array<Piece> instances, final TweenManager tweener) {
     dragOffset      = new Vector3();
     position        = new Vector3();
     this.camMain    = camMain;
@@ -76,29 +71,6 @@ public class CombatInputController extends InputAdapter{
     }
     return selection!=null;
   }
-  @Override public boolean touchUp (int screenX, int screenY, int pointer, int button) {
-//    if (selection==null)
-//      return    false;
-//    selection = null;
-//    return    true;
-    return false;
-  }
-  @Override public boolean touchDragged (int screenX, int screenY, int pointer) {
-    return false;
-//    if (selection==null)
-//      return false;
-//    final Ray   ray   = camMain.getPickRay(screenX, screenY);
-//    final float dist  = -ray.origin.y / ray.direction.y;
-//    position
-//      .set(ray.direction)
-//      .scl(dist)
-//      .add(ray.origin)
-//      .add(dragOffset);
-//    selection
-//      .transform
-//      .setTranslation(position);
-//    return true;
-  }
   
   private final static Quaternion tmpQuat = new Quaternion();
   private final static Vector3    tmpVec3 = new Vector3();
@@ -118,40 +90,27 @@ public class CombatInputController extends InputAdapter{
       .getTranslation     (tmpVec3);
     
     Tween
-      .to                 (selection, GameObjectAccessor.TransXZ, 5.0f)
+      .to                 (selection, GameObjectAccessor.TransXZ, 0.2f)
       .target             (tmpVec3.x, tmpVec3.z)
-      .ease               (Linear.INOUT)
+      .ease               (Expo.OUT)
       .start              (tweener);
   }
-  private void animateSelectionRotation (final Vector3 axis, final float angle) {
-    selection.targetTransform
-      .getRotation(tmpQuat)
-      .nor        ();
-    selection.targetTransform
-      .getTranslation(tmpVec3);
-    selection.targetTransform
-      .idt        ()
-      .rotate     (axis, angle)
-      .rotate     (tmpQuat)
-      .trn        (tmpVec3);
-    
-
-    selection.targetTransform
-      .getRotation(tmpQuat)
-      .nor();
-    int   order   = 0;
-    float target  = 0.0f;
+  private void animateSelectionRotation (final Vector3 axis, final int angle) {
+    int         order   = 0;
+    int         target  = 0;
     if (axis==Vector3.X) {
-      order   = GameObjectAccessor.RotX;
-      target  = tmpQuat.getPitch();
-    } else if (axis==Vector3.Y) {
-      order   = GameObjectAccessor.RotY;
-      target  = tmpQuat.getYaw();
+     order    = GameObjectAccessor.RotX;
+     target   = selection.targetAngles.x += angle;
     }
-    if (target>=180.0f)
-      target  -= 360.0f;
-    else if (target<=-180.0f)
-      target  += 360.0f;
+    else if (axis==Vector3.Y) {
+      order   = GameObjectAccessor.RotY; 
+      target  = selection.targetAngles.y += angle;
+    }
+    else if (axis==Vector3.Z) {
+      order   = GameObjectAccessor.RotZ;
+      target  = selection.targetAngles.z += angle;
+    }
+    
     Tween
       .to                 (selection, order, 0.6f)
       .target             (target)

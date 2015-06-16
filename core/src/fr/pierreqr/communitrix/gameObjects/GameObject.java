@@ -3,9 +3,11 @@ package fr.pierreqr.communitrix.gameObjects;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
+import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class GameObject extends ModelInstance {
   // Center and dimensions will be re-calculated based on radius.
@@ -13,9 +15,14 @@ public class GameObject extends ModelInstance {
   public                BoundingBox   bounds;
   public                float         radius;
 
+  public                Matrix4       targetTransform;
+  
+  public                Vector3       currentAngles = new Vector3();
+  public                SHVector      targetAngles  = new SHVector();
+  
   // Those are temporaries.
-  private final static  Vector3       tmpVec3     = new Vector3();
-  private final static  Quaternion    tmpQuat     = new Quaternion();
+  private final static  Vector3       tmpVec3       = new Vector3();
+  private final static  Quaternion    tmpQuat       = new Quaternion();
   
   public GameObject (Model model) {
     super           (model);

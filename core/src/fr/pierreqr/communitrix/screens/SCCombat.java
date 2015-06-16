@@ -22,7 +22,7 @@ import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 
-public class CombatScreen implements Screen {
+public class SCCombat implements Screen {
   // This is the configuration class for this screen.
   public class Configuration {
     public final String         combatUUID;
@@ -43,7 +43,7 @@ public class CombatScreen implements Screen {
   private       Model                 envModel    = null;
   private final Array<GameObject>     instances   = new Array<GameObject>();
   
-  public CombatScreen (final Communitrix communitrix) {
+  public SCCombat (final Communitrix communitrix) {
     // Cache our game instance.
     ctx                   = communitrix;
     
@@ -80,7 +80,7 @@ public class CombatScreen implements Screen {
   }
   
   // Configure this screen.
-  public CombatScreen setUp (final Configuration c) {
+  public SCCombat setUp (final Configuration c) {
     hide            ();
     config          = c;
     show            ();
