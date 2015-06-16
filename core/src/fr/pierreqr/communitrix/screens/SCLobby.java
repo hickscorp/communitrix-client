@@ -28,6 +28,7 @@ import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
+import fr.pierreqr.communitrix.gameObjects.Unit;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
@@ -55,7 +56,7 @@ public class SCLobby implements Screen {
   private final Array<GameObject>     instances     = new Array<GameObject>();
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
-  private final Piece                 myPiece;
+  private final Unit                  unit;
   private final Array<Piece>          pieces;
   
   public SCLobby (final Communitrix communitrix) {
@@ -72,7 +73,7 @@ public class SCLobby implements Screen {
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.7f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    envMain.add           (new DirectionalLight().set(new Color(1.0f, 1.0f, 1.0f, 1.0f), -1f, -0.8f, -0.2f));
+    envMain.add           (new DirectionalLight().set(new Color(0.3f, 0.3f, 0.3f, 1.0f), -1f, -0.8f, -0.2f));
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
@@ -103,9 +104,9 @@ public class SCLobby implements Screen {
                                 Usage.Position | Usage.Normal);
 
     // Create main fuel cell.
-    myPiece               = new Piece();
+    unit                  = new Unit();
     pieces                = new Array<Piece>();
-    instances.add         (myPiece);
+    instances.add         (unit);
     
     // Instanciate our interraction controller.
     combCtrlMain          = new ICLobby(camMain, pieces, tweener);
@@ -205,13 +206,14 @@ public class SCLobby implements Screen {
   public SCLobby prepare (final SHPiece target, final SHPiece[] newPieces) {
     // Set up the target.
     if (target!=null)
-      myPiece.setFromSharedPiece(target);
+      unit.setFromSharedPiece(target);
     // Place all my pieces.
     if (newPieces!=null) {
       pieces.clear            ();
       final Vector3 shift     = new Vector3(0, 0, -10);
       for (int i=0; i<newPieces.length; i++) {
-        final Piece   obj       = new Piece(newPieces[i]);
+        final Piece   obj       = new Piece();
+        obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
         shift.x                 = i * 5 - newPieces.length * 5;
         obj.transform.translate (shift);

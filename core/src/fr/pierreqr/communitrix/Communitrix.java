@@ -5,7 +5,6 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -13,7 +12,6 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
@@ -35,12 +33,18 @@ import fr.pierreqr.communitrix.screens.SCCombat;
 import fr.pierreqr.communitrix.screens.SCLobby;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
-  // Constants.
-  public  static final  float     TranslationSpeed      = 20.0f;
-  public  static final  float     RotationSpeed         = 120.0f;
-  public  static final  Vector3   CellDimensions        = new Vector3(5, 5, 5);
-  public  static final  float     CellComponentRadius   = 0.5f;
-  private static final  String    LogTag                = "Communitrix";
+  // Possible directions around a cube to check for.
+  public final static   int         Left                  = 0;
+  public final static   int         Right                 = Left+1;
+  public final static   int         Bottom                = Right+1;
+  public final static   int         Top                   = Bottom+1;
+  public final static   int         Backward              = Top+1;
+  public final static   int         Forward               = Backward+1;
+  // Common materials.
+  public  static final  Material[]  faceMaterials         = new Material[6];
+  // Various constants.
+  private static final  String      LogTag                = "Communitrix";
+  public  static final  float       CellComponentRadius   = 0.5f;
 
   // Shared members.
   public          ApplicationType   applicationType;
@@ -90,9 +94,19 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType         = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop) {
-      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+//    if (applicationType==ApplicationType.Desktop) {
+//      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+//      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+//    }
+    
+    // Prepare face materials.
+    if (faceMaterials[0]==null) {
+      faceMaterials[0]  = new Material(ColorAttribute.createDiffuse(0.9f, 0.6f, 0.6f, 1.0f));
+      faceMaterials[1]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.8f, 0.4f, 1.0f));
+      faceMaterials[2]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.9f, 0.6f, 1.0f));
+      faceMaterials[3]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.4f, 0.8f, 1.0f));
+      faceMaterials[4]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.6f, 0.9f, 1.0f));
+      faceMaterials[5]  = new Material(ColorAttribute.createDiffuse(0.4f, 0.8f, 0.8f, 1.0f));
     }
 
     // Force cache viewport size.

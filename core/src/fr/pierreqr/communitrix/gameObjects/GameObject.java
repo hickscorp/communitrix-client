@@ -11,18 +11,17 @@ import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class GameObject extends ModelInstance {
   // Center and dimensions will be re-calculated based on radius.
-  public final          Vector3       center, dimensions;
-  public                BoundingBox   bounds;
-  public                float         radius;
+  public final            Vector3       center, dimensions;
+  public                  BoundingBox   bounds;
+  public                  float         radius;
 
-  public                Matrix4       targetTransform;
-  
-  public                Vector3       currentAngles = new Vector3();
-  public                SHVector      targetAngles  = new SHVector();
+  public                  Matrix4       targetTransform = new Matrix4();
+  public                  Vector3       currentAngles   = new Vector3();
+  public                  SHVector      targetAngles    = new SHVector();
   
   // Those are temporaries.
-  private final static  Vector3       tmpVec3       = new Vector3();
-  private final static  Quaternion    tmpQuat       = new Quaternion();
+  protected final static  Vector3       tmpVec3         = new Vector3();
+  protected final static  Quaternion    tmpQuat         = new Quaternion();
   
   public GameObject (Model model) {
     super           (model);
@@ -36,6 +35,9 @@ public class GameObject extends ModelInstance {
     bounds.getCenter      (center);
     bounds.getDimensions  (dimensions);
     radius                = dimensions.len() / 2f;
+  }
+  public void resetTargetTransform () {
+    targetTransform.set   (transform);
   }
 
   // Checks whether the current object is visible or not given a camera.
