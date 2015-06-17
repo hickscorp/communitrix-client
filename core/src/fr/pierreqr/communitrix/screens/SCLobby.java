@@ -8,9 +8,11 @@ import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
+import aurelienribon.tweenengine.equations.Expo;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -19,6 +21,7 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
@@ -28,13 +31,17 @@ import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
+import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
+import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
 
-public class SCLobby implements Screen {
+public class SCLobby implements Screen, ICLobbyDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting }
+  private final static  Quaternion    tmpQuat       = new Quaternion();
+  private final static  Vector3       tmpVec3       = new Vector3();
   private static final  String        LogTag        = "LobbyScreen";
   
   // Game instance cache.
@@ -97,10 +104,7 @@ public class SCLobby implements Screen {
     camMain.update        ();
     
     // Prepare character model.
-    characterModel        = ctx.modelBuilder.createBox(
-                                2, 2, 2,
-                                ctx.defaultMaterial,
-                                Usage.Position | Usage.Normal);
+    characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
 
     // Create main fuel cell.
     unit                  = new Piece();
@@ -110,7 +114,7 @@ public class SCLobby implements Screen {
     pieces                = new Array<Piece>();
     
     // Instantiate our interaction controller.
-    combCtrlMain          = new ICLobby(camMain, pieces, tweener);
+    combCtrlMain          = new ICLobby(this);
   }
   // Setter on state, handles transitions.
   public SCLobby setState (final State state) {
@@ -154,10 +158,8 @@ public class SCLobby implements Screen {
     return this;
   }
   public SCLobby addPlayer (final SHPlayer player) {
-    Gdx.app.log       (LogTag, "Adding player (" + player.uuid + ").");
-    
+    Gdx.app.log           (LogTag, "Adding player (" + player.uuid + ").");
     final GameObject obj  = new GameObject(characterModel);
-   
     obj.transform.setTranslation(players.size * 2.5f, 30, 10);
     characters.put        (player.uuid, obj);
     instances.add         (obj);
@@ -202,6 +204,75 @@ public class SCLobby implements Screen {
     }
     players.removeValue   (remove, true);
     return this;
+  }
+  
+  public Camera       getCamera       () { return camMain; }
+  public Array<Piece> getPieces       () { return pieces; }
+  public void translatePiece (final Piece piece, final Vector3 axis) {
+    piece.targetTransform
+      .getRotation        (tmpQuat)
+      .nor                ();
+    piece.targetTransform
+      .getTranslation     (tmpVec3);
+    piece.targetTransform
+      .idt                ()
+      .translate          (axis)
+      .rotate             (tmpQuat)
+      .trn                (tmpVec3);
+    piece.targetTransform
+      .getTranslation     (tmpVec3);
+    
+    final int   order;
+    final float target;
+    if (axis==Communitrix.PositiveX || axis==Communitrix.NegativeX) {
+      order               = GameObjectAccessor.TransX;
+      target              = tmpVec3.x;
+    }
+    else if (axis==Communitrix.PositiveY || axis==Communitrix.NegativeY) {
+      order               = GameObjectAccessor.TransY;
+      target              = tmpVec3.y;
+    }
+    else {
+      order               = GameObjectAccessor.TransZ;
+      target              = tmpVec3.z;
+    }
+    Tween
+      .to                 (piece, order, 0.2f)
+      .target             (target)
+      .ease               (Expo.OUT)
+      .start              (tweener);
+  }
+  public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
+    int         order   = 0;
+    int         target  = 0;
+    if (axis==Vector3.X) {
+     order    = GameObjectAccessor.RotX;
+     target   = piece.targetAngles.x += angle;
+    }
+    else if (axis==Vector3.Y) {
+      order   = GameObjectAccessor.RotY; 
+      target  = piece.targetAngles.y += angle;
+    }
+    else if (axis==Vector3.Z) {
+      order   = GameObjectAccessor.RotZ;
+      target  = piece.targetAngles.z += angle;
+    }
+    Tween
+      .to                 (piece, order, 0.6f)
+      .target             (target)
+      .ease               (Expo.OUT)
+      .start              (tweener);
+  }
+  public void playPiece (final Piece piece) {
+    final int idx = pieces.indexOf(piece, true);
+    // TODO: Find the correct relative translation / rotation to send when we'll have a nice Unit object to work with.
+    piece.transform.getRotation     (tmpQuat);
+    piece.transform.getTranslation  (tmpVec3);
+    final TXCombatPlayTurn  cmdPlayTurn = new TXCombatPlayTurn(idx, tmpQuat, tmpVec3);
+    Communitrix
+      .getInstance()
+      .networkingManager
+      .send(cmdPlayTurn);
   }
 
   public SCLobby prepare (final SHPiece target, final SHPiece[] newPieces) {

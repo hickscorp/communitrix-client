@@ -5,7 +5,6 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -13,6 +12,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
@@ -41,6 +41,13 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public final static   int         Top                   = Bottom+1;
   public final static   int         Backward              = Top+1;
   public final static   int         Forward               = Backward+1;
+  // Some rotation constants.
+  public final static   Vector3     PositiveX             = new Vector3( 1,  0,  0);
+  public final static   Vector3     NegativeX             = new Vector3(-1,  0,  0);
+  public final static   Vector3     PositiveY             = new Vector3( 0,  1,  0);
+  public final static   Vector3     NegativeY             = new Vector3( 0, -1,  0);
+  public final static   Vector3     PositiveZ             = new Vector3( 0,  0,  1);
+  public final static   Vector3     NegativeZ             = new Vector3( 0,  0, -1);
   // Common materials.
   public  static final  Material[]  faceMaterials         = new Material[6];
   // Various constants.
@@ -96,8 +103,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
     // After starting the application, we can query for the desktop dimensions
     if (applicationType==ApplicationType.Desktop) {
-      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+      //final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+      //Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
     }
     
     // Prepare face materials.
