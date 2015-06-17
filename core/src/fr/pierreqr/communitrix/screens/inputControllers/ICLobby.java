@@ -18,8 +18,10 @@ import fr.pierreqr.communitrix.gameObjects.Piece;
 
 public class ICLobby extends InputAdapter{
   private final static  Vector3             positiveX   = new Vector3( 1,  0,  0);
-  private final static  Vector3             positiveZ   = new Vector3( 0,  0,  1);
   private final static  Vector3             negativeX   = new Vector3(-1,  0,  0);
+  private final static  Vector3             positiveY   = new Vector3( 0,  1,  0);
+  private final static  Vector3             negativeY   = new Vector3( 0, -1,  0);
+  private final static  Vector3             positiveZ   = new Vector3( 0,  0,  1);
   private final static  Vector3             negativeZ   = new Vector3( 0,  0, -1);
   
   private final         PerspectiveCamera   camMain;
@@ -89,9 +91,24 @@ public class ICLobby extends InputAdapter{
     selection.targetTransform
       .getTranslation     (tmpVec3);
     
+    final int   order;
+    final float target;
+    if (axis==positiveX || axis==negativeX) {
+      order               = GameObjectAccessor.TransX;
+      target              = tmpVec3.x;
+    }
+    else if (axis==positiveY || axis==negativeY) {
+      order               = GameObjectAccessor.TransY;
+      target              = tmpVec3.y;
+    }
+    else {
+      order               = GameObjectAccessor.TransZ;
+      target              = tmpVec3.z;
+    }
+    
     Tween
-      .to                 (selection, GameObjectAccessor.TransXZ, 0.2f)
-      .target             (tmpVec3.x, tmpVec3.z)
+      .to                 (selection, order, 0.2f)
+      .target             (target)
       .ease               (Expo.OUT)
       .start              (tweener);
   }
@@ -128,10 +145,11 @@ public class ICLobby extends InputAdapter{
       animateSelectionRotation(Vector3.Y, 90);
     else if (Gdx.input.isKeyJustPressed(Keys.LEFT))
       animateSelectionRotation(Vector3.Y, -90);
-    else if (Gdx.input.isKeyJustPressed(Keys.UP))
+    if (Gdx.input.isKeyJustPressed(Keys.UP))
       animateSelectionRotation(Vector3.X, 90);
     else if (Gdx.input.isKeyJustPressed(Keys.DOWN))
       animateSelectionRotation(Vector3.X, -90);
+    
     // Handle translation.
     if (Gdx.input.isKeyJustPressed(Keys.W))
       animateSelectionTranslation(positiveZ);
@@ -141,5 +159,9 @@ public class ICLobby extends InputAdapter{
       animateSelectionTranslation(positiveX);
     else if (Gdx.input.isKeyJustPressed(Keys.D))
       animateSelectionTranslation(negativeX);
+    if (Gdx.input.isKeyJustPressed(Keys.O))
+      animateSelectionTranslation(positiveY);
+    else if (Gdx.input.isKeyJustPressed(Keys.L))
+      animateSelectionTranslation(negativeY);
   }
 }

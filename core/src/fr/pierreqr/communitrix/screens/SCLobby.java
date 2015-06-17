@@ -28,7 +28,6 @@ import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
-import fr.pierreqr.communitrix.gameObjects.Unit;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
@@ -56,7 +55,7 @@ public class SCLobby implements Screen {
   private final Array<GameObject>     instances     = new Array<GameObject>();
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
-  private final Unit                  unit;
+  private final Piece                 unit;
   private final Array<Piece>          pieces;
   
   public SCLobby (final Communitrix communitrix) {
@@ -91,7 +90,7 @@ public class SCLobby implements Screen {
 
     // Set up our main camera, and position it.
     camMain               = new PerspectiveCamera(90, ctx.viewWidth, ctx.viewHeight);
-    camMain.position.set  (0f, 10f, -15f);
+    camMain.position.set  (0f, 5f, -10f);
     camMain.near          = 1f;
     camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
@@ -104,11 +103,13 @@ public class SCLobby implements Screen {
                                 Usage.Position | Usage.Normal);
 
     // Create main fuel cell.
-    unit                  = new Unit();
-    pieces                = new Array<Piece>();
+    unit                  = new Piece();
+    unit.transform
+      .translate          (0, 0, 0);
     instances.add         (unit);
+    pieces                = new Array<Piece>();
     
-    // Instanciate our interraction controller.
+    // Instantiate our interaction controller.
     combCtrlMain          = new ICLobby(camMain, pieces, tweener);
   }
   // Setter on state, handles transitions.
@@ -210,12 +211,12 @@ public class SCLobby implements Screen {
     // Place all my pieces.
     if (newPieces!=null) {
       pieces.clear            ();
-      final Vector3 shift     = new Vector3(0, 0, -10);
+      final Vector3 shift     = new Vector3(0, 0, -5);
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
-        shift.x                 = i * 5 - newPieces.length * 5;
+        shift.x                 = ( i - newPieces.length / 2 ) * 3;
         obj.transform.translate (shift);
         obj.resetTargetTransform();
         instances.add           (obj);

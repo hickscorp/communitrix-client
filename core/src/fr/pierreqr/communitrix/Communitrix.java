@@ -5,6 +5,7 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -94,10 +95,10 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType         = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop) {
-//      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-//      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-//    }
+    if (applicationType==ApplicationType.Desktop) {
+      final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
+      Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
+    }
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
