@@ -37,12 +37,13 @@ import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
+import fr.pierreqr.communitrix.screens.util.PiecesDock;
+import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 
-public class SCLobby implements Screen, ICLobbyDelegate {
+public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting }
   private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Vector3       tmpVec3       = new Vector3();
-  private final static  Vector3       tmpTrns       = new Vector3();
   private static final  String        LogTag        = "LobbyScreen";
   
   // Game instance cache.
@@ -65,6 +66,7 @@ public class SCLobby implements Screen, ICLobbyDelegate {
   // Model instances.
   private final Piece                 unit;
   private final Array<Piece>          pieces;
+  private final PiecesDock            piecesDock;
   
   public SCLobby (final Communitrix communitrix) {
     Gdx.app.log           (LogTag, "Constructing.");
@@ -113,6 +115,8 @@ public class SCLobby implements Screen, ICLobbyDelegate {
       .translate          (0, 0, 0);
     instances.add         (unit);
     pieces                = new Array<Piece>();
+    
+    piecesDock            = new PiecesDock(this);
     
     // Instantiate our interaction controller.
     combCtrlMain          = new ICLobby(this);
@@ -210,39 +214,38 @@ public class SCLobby implements Screen, ICLobbyDelegate {
   public Camera       getCamera       () { return camMain; }
   public Array<Piece> getPieces       () { return pieces; }
   public void cyclePieces (final int firstPieceIndex) {
-    final Vector3 shift   = new Vector3();
-    for (int i=0; i<pieces.size; i++) {
-      final int   index   = ( i + firstPieceIndex ) % pieces.size;
-      final Piece piece   = pieces.get(index);
-      piece.transform
-        .getTranslation   (tmpVec3);
-      shift.x             = ( i - pieces.size / 2 ) * 4 - tmpVec3.x;
-      translatePiece      (piece, shift);
-    }
+    piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetTransform
-      .getTranslation     (tmpTrns)
+      .getTranslation     (tmpVec3)
       .add                (translation);
     piece.targetTransform
-      .setTranslation     (tmpTrns);
-    final int   order;
-    final float target;
+      .setTranslation     (tmpVec3);
+    int       order       = 0;
+
+    byte      reqSize     = 0;
     if (translation.x!=0.0f) {
-      order               = GameObjectAccessor.TransX;
-      target              = tmpTrns.x;
+      order     = order | GameObjectAccessor.TransX;
+      reqSize   ++;
     }
-    else if (translation.y!=0.0f) {
-      order               = GameObjectAccessor.TransY;
-      target              = tmpTrns.y;
+    if (translation.y!=0.0f) {
+      order     = order | GameObjectAccessor.TransY;
+      reqSize   ++;
     }
-    else {
-      order               = GameObjectAccessor.TransZ;
-      target              = tmpTrns.z;
+    if (translation.z!=0.0f) {
+      order     = order | GameObjectAccessor.TransZ;
+      reqSize   ++;
     }
+    final float[] targets     = new float[reqSize];
+    reqSize                   = 0;
+    if (translation.x!=0.0f)  targets[reqSize++]   = tmpVec3.x;
+    if (translation.y!=0.0f)  targets[reqSize++]   = tmpVec3.y;
+    if (translation.z!=0.0f)  targets[reqSize++]   = tmpVec3.z;
+    
     Tween
       .to                 (piece, order, 0.6f)
-      .target             (target)
+      .target             (targets)
       .ease               (Expo.OUT)
       .start              (tweener);
   }
@@ -285,14 +288,14 @@ public class SCLobby implements Screen, ICLobbyDelegate {
       unit.setFromSharedPiece(target);
     // Place all my pieces.
     if (newPieces!=null) {
-      tmpTrns.set               (0, 0, -5);
+      tmpVec3.set               (0, 0, -5);
       pieces.clear              ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
-        .setTranslation(tmpTrns);
+        .setTranslation(tmpVec3);
         obj.targetTransform
-          .setTranslation(tmpTrns);
+          .setTranslation(tmpVec3);
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
         instances.add           (obj);
