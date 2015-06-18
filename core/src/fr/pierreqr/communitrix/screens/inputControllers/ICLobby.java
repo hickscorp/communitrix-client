@@ -16,13 +16,15 @@ public class ICLobby extends InputAdapter{
   public interface ICLobbyDelegate {
     Camera        getCamera       ();
     Array<Piece>  getPieces       ();
+    void          cyclePieces     (final int pieceIndex);
     void          translatePiece  (final Piece piece, final Vector3 axis);
     void          rotatePiece     (final Piece piece, final Vector3 axis, final int angle);
     void          playPiece       (final Piece piece);
   };
   
   private final         ICLobbyDelegate     delegate;
-  private               Piece               selection   = null;
+  private               Piece               selection       = null;
+  private               int                 firstPieceIndex = 0;
   private final         Vector3             dragOffset;
   private final         Vector3             position;
   
@@ -68,34 +70,49 @@ public class ICLobby extends InputAdapter{
   }
   
   public void update () {
-    if (selection==null)
-      return;
-    
-    // Handle relative rotation.
-    if (Gdx.input.isKeyJustPressed(Keys.RIGHT))
-      delegate.rotatePiece(selection, Vector3.Y, 90);
-    else if (Gdx.input.isKeyJustPressed(Keys.LEFT))
-      delegate.rotatePiece(selection, Vector3.Y, -90);
-    if (Gdx.input.isKeyJustPressed(Keys.UP))
-      delegate.rotatePiece(selection, Vector3.X, 90);
-    else if (Gdx.input.isKeyJustPressed(Keys.DOWN))
-      delegate.rotatePiece(selection, Vector3.X, -90);
-    
-    // Handle translation.
-    if (Gdx.input.isKeyJustPressed(Keys.W))
-      delegate.translatePiece(selection, Communitrix.PositiveZ);
-    else if(Gdx.input.isKeyJustPressed(Keys.S))
-      delegate.translatePiece(selection, Communitrix.NegativeZ);
-    if (Gdx.input.isKeyJustPressed(Keys.A))
-      delegate.translatePiece(selection, Communitrix.PositiveX);
-    else if (Gdx.input.isKeyJustPressed(Keys.D))
-      delegate.translatePiece(selection, Communitrix.NegativeX);
-    if (Gdx.input.isKeyJustPressed(Keys.O))
-      delegate.translatePiece(selection, Communitrix.PositiveY);
-    else if (Gdx.input.isKeyJustPressed(Keys.L))
-      delegate.translatePiece(selection, Communitrix.NegativeY);
-    
-    if (Gdx.input.isKeyJustPressed(Keys.ENTER))
-      delegate.playPiece(selection);
+    if (selection==null) {
+      if (Gdx.input.isKeyJustPressed(Keys.A)) {
+        firstPieceIndex++;
+        if (firstPieceIndex>=delegate.getPieces().size)
+          firstPieceIndex  = 0;
+        delegate.cyclePieces(firstPieceIndex);
+      }
+      else if (Gdx.input.isKeyJustPressed(Keys.D)) {
+        firstPieceIndex--;
+        if (firstPieceIndex<0)
+          firstPieceIndex  = delegate.getPieces().size-1;
+        delegate.cyclePieces(firstPieceIndex);
+      }
+    }
+    // There is a selection, behave accordingly.
+    else {
+      // Handle relative rotation.
+      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))
+        delegate.rotatePiece(selection, Vector3.Y, 90);
+      else if (Gdx.input.isKeyJustPressed(Keys.LEFT))
+        delegate.rotatePiece(selection, Vector3.Y, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.UP))
+        delegate.rotatePiece(selection, Vector3.X, 90);
+      else if (Gdx.input.isKeyJustPressed(Keys.DOWN))
+        delegate.rotatePiece(selection, Vector3.X, -90);
+      
+      // Handle translation.
+      if (Gdx.input.isKeyJustPressed(Keys.W))
+        delegate.translatePiece(selection, Communitrix.PositiveZ);
+      else if(Gdx.input.isKeyJustPressed(Keys.S))
+        delegate.translatePiece(selection, Communitrix.NegativeZ);
+      if (Gdx.input.isKeyJustPressed(Keys.A))
+        delegate.translatePiece(selection, Communitrix.PositiveX);
+      else if (Gdx.input.isKeyJustPressed(Keys.D))
+        delegate.translatePiece(selection, Communitrix.NegativeX);
+      if (Gdx.input.isKeyJustPressed(Keys.O))
+        delegate.translatePiece(selection, Communitrix.PositiveY);
+      else if (Gdx.input.isKeyJustPressed(Keys.L))
+        delegate.translatePiece(selection, Communitrix.NegativeY);
+      
+      // Other actions.
+      if (Gdx.input.isKeyJustPressed(Keys.ENTER))
+        delegate.playPiece(selection);
+    }
   }
 }

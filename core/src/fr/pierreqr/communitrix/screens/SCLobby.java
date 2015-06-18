@@ -42,6 +42,7 @@ public class SCLobby implements Screen, ICLobbyDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting }
   private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Vector3       tmpVec3       = new Vector3();
+  private final static  Vector3       tmpTrns       = new Vector3();
   private static final  String        LogTag        = "LobbyScreen";
   
   // Game instance cache.
@@ -208,36 +209,39 @@ public class SCLobby implements Screen, ICLobbyDelegate {
   
   public Camera       getCamera       () { return camMain; }
   public Array<Piece> getPieces       () { return pieces; }
-  public void translatePiece (final Piece piece, final Vector3 axis) {
+  public void cyclePieces (final int firstPieceIndex) {
+    final Vector3 shift   = new Vector3();
+    for (int i=0; i<pieces.size; i++) {
+      final int   index   = ( i + firstPieceIndex ) % pieces.size;
+      final Piece piece   = pieces.get(index);
+      piece.transform
+        .getTranslation   (tmpVec3);
+      shift.x             = ( i - pieces.size / 2 ) * 4 - tmpVec3.x;
+      translatePiece      (piece, shift);
+    }
+  }
+  public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetTransform
-      .getRotation        (tmpQuat)
-      .nor                ();
+      .getTranslation     (tmpTrns)
+      .add                (translation);
     piece.targetTransform
-      .getTranslation     (tmpVec3);
-    piece.targetTransform
-      .idt                ()
-      .translate          (axis)
-      .rotate             (tmpQuat)
-      .trn                (tmpVec3);
-    piece.targetTransform
-      .getTranslation     (tmpVec3);
-    
+      .setTranslation     (tmpTrns);
     final int   order;
     final float target;
-    if (axis==Communitrix.PositiveX || axis==Communitrix.NegativeX) {
+    if (translation.x!=0.0f) {
       order               = GameObjectAccessor.TransX;
-      target              = tmpVec3.x;
+      target              = tmpTrns.x;
     }
-    else if (axis==Communitrix.PositiveY || axis==Communitrix.NegativeY) {
+    else if (translation.y!=0.0f) {
       order               = GameObjectAccessor.TransY;
-      target              = tmpVec3.y;
+      target              = tmpTrns.y;
     }
     else {
       order               = GameObjectAccessor.TransZ;
-      target              = tmpVec3.z;
+      target              = tmpTrns.z;
     }
     Tween
-      .to                 (piece, order, 0.2f)
+      .to                 (piece, order, 0.6f)
       .target             (target)
       .ease               (Expo.OUT)
       .start              (tweener);
@@ -281,17 +285,19 @@ public class SCLobby implements Screen, ICLobbyDelegate {
       unit.setFromSharedPiece(target);
     // Place all my pieces.
     if (newPieces!=null) {
-      pieces.clear            ();
-      final Vector3 shift     = new Vector3(0, 0, -5);
+      tmpTrns.set               (0, 0, -5);
+      pieces.clear              ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
+        obj.transform
+        .setTranslation(tmpTrns);
+        obj.targetTransform
+          .setTranslation(tmpTrns);
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
-        shift.x                 = ( i - newPieces.length / 2 ) * 3;
-        obj.transform.translate (shift);
-        obj.resetTargetTransform();
         instances.add           (obj);
       }
+      cyclePieces               (0);
     }
     return this;
   }
