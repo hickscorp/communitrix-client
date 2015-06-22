@@ -6,6 +6,7 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
@@ -19,6 +20,7 @@ import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
+import fr.pierreqr.communitrix.gameObjects.PerspectiveCameraAccessor;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatJoin;
@@ -91,6 +93,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     rand                    = new Random();
     // Register motion tweening accessors.
     Tween.registerAccessor  (GameObject.class, new GameObjectAccessor());
+    Tween.registerAccessor  (PerspectiveCamera.class, new PerspectiveCameraAccessor());
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder er) {
@@ -230,6 +233,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
                               "Pieces: " + cmd.pieces.length + ").");
         setScreen(
             getLazyLobbyScreen()
+              .setState(SCLobby.State.Starting)
               .prepare        (cmd.target, cmd.pieces)
           );
         // Should in fact be this one.
@@ -240,14 +244,15 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       case CombatNewTurn: {
         RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
         Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
+        getLazyLobbyScreen()
+        .setState(SCLobby.State.NewTurn)
+        .setTurn        (cmd.turnId);
         break;
       }
       case CombatPlayerTurn: {
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
-        setScreen(
           getLazyLobbyScreen()
-            .prepare        (cmd.piece, null)
-        );
+          .setTurnUnit       (cmd.piece);
          break;
       }
       case CombatEnd: {
