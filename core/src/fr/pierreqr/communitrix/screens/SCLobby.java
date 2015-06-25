@@ -9,18 +9,19 @@ import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
 import aurelienribon.tweenengine.equations.Expo;
+import aurelienribon.tweenengine.equations.Linear;
+import aurelienribon.tweenengine.equations.Quad;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -28,8 +29,8 @@ import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
@@ -39,12 +40,16 @@ import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
+import fr.pierreqr.communitrix.tweeners.CameraAccessor;
+import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
 public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting, NewTurn }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Target, Unit, Observe }
+  
   private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Vector3       tmpVec3       = new Vector3();
+  private final static  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
   
   // Game instance cache.
@@ -54,7 +59,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   // Scene setup related objects.
   private final TweenManager          tweener;
   private final Environment           envMain;
-  private final PerspectiveCamera     camMain;
+  private final Camera                camMain;
   private final ICLobby               combCtrlMain;
   private final PostProcessor         postProMain;
   // State related members.
@@ -72,7 +77,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Array<Piece>          pieces;
   private final Array<Piece>          clickables;
   private final PiecesDock            piecesDock;
-  
+
+  private static        Vector3       relXAxis, relYAxis, relZAxis;
+
   public SCLobby (final Communitrix communitrix) {
     Gdx.app.log           (LogTag, "Constructing.");
     // Cache our game instance.
@@ -82,6 +89,13 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     ctx.setErrorResponder (ui);
     // Initialize tweening engine.
     tweener               = new TweenManager();
+    
+    // Prepare our relative axis if needed.
+    if (relXAxis==null) {
+      relZAxis  = new Vector3(Vector3.Z).scl(-1);
+      relXAxis  = new Vector3(relZAxis).crs(Vector3.Y);
+      relYAxis  = new Vector3(relXAxis).crs(relZAxis);
+    }
     
     // Set up the scene environment.
     envMain               = new Environment();
@@ -104,7 +118,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     }
 
     // Set up our main camera, and position it.
-    camMain               = new PerspectiveCamera(90, ctx.viewWidth, ctx.viewHeight);
+    camMain               = new Camera(90, ctx.viewWidth, ctx.viewHeight);
     camMain.position.set  (0f, 5f, -10f);
     camMain.near          = 1f;
     camMain.far           = 150f;
@@ -161,30 +175,32 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     switch (cameraState) {
       case Lobby:
         break;
-      case Pieces: // Tween was not working as intended
-//        Tween
-//        .to             (camMain, PerspectiveCameraAccessor.TransZ, 0.5f)
-//        .target         (-10f)
-//        .start          (tweener);
-        camMain.position.set(0f, 5f, -10f);
-        camMain.lookAt  (0,0,0);
-        camMain.update  ();
+      case Pieces:
+        Tween
+          .to             (camMain, CameraAccessor.Trans, 0.5f)
+          .target         ( 0,   5, -10,
+                            0,   0,   0)
+          .ease           (Quad.INOUT)
+          .start          (tweener);
         break;
       case Target:
-//        Tween
-//        .to             (camMain, PerspectiveCameraAccessor.TransZ, 0.5f)
-//        .target         (-5f)
-//        .start          (tweener);
-        target.transform.getTranslation(tmpVec3);
-        camMain.position.set(tmpVec3.x, tmpVec3.y + 3, tmpVec3.z - 3);
-        camMain.lookAt  (tmpVec3.x, tmpVec3.y, tmpVec3.z);
-        camMain.update  ();
+        target.transform
+          .getTranslation (tmpVec3);
+        Tween
+          .to             (camMain, CameraAccessor.Trans, 0.5f)
+          .target         ( tmpVec3.x,  tmpVec3.y+2, tmpVec3.z-5,
+                            tmpVec3.x,  tmpVec3.y,   tmpVec3.z)
+          .ease           (Quad.INOUT)
+          .start          (tweener);
         break;
       case Unit:
         unit.transform.getTranslation(tmpVec3);
-        camMain.position.set(tmpVec3.x, tmpVec3.y + 2, tmpVec3.z - 5);
-        camMain.lookAt  (tmpVec3.x, tmpVec3.y, tmpVec3.z);
-        camMain.update  ();
+        Tween
+          .to             (camMain, CameraAccessor.Trans, 0.5f)
+          .target         ( tmpVec3.x,  tmpVec3.y+2,  tmpVec3.z-5,
+                            tmpVec3.x,  tmpVec3.y,    tmpVec3.z)
+          .ease           (Quad.INOUT)
+          .start          (tweener);
         break;
       case Observe:
         break;
@@ -198,7 +214,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public CameraState getCameraState(){
     return cameraState;
   }
-  
   public int getTurn(){
     return currentTurn;
   }
@@ -257,14 +272,17 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
         final GameObject obj  = characters.remove(player.uuid);
         remove                = player;
         shift                 = true;
+        final Matrix4     mat = new Matrix4(obj.targetRotation);
+        mat.rotate            (Vector3.Y, 180);
+        mat.getRotation       (obj.targetRotation);
+        obj.targetPosition.y  = -30;
+        obj.slerpFactor       = 0.0f;
         Tween
-          .to             (obj, GameObjectAccessor.TransYRotX, 0.5f)
-          .target         (-30.0f, 180.0f)
-          .ease           (aurelienribon.tweenengine.equations.Expo.IN)
-          .start          (tweener)
-          .setCallback    (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) {
-            instances.removeValue (obj, true);
-          } });
+          .to                 (obj, GameObjectAccessor.TransY | GameObjectAccessor.SLERP, 0.5f)
+          .target             (obj.targetPosition.y, 1)
+          .ease               (aurelienribon.tweenengine.equations.Expo.IN)
+          .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }})
+          .start              (tweener);
       }
       ++idx;
     }
@@ -282,13 +300,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
-    piece.targetTransform
-      .getTranslation     (tmpVec3)
-      .add                (translation);
-    piece.targetTransform
-      .setTranslation     (tmpVec3);
+    piece.targetPosition.add(translation);
     int       order       = 0;
-
     byte      reqSize     = 0;
     if (translation.x!=0.0f) {
       order     = order | GameObjectAccessor.TransX;
@@ -304,44 +317,36 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     }
     final float[] targets     = new float[reqSize];
     reqSize                   = 0;
-    if (translation.x!=0.0f)  targets[reqSize++]   = tmpVec3.x;
-    if (translation.y!=0.0f)  targets[reqSize++]   = tmpVec3.y;
-    if (translation.z!=0.0f)  targets[reqSize++]   = tmpVec3.z;
-    
+    if (translation.x!=0.0f)  targets[reqSize++]   = piece.targetPosition.x;
+    if (translation.y!=0.0f)  targets[reqSize++]   = piece.targetPosition.y;
+    if (translation.z!=0.0f)  targets[reqSize++]   = piece.targetPosition.z;
     Tween
-      .to                 (piece, order, 0.6f)
+      .to                 (piece, order, 0.1f)
       .target             (targets)
       .ease               (Expo.OUT)
       .start              (tweener);
   }
   public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
-    int         order   = 0;
-    int         trgt  = 0;
-    if (axis==Vector3.X) {
-     order    = GameObjectAccessor.RotX;
-     trgt     = piece.targetAngles.x += angle;
-    }
-    else if (axis==Vector3.Y) {
-      order   = GameObjectAccessor.RotY; 
-      trgt    = piece.targetAngles.y += angle;
-    }
-    else if (axis==Vector3.Z) {
-      order   = GameObjectAccessor.RotZ;
-      trgt    = piece.targetAngles.z += angle;
-    }
+    tmpMat4.idt();
+    // Asked to rotate around X.
+    if (axis==Vector3.X)      tmpMat4.rotate(relXAxis, angle);
+    // Asked to rotate around Y.
+    else if (axis==Vector3.Y) tmpMat4.rotate(relYAxis, angle);
+    // Asked to rotate around Z, should *never* happend.
+    else                      tmpMat4.rotate(relZAxis, angle);
+    // Rotate by previous rotation and translation.
+    tmpMat4
+      .rotate       (piece.targetRotation)
+      .getRotation  (piece.targetRotation);
+    piece.roundTargetRotation();
+    // Start tweening.
+    piece.slerpFactor     = 0.0f;
     Tween
-      .to                 (piece, order, 0.6f)
-      .target             (trgt)
-      .ease               (Expo.OUT)
+      .to                 (piece, GameObjectAccessor.SLERP, 0.1f)
+      .target             (1.0f)
       .start              (tweener);
   }
   public void playPiece (final Piece piece) {
-      // XXX not working, removes the color of all models
-//    ColorAttribute attr = ColorAttribute.createDiffuse(.5f, .5f, .5f, 1f);
-//    for(int i = 0; i < piece.nodes.get(0).parts.size; i++){
-//      piece.nodes.get(0).parts.get(i).material.set(attr);
-//    }
-    
     final int idx = pieces.indexOf(piece, true);
     // TODO: Find the correct relative translation / rotation to send when we'll have a nice Unit object to work with.
     piece.transform.getRotation     (tmpQuat);
@@ -372,16 +377,16 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
-        .setTranslation(tmpVec3);
-        obj.targetTransform
           .setTranslation(tmpVec3);
+        obj.targetPosition
+          .set(tmpVec3);
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
         instances.add           (obj);
       }
-      clickables.clear();
-      clickables.add(this.target);
-      clickables.addAll(pieces);
+      clickables.clear          ();
+      clickables.add            (this.target);
+      clickables.addAll         (pieces);
       cyclePieces               (0);
     }
     return this;

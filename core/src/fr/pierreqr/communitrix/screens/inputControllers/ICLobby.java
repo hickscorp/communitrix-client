@@ -35,24 +35,21 @@ public class ICLobby extends InputAdapter{
   private               Piece               selection         = null;
   private               Piece               previousSelection = null;
   private               int                 firstPieceIndex   = 0;
-  private final         Vector3             dragOffset;
   private final         Vector3             position;
   private final         Vector3             selectionPos      = new Vector3(0,5,0);
-  private               Vector3             vectorX           = new Vector3();
-  private               Vector3             vectorY           = new Vector3();
+  private static final  Vector3             tmpVec3           = new Vector3();
   private final         Quaternion          tmpQuat           = new Quaternion();
   private final         Quaternion          tmpQuat2          = new Quaternion();
   private               boolean             pieceLocked       = false;
   
   public ICLobby (final ICLobbyDelegate delegate) {
-    dragOffset      = new Vector3();
     position        = new Vector3();
     this.delegate   = delegate;
   }
   
   @Override public boolean touchDown (int screenX, int screenY, int pointer, int button) {
     // Reset selection.
-    previousSelection = selection == delegate.getUnit() ? null : selection;
+    previousSelection       = selection;
     selection               = null;
     // Pick a ray from the cam.
     final Ray   ray         = delegate.getCamera().getPickRay(screenX, screenY);
@@ -72,76 +69,64 @@ public class ICLobby extends InputAdapter{
         bounds.max.add  (position);
         if (Intersector.intersectRayBounds(ray, bounds, null)) {
           sDist         = dist;
-          
           selection     = obj;
           position
             .set            (ray.direction)
             .scl            (-ray.origin.y / ray.direction.y)
             .add            (ray.origin);
-          selection
-            .transform
-            .getTranslation (dragOffset)
-            .sub            (position);
         }
       }
     }
-    if (selection==delegate.getTarget() && delegate.getCameraState() != CameraState.Target) {
+    // Player clicked on the target unit.
+    if (selection==delegate.getTarget() && delegate.getCameraState()!=CameraState.Target)
       delegate.setCameraState(CameraState.Target);
-    }
-    else if(selection == delegate.getUnit() && delegate.getCameraState() != CameraState.Unit
-            && previousSelection != null){
-      // TODO move the selected piece close to the unit so that the player can manipulate both easily
-      delegate.setCameraState(CameraState.Unit);
-      delegate.translatePiece(previousSelection, selectionPos.sub(previousSelection.transform.getTranslation(position)));
+    // Player clicked on the working unit block.
+    else if (selection==delegate.getUnit() && delegate.getCameraState()!=CameraState.Unit && previousSelection!=null) {
+      delegate.setCameraState   (CameraState.Unit);
+      delegate.translatePiece   (previousSelection, selectionPos.sub(previousSelection.transform.getTranslation(position)));
       selectionPos.add(position);
     }
     return selection!=null;
   }
   
   public void update () {
-    if(Gdx.input.isKeyJustPressed(Keys.ESCAPE)){
-      selection     = null;
-      pieceLocked   = false;
-      if(delegate.getCameraState() != CameraState.Pieces){
-        delegate.setCameraState(CameraState.Pieces);
-        delegate.cyclePieces(firstPieceIndex);
-      }
+    if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)){
+      selection                 = null;
+      pieceLocked               = false;
+      delegate.setCameraState   (CameraState.Pieces);
+      delegate.cyclePieces      (firstPieceIndex);
     }
-    
+    // There is no selection made.
     if (selection==null) {
+      // Cycle pieces left.
       if (Gdx.input.isKeyJustPressed(Keys.A)) {
         firstPieceIndex++;
         if (firstPieceIndex>=delegate.getPieces().size)
-          firstPieceIndex  = 0;
-        delegate.cyclePieces(firstPieceIndex);
+          firstPieceIndex     = 0;
+        delegate.cyclePieces  (firstPieceIndex);
       }
+      // Cycle pieces right.
       else if (Gdx.input.isKeyJustPressed(Keys.D)) {
         firstPieceIndex--;
         if (firstPieceIndex<0)
-          firstPieceIndex  = delegate.getPieces().size-1;
-        delegate.cyclePieces(firstPieceIndex);
+          firstPieceIndex     = delegate.getPieces().size-1;
+        delegate.cyclePieces  (firstPieceIndex);
       }
     }
     // There is a selection, behave accordingly.
     else {
       // Handle relative rotation.
-      if (Gdx.input.isKeyJustPressed(Keys.RIGHT)){
-        calculateVectorYfor(selection);
-        delegate.rotatePiece(selection, vectorY, 90);
-      }else if (Gdx.input.isKeyJustPressed(Keys.LEFT)){
-        calculateVectorYfor(selection);
-        delegate.rotatePiece(selection, vectorY, -90);
-      }
-      if (Gdx.input.isKeyJustPressed(Keys.UP)){
-        calculateVectorXfor(selection);
-        delegate.rotatePiece(selection, vectorX, 90);
-      }else if (Gdx.input.isKeyJustPressed(Keys.DOWN)){
-        calculateVectorXfor(selection);
-        delegate.rotatePiece(selection, vectorX, -90);
-      }
+      if (Gdx.input.isKeyJustPressed(Keys.UP))
+        delegate.rotatePiece          (selection, Vector3.X,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.DOWN))
+        delegate.rotatePiece          (selection, Vector3.X, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))
+        delegate.rotatePiece          (selection, Vector3.Y,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.LEFT))
+        delegate.rotatePiece          (selection, Vector3.Y, -90);
       
       // Handle translation.
-      if (selection!=delegate.getTarget() && selection != delegate.getUnit()) {
+      if (selection!=delegate.getTarget() && selection!=delegate.getUnit()) {
         if (Gdx.input.isKeyJustPressed(Keys.W))
           delegate.translatePiece(selection, Communitrix.PositiveZ);
         else if(Gdx.input.isKeyJustPressed(Keys.S))
@@ -156,43 +141,39 @@ public class ICLobby extends InputAdapter{
           delegate.translatePiece(selection, Communitrix.NegativeY);
         
         // Other actions.
-        if (Gdx.input.isKeyJustPressed(Keys.ENTER) && 
-            (delegate.getCameraState() == CameraState.Unit ||delegate.getTurn() == 1))
-          if(!pieceLocked){
+        if (Gdx.input.isKeyJustPressed(Keys.ENTER) && (delegate.getCameraState()==CameraState.Unit || delegate.getTurn()==1))
+          if (!pieceLocked) {
             pieceLocked = true;
-            if(delegate.getTurn() != 1){
+            if (delegate.getTurn()!=1) {
+              final Piece       unit  = delegate.getUnit();
               //adds selected piece to the node of the unit
-              delegate.getUnit().nodes.addAll(selection.nodes);
+              unit.nodes.addAll(selection.nodes);
               // Calculates the quaternion to transform the unit rotation into the idt saves it to tmpQuat.
-              delegate.getUnit().transform.getRotation(tmpQuat).conjugate().mul(tmpQuat2.idt());
+              unit.transform.getRotation(tmpQuat).conjugate().mul(tmpQuat2.idt());
               // Saves the selected piece translation and rotation in the world.
               selection.transform.getRotation(tmpQuat2);
-              selection.transform.getTranslation(position).sub(delegate.getUnit().transform.getTranslation(vectorX));
+              selection
+                .transform
+                .getTranslation(position)
+                .sub(unit.transform.getTranslation(tmpVec3));
               // Transforms the world rotation and position of the piece to local coords in the unit.
-              delegate.getUnit().nodes.get(delegate.getUnit().nodes.size -1).globalTransform
+              delegate
+                .getUnit()
+                .nodes
+                .get(unit.nodes.size -1)
+                .globalTransform
                 .set(position.mul(tmpQuat), tmpQuat.mul(tmpQuat2));
-              delegate.getUnit().recomputeBounds();
-              
-              delegate.cyclePieces(firstPieceIndex);
-              selection = delegate.getUnit();
+              unit.recomputeBounds();
+              delegate.cyclePieces  (firstPieceIndex);
+              selection             = unit;
             }
           }
-          else{
-            delegate.playPiece(selection);
-            selection = null;
-            pieceLocked = false;
+          else {
+            delegate.playPiece  (selection);
+            selection           = null;
+            pieceLocked         = false;
           }
       }
     }
   }
-  
-  public void calculateVectorXfor(Piece obj){
-    vectorX = obj.transform.getRotation(tmpQuat).transform(Vector3.Y);
-//    vectorX = Vector3.Y.mul(obj.transform.getRotation(tmpQuat));
-  }
-  public void calculateVectorYfor(Piece obj){
-    vectorY = obj.transform.getRotation(tmpQuat).transform(Vector3.X);
-//    vectorY = Vector3.X.mul(obj.transform.getRotation(tmpQuat));
-  }
-  
 }

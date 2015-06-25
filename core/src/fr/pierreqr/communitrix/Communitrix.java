@@ -19,8 +19,6 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.gameObjects.GameObjectAccessor;
-import fr.pierreqr.communitrix.gameObjects.PerspectiveCameraAccessor;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatJoin;
@@ -34,6 +32,8 @@ import fr.pierreqr.communitrix.networking.commands.rx.RXError;
 import fr.pierreqr.communitrix.networking.commands.rx.RXWelcome;
 import fr.pierreqr.communitrix.screens.SCCombat;
 import fr.pierreqr.communitrix.screens.SCLobby;
+import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
+import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
   // Possible directions around a cube to check for.
@@ -92,8 +92,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Prepare our random generator instance.
     rand                    = new Random();
     // Register motion tweening accessors.
-    Tween.registerAccessor  (GameObject.class, new GameObjectAccessor());
-    Tween.registerAccessor  (PerspectiveCamera.class, new PerspectiveCameraAccessor());
+    Tween.setCombinedAttributesLimit  (6);
+    Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
+    Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder er) {

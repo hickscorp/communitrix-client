@@ -1,9 +1,9 @@
 package fr.pierreqr.communitrix.gameObjects;
 
+import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
@@ -11,17 +11,13 @@ import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class GameObject extends ModelInstance {
   // Center and dimensions will be re-calculated based on radius.
-  public final            Vector3       center, dimensions;
-  public                  BoundingBox   bounds;
-  public                  float         radius;
-
-  public                  Matrix4       targetTransform = new Matrix4();
-  public                  Vector3       currentAngles   = new Vector3();
-  public                  SHVector      targetAngles    = new SHVector();
+  public final      Vector3       center, dimensions;
+  public final      BoundingBox   bounds;
+  public            float         radius;
   
-  // Those are temporaries.
-  protected final static  Vector3       tmpVec3         = new Vector3();
-  protected final static  Quaternion    tmpQuat         = new Quaternion();
+  public final      SHVector      targetPosition  = new SHVector();
+  public final      Quaternion    targetRotation  = new Quaternion();
+  public            float         slerpFactor;
   
   public GameObject (Model model) {
     super           (model);
@@ -36,40 +32,16 @@ public class GameObject extends ModelInstance {
     bounds.getDimensions  (dimensions);
     radius                = dimensions.len() / 2f;
   }
-  public void resetTargetTransform () {
-    targetTransform.set   (transform);
-  }
-
-  // Checks whether the current object is visible or not given a camera.
-  public boolean isVisible (final Camera cam) {
-    transform.getTranslation(tmpVec3);
-    tmpVec3.add(center);
-    return cam.frustum.boundsInFrustum(bounds);
-    //return cam.frustum.sphereInFrustum(tmpPosition, radius);
+  
+  public void roundTargetRotation () {
+    targetRotation.x     = Math.round(targetRotation.x * 100.0f) / 100.0f;
+    targetRotation.y     = Math.round(targetRotation.y * 100.0f) / 100.0f;
+    targetRotation.z     = Math.round(targetRotation.z * 100.0f) / 100.0f;
+    targetRotation.w     = Math.round(targetRotation.w * 100.0f) / 100.0f;
   }
   
-  public void relativeTranlation (final Vector3 direction) {
-    transform
-      .getRotation(tmpQuat)
-      .nor();
-    transform
-      .getTranslation(tmpVec3);
-    transform
-      .idt        ()
-      .translate  (direction)
-      .rotate     (tmpQuat)
-      .trn        (tmpVec3);
-  }
-  public void relativeRotation (final Vector3 direction, final float angle) {
-    transform
-      .getRotation(tmpQuat)
-      .nor        ();
-    transform
-      .getTranslation(tmpVec3);
-    transform
-      .idt        ()
-      .rotate     (direction, angle)
-      .rotate     (tmpQuat)
-      .trn        (tmpVec3);
+  // Checks whether the current object is visible or not given a camera.
+  public boolean isVisible (final Camera cam) {
+    return cam.frustum.boundsInFrustum(bounds);
   }
 }
