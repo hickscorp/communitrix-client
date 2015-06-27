@@ -14,6 +14,12 @@ public class SHVector {
     return x * y * z;
   }
   
+  public SHVector set (final int x, final int y, final int z) {
+    this.x  = x;
+    this.y  = y;
+    this.z  = z;
+    return this;
+  }
   public SHVector set (final SHVector v) {
     this.x  = v.x;
     this.y  = v.y;
@@ -24,6 +30,13 @@ public class SHVector {
     this.x  = Math.round(v.x);
     this.y  = Math.round(v.y);
     this.z  = Math.round(v.z);
+    return this;
+  }
+  
+  public SHVector add (final int x, final int y, final int z) {
+    this.x  += x;
+    this.y  += y;
+    this.z  += z;
     return this;
   }
   public SHVector add (final com.badlogic.gdx.math.Vector3 v) {

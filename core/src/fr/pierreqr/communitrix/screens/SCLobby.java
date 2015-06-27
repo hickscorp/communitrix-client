@@ -9,7 +9,6 @@ import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
 import aurelienribon.tweenengine.equations.Expo;
-import aurelienribon.tweenengine.equations.Linear;
 import aurelienribon.tweenengine.equations.Quad;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
@@ -47,6 +46,17 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting, NewTurn }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Target, Unit, Observe }
   
+  // Possible POV / Targets for camera.
+  public final static HashMap<CameraState, float[]> CameraPOVs  = new HashMap<CameraState, float[]>();
+  static {
+    CameraPOVs.put(CameraState.Lobby,   new float[]{});
+    CameraPOVs.put(CameraState.Pieces,  new float[]{  0,  5, -10,     0,  0,  0 });
+    CameraPOVs.put(CameraState.Target,  new float[]{  3,  7,  -5,     5,  5,  0 }); // {  5,  7,  -5,     5,  5,  0 });
+    CameraPOVs.put(CameraState.Unit,    new float[]{ -3,  7,  -5,    -5,  5,  0 }); // { -5,  7,  -5,    -5,  5,  0 });
+  }
+  // Various locations for objects.
+  public final static HashMap<String, float[]>      Locations   = new HashMap<String, float[]>();
+
   private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Vector3       tmpVec3       = new Vector3();
   private final static  Matrix4       tmpMat4       = new Matrix4();
@@ -127,15 +137,23 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
-
-    // Create main fuel cell.
+    
+    // Create objective piece.
     target                = new Piece();
+    target.targetPosition
+      .set                (5, 5, 0);
     target.transform
       .translate          (5, 5, 0);
     instances.add         (target);
+    // Create unit piece.
     unit                  = new Piece();
-    unit.transform.translate(-5,5,0);
+    unit.targetPosition
+      .set                (-5, 5, 0);
+    unit.transform
+      .translate          (-5, 5, 0);
     instances.add          (unit);
+
+    // Create pieces array, and clickables.
     pieces                = new Array<Piece>();
     clickables            = new Array<Piece>();
     
@@ -169,53 +187,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       }
     }
     return this;
-  }
-  
-  public void setCameraState (final CameraState cameraState) {
-    switch (cameraState) {
-      case Lobby:
-        break;
-      case Pieces:
-        Tween
-          .to             (camMain, CameraAccessor.Trans, 0.5f)
-          .target         ( 0,   5, -10,
-                            0,   0,   0)
-          .ease           (Quad.INOUT)
-          .start          (tweener);
-        break;
-      case Target:
-        target.transform
-          .getTranslation (tmpVec3);
-        Tween
-          .to             (camMain, CameraAccessor.Trans, 0.5f)
-          .target         ( tmpVec3.x,  tmpVec3.y+2, tmpVec3.z-5,
-                            tmpVec3.x,  tmpVec3.y,   tmpVec3.z)
-          .ease           (Quad.INOUT)
-          .start          (tweener);
-        break;
-      case Unit:
-        unit.transform.getTranslation(tmpVec3);
-        Tween
-          .to             (camMain, CameraAccessor.Trans, 0.5f)
-          .target         ( tmpVec3.x,  tmpVec3.y+2,  tmpVec3.z-5,
-                            tmpVec3.x,  tmpVec3.y,    tmpVec3.z)
-          .ease           (Quad.INOUT)
-          .start          (tweener);
-        break;
-      case Observe:
-        break;
-      default:
-        Communitrix.getInstance().setLastError(0, "Unknown Lobby Camera state: " + cameraState);
-        break;
-    }
-    this.cameraState    = cameraState;
-  }
-  
-  public CameraState getCameraState(){
-    return cameraState;
-  }
-  public int getTurn(){
-    return currentTurn;
   }
   
   // Whenever the server updates the client with a combat list, this gets called.
@@ -290,17 +261,36 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     return this;
   }
   
-  public Camera       getCamera       () { return camMain; }
-  public Array<Piece> getPieces       () { return pieces; }
-  public Piece        getTarget       () { return target; }
+  public int          getTurn         ()  { return currentTurn; }
+  public Camera       getCamera       ()  { return camMain; }
+  public CameraState  getCameraState  ()  { return cameraState; }
+  public void setCameraState (final CameraState cameraState) {
+    final float[] pov = CameraPOVs.get(cameraState);
+    Tween
+      .to             (camMain, CameraAccessor.Trans, 0.3f)
+      .target         (pov)
+      .ease           (Quad.INOUT)
+      .start          (tweener);
+    this.cameraState  = cameraState;
+  }
   public Piece        getUnit         () { return unit; }
+  public Piece        getTarget       () { return target; }
+  public Array<Piece> getPieces       () { return pieces; }
   public Array<Piece> getClickables   () { return clickables; }
-  
   public void cyclePieces (final int firstPieceIndex) {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
+  public void selectPiece (final Piece piece) {
+    piece.targetPosition.set(-5, 5, 0);
+    Tween
+      .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
+      .target     (-5, 5, 0)
+      .ease       (Quad.INOUT)
+      .start      (tweener);
+  }
   public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetPosition.add(translation);
+    
     int       order       = 0;
     byte      reqSize     = 0;
     if (translation.x!=0.0f) {
@@ -317,9 +307,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     }
     final float[] targets     = new float[reqSize];
     reqSize                   = 0;
-    if (translation.x!=0.0f)  targets[reqSize++]   = piece.targetPosition.x;
-    if (translation.y!=0.0f)  targets[reqSize++]   = piece.targetPosition.y;
-    if (translation.z!=0.0f)  targets[reqSize++]   = piece.targetPosition.z;
+    if (translation.x!=0.0f)  targets[reqSize++]  = piece.targetPosition.x;
+    if (translation.y!=0.0f)  targets[reqSize++]  = piece.targetPosition.y;
+    if (translation.z!=0.0f)  targets[reqSize++]  = piece.targetPosition.z;
     Tween
       .to                 (piece, order, 0.1f)
       .target             (targets)
@@ -349,21 +339,15 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public void playPiece (final Piece piece) {
     final int idx = pieces.indexOf(piece, true);
     // TODO: Find the correct relative translation / rotation to send when we'll have a nice Unit object to work with.
-    piece.transform.getRotation     (tmpQuat);
-    piece.transform.getTranslation  (tmpVec3);
-    final TXCombatPlayTurn  cmdPlayTurn = new TXCombatPlayTurn(idx, tmpQuat, tmpVec3);
-    Communitrix
-      .getInstance()
-      .networkingManager
-      .send(cmdPlayTurn);
+    piece.transform.getRotation(tmpQuat);
+    piece.transform.getTranslation(tmpVec3);
+    ctx.networkingManager.send(new TXCombatPlayTurn(idx, tmpQuat, tmpVec3));
   }
-  
-  public void setTurn(final int turn){
+  public void setTurn (final int turn) {
     currentTurn = turn;
   }
-  public void setTurnUnit (final SHPiece newUnit){
+  public void setTurnUnit (final SHPiece newUnit) {
     unit.setFromSharedPiece(newUnit);
-    clickables.add(unit);
   }
 
   public SCLobby prepare (final SHPiece target, final SHPiece[] newPieces) {

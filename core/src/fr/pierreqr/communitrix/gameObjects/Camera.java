@@ -11,11 +11,11 @@ public class Camera extends PerspectiveCamera {
   }
   
   public void lookAt (final Vector3 newTarget) {
-    super.lookAt    (newTarget.x, newTarget.y, newTarget.z);
     target.set      (newTarget);
+    super.lookAt    (target.x, target.y, target.z);
   }
   public void lookAt (final float x, final float y, final float z) {
-    super.lookAt    (x, y, z);
     target.set      (x, y, z);
+    super.lookAt    (x, y, z);
   }
 }

@@ -1,5 +1,6 @@
 package fr.pierreqr.communitrix.tweeners;
 
+import com.badlogic.gdx.math.Vector3;
 import aurelienribon.tweenengine.TweenAccessor;
 import fr.pierreqr.communitrix.gameObjects.Camera;
 
@@ -37,6 +38,8 @@ public class CameraAccessor implements TweenAccessor<Camera> {
       obj.position.set  (newVals[tmpInt++], newVals[tmpInt++], newVals[tmpInt++]);
     if ((type & TargetTrans)!=0)
       obj.lookAt        (newVals[tmpInt++], newVals[tmpInt++], newVals[tmpInt++]);
+    // Prevent the camera from rolling too much.
+    obj.up.set          (Vector3.Y);
     obj.update          ();
   }
 }

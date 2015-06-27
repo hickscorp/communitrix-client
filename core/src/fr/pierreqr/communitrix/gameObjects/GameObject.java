@@ -1,6 +1,5 @@
 package fr.pierreqr.communitrix.gameObjects;
 
-import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
@@ -34,10 +33,10 @@ public class GameObject extends ModelInstance {
   }
   
   public void roundTargetRotation () {
-    targetRotation.x     = Math.round(targetRotation.x * 100.0f) / 100.0f;
-    targetRotation.y     = Math.round(targetRotation.y * 100.0f) / 100.0f;
-    targetRotation.z     = Math.round(targetRotation.z * 100.0f) / 100.0f;
-    targetRotation.w     = Math.round(targetRotation.w * 100.0f) / 100.0f;
+    targetRotation.x    = Math.round(targetRotation.x * 100.0) / 100.0f;
+    targetRotation.y    = Math.round(targetRotation.y * 100.0) / 100.0f;
+    targetRotation.z    = Math.round(targetRotation.z * 100.0) / 100.0f;
+    targetRotation.w    = Math.round(targetRotation.w * 100.0) / 100.0f;
   }
   
   // Checks whether the current object is visible or not given a camera.

@@ -5,21 +5,24 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
+import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public abstract class FacetedObject extends GameObject {
   protected abstract  void            begin           (final SHPiece piece);
   protected abstract  MeshPartBuilder builderFor      (final int x, final int y, final int z, final int index, final int direction);
   protected abstract  Model           end             ();
+  
+  private             Model           model;
+  public              SHVector        size            = new SHVector();
 
-  protected                           Model           model;
-
-  public FacetedObject  () {
-    super               (Communitrix.getInstance().dummyModel);
+  public FacetedObject () {
+    super(Communitrix.getInstance().dummyModel);
   }
-
-  public void setFromSharedPiece (final SHPiece piece) {
-    clear             ();
-    if (piece==null)  return;
+  
+  public void setFromSharedPiece (final SHPiece newPiece) {
+    clear               ();
+    if (newPiece==null)
+      return;
 
     // Cache stuff.
     final float   r   = Communitrix.CellComponentRadius;
@@ -28,24 +31,25 @@ public abstract class FacetedObject extends GameObject {
     int xOff  = Integer.MAX_VALUE;
     int yOff  = Integer.MAX_VALUE;
     int zOff  = Integer.MAX_VALUE;
-    for (final SHCell p : piece.content) {
+    for (final SHCell p : newPiece.content) {
       xOff  = Math.min(p.x, xOff);
       yOff  = Math.min(p.y, yOff);
       zOff  = Math.min(p.z, zOff);
     }
     // Cache size absolute values.
-    final int   xSize = Math.abs(piece.size.x);
-    final int   ySize = Math.abs(piece.size.y);
-    final int   zSize = Math.abs(piece.size.z);
+    final int   xSize = Math.abs(newPiece.size.x);
+    final int   ySize = Math.abs(newPiece.size.y);
+    final int   zSize = Math.abs(newPiece.size.z);
 
     // Make the temporary contents array.
     final int[][][]   contents  = new int[xSize][ySize][zSize];
+    size.set                    (xSize, ySize, zSize);
     // Finally build the content array.
-    for (final SHCell cell : piece.content) {
+    for (final SHCell cell : newPiece.content) {
       contents[cell.x-xOff][cell.y-yOff][cell.z-zOff] = cell.value;
     }
 
-    begin             (piece);
+    begin             (newPiece);
 
     // Start building faces.
     for (int iX=0; iX<xSize; ++iX) {
@@ -122,6 +126,7 @@ public abstract class FacetedObject extends GameObject {
   }
 
   private void clear () {
+    size.set        (0, 0, 0);
     // Remove superfluous nodes.
     nodes.clear     ();
     // Get rid of the model.
