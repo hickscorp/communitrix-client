@@ -72,6 +72,7 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     else
       tmpRot.set(obj.targetRotation);
     
-    obj.transform.set(tmpPos, tmpRot, tmpScl);
+    obj.transform.set       (tmpPos, tmpRot, tmpScl);
+    obj.updateChildren      (true);
   }
 }

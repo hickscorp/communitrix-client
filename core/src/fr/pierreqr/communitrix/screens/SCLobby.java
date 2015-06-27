@@ -152,6 +152,21 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     unit.transform
       .translate          (-5, 5, 0);
     instances.add          (unit);
+    
+    GameObject t;
+    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
+    t.targetPosition.x    = -2;
+    unit.addChild         (t);
+    
+    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
+    t.targetPosition.x    = 2;
+    unit.addChild         (t);
+
+    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
+    t.targetPosition.y    = 2;
+    unit.addChild         (t);
+
+    unit.updateChildren   (true);
 
     // Create pieces array, and clickables.
     pieces                = new Array<Piece>();
