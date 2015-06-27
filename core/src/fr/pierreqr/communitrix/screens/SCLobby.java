@@ -361,9 +361,17 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public void playPiece (final Piece piece) {
     final int idx = pieces.indexOf(piece, true);
     // TODO: Find the correct relative translation / rotation to send when we'll have a nice Unit object to work with.
-    piece.transform.getRotation(tmpQuat);
-    piece.transform.getTranslation(tmpVec3);
-    ctx.networkingManager.send(new TXCombatPlayTurn(idx, tmpQuat, tmpVec3));
+    tmpVec3
+      .set(piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
+      .sub(unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z);
+    Gdx.app.log(LogTag, "Trns: " + tmpVec3.toString());
+    ctx.networkingManager.send(
+      new TXCombatPlayTurn(
+        idx,
+        piece.targetRotation,
+        tmpVec3
+      )
+    );
   }
   public void setTurn (final int turn) {
     currentTurn = turn;

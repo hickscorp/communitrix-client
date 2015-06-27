@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
-import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public abstract class FacetedObject extends GameObject {
   protected abstract  void            begin           (final SHPiece piece);
@@ -13,7 +12,7 @@ public abstract class FacetedObject extends GameObject {
   protected abstract  Model           end             ();
   
   private             Model           model;
-  public              SHVector        size            = new SHVector();
+  public              SHPiece         sharedPiece;
 
   public FacetedObject () {
     super(Communitrix.getInstance().dummyModel);
@@ -21,43 +20,26 @@ public abstract class FacetedObject extends GameObject {
   
   public void setFromSharedPiece (final SHPiece newPiece) {
     clear               ();
+    sharedPiece         = newPiece;
     if (newPiece==null)
       return;
 
     // Cache stuff.
     final float   r   = Communitrix.CellComponentRadius;
-
-    // Compute negative offsets.
-    int xOff  = Integer.MAX_VALUE;
-    int yOff  = Integer.MAX_VALUE;
-    int zOff  = Integer.MAX_VALUE;
-    for (final SHCell p : newPiece.content) {
-      xOff  = Math.min(p.x, xOff);
-      yOff  = Math.min(p.y, yOff);
-      zOff  = Math.min(p.z, zOff);
-    }
-    // Cache size absolute values.
-    final int   xSize = Math.abs(newPiece.size.x);
-    final int   ySize = Math.abs(newPiece.size.y);
-    final int   zSize = Math.abs(newPiece.size.z);
-
+    final SHPiece p   = sharedPiece;
     // Make the temporary contents array.
-    final int[][][]   contents  = new int[xSize][ySize][zSize];
-    size.set                    (xSize, ySize, zSize);
+    final int[][][]   contents  = new int[p.size.x][p.size.y][p.size.z];
     // Finally build the content array.
-    for (final SHCell cell : newPiece.content) {
-      contents[cell.x-xOff][cell.y-yOff][cell.z-zOff] = cell.value;
-    }
-
-    begin             (newPiece);
-
+    for (final SHCell cell : newPiece.content)
+      contents[cell.x-p.min.x][cell.y-p.min.y][cell.z-p.min.z] = cell.value;
     // Start building faces.
-    for (int iX=0; iX<xSize; ++iX) {
-      final int x = iX - xSize/2;
-      for (int iY=0; iY<ySize; ++iY) {
-        final int y = iY - ySize/2;
-        for (int iZ=0; iZ<zSize; ++iZ) {
-          final int z = iZ - zSize/2;
+    begin             (newPiece);
+    for (int iX=0; iX<p.size.x; ++iX) {
+      final int x = iX + p.min.x;
+      for (int iY=0; iY<p.size.y; ++iY) {
+        final int y = iY + p.min.y;
+        for (int iZ=0; iZ<p.size.z; ++iZ) {
+          final int z = iZ + p.min.z;
           // Retrieve content hint at current position.
           final int index = contents[iX][iY][iZ];
           // Current content is empty, or current content isn't belonging to the part being built.
@@ -72,7 +54,7 @@ public abstract class FacetedObject extends GameObject {
                       1, 0, 0);
           }
           // Nothing on the right.
-          if (iX==xSize-1 || contents[iX+1][iY][iZ]==0) {
+          if (iX==p.size.x-1 || contents[iX+1][iY][iZ]==0) {
             builderFor(iX, iY, iZ, index, Communitrix.Right)
               .rect(  x+r, y-r, z-r,
                       x+r, y+r, z-r,
@@ -90,7 +72,7 @@ public abstract class FacetedObject extends GameObject {
                       0, 1, 0);
           }
           // Nothing on the bottom.
-          if (iY==ySize-1 || contents[iX][iY+1][iZ]==0) {
+          if (iY==p.size.y-1 || contents[iX][iY+1][iZ]==0) {
             builderFor(iX, iY, iZ, index, Communitrix.Top)
               .rect(  x+r, y+r, z-r,
                       x-r, y+r, z-r,
@@ -108,7 +90,7 @@ public abstract class FacetedObject extends GameObject {
                       0, 0, 1);
           }
           // Nothing behind it.
-          if (iZ==zSize-1 || contents[iX][iY][iZ+1]==0) {
+          if (iZ==p.size.z-1 || contents[iX][iY][iZ+1]==0) {
             builderFor(iX, iY, iZ, index, Communitrix.Forward)
               .rect(  x+r, y+r, z+r,
                       x-r, y+r, z+r,
@@ -126,7 +108,7 @@ public abstract class FacetedObject extends GameObject {
   }
 
   private void clear () {
-    size.set        (0, 0, 0);
+    sharedPiece     = null;
     // Remove superfluous nodes.
     nodes.clear     ();
     // Get rid of the model.

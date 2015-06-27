@@ -38,9 +38,9 @@ public class PiecesDock {
     final SHVector      largest = new SHVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     final Array<Piece>  pieces  = delegate.getPieces();
     for (final Piece piece : pieces) {
-      if (largest.x<piece.size.x)  largest.x   = piece.size.x;
-      if (largest.y<piece.size.x)  largest.y   = piece.size.y;
-      if (largest.z<piece.size.x)  largest.z   = piece.size.z;
+      if (largest.x<piece.sharedPiece.size.x)  largest.x   = piece.sharedPiece.size.x;
+      if (largest.y<piece.sharedPiece.size.x)  largest.y   = piece.sharedPiece.size.y;
+      if (largest.z<piece.sharedPiece.size.x)  largest.z   = piece.sharedPiece.size.z;
     }
     largest.add                 (1, 1, 1);
     final int           width   = (int)Math.round(Math.sqrt(pieces.size));

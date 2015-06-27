@@ -41,7 +41,7 @@ public class GameObject extends ModelInstance {
   public void recomputeBounds () {
     calculateBoundingBox  (bounds);
     for (final GameObject child : children)
-      bounds.ext            (child.bounds);
+      bounds.ext          (child.bounds);
     bounds.getCenter      (center);
     bounds.getDimensions  (dimensions);
     radius                = dimensions.len() / 2f;
