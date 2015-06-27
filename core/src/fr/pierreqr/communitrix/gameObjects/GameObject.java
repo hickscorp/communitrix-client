@@ -40,6 +40,8 @@ public class GameObject extends ModelInstance {
   }
   public void recomputeBounds () {
     calculateBoundingBox  (bounds);
+    for (final GameObject child : children)
+      bounds.ext            (child.bounds);
     bounds.getCenter      (center);
     bounds.getDimensions  (dimensions);
     radius                = dimensions.len() / 2f;
@@ -74,10 +76,12 @@ public class GameObject extends ModelInstance {
       .set(child.targetPosition.x, child.targetPosition.y, child.targetPosition.z,
           child.targetRotation.x, child.targetRotation.y, child.targetRotation.z, child.targetRotation.w,
           1, 1, 1);
+    recomputeBounds             ();
   }
   public void removeChild (final GameObject child) {
     child.unparent          ();
     children.removeValue    (child, true);
+    recomputeBounds             ();
   }
   
   public void updateChildren (final boolean updateCurrentValues) {
