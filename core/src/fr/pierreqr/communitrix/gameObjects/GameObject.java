@@ -1,8 +1,6 @@
 package fr.pierreqr.communitrix.gameObjects;
 
-import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenManager;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
@@ -30,8 +28,6 @@ public class GameObject extends ModelInstance {
   private final     Vector3       curScl          = new Vector3();
   private final     Matrix4       nestedTransform = new Matrix4();
   
-  private           Tween         lastSlerp;
-
   private           GameObject          parent    = null;
   public final      Array<GameObject>   children  = new Array<GameObject>();
   

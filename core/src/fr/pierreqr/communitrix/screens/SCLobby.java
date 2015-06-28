@@ -8,7 +8,6 @@ import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Bounce;
-import aurelienribon.tweenengine.equations.Expo;
 import aurelienribon.tweenengine.equations.Quad;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
@@ -83,6 +82,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Piece                 target;
   private final Piece                 unit;
   private final Array<Piece>          pieces;
+  private final Array<Piece>          availablePieces;
   private final Array<Piece>          clickables;
   private final PiecesDock            piecesDock;
 
@@ -115,18 +115,20 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     postProMain           = new PostProcessor(true, true, true);
     if (ctx.applicationType!=ApplicationType.WebGL) {
       // Add bloom to post-processor.
-      Bloom blm             = new Bloom(ctx.viewWidth/3, ctx.viewHeight/3);
-      blm.setBloomIntesity  (0.6f);
-      blm.setBloomSaturation(0.7f);
+      Bloom blm             = new Bloom(ctx.viewWidth/4, ctx.viewHeight/4);
+      blm.setEnabled        (true);
+      blm.setBloomIntesity  (0.8f);
+      blm.setBloomSaturation(0.9f);
       postProMain.addEffect (blm);
       // Add motion blur to post-processor.
       MotionBlur blur       = new MotionBlur();
-      blur.setBlurOpacity   (0.70f);
+      blur.setEnabled       (true);
+      blur.setBlurOpacity   (0.65f);
       postProMain.addEffect (blur);
     }
 
     // Set up our main camera, and position it.
-    camMain               = new Camera(90, ctx.viewWidth, ctx.viewHeight);
+    camMain               = new Camera(100, ctx.viewWidth, ctx.viewHeight);
     camMain.position.set  (0f, 5f, -10f);
     camMain.near          = 1f;
     camMain.far           = 150f;
@@ -152,6 +154,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     instances.add          (unit);
     // Create pieces array, and clickables.
     pieces                = new Array<Piece>();
+    availablePieces       = new Array<Piece>();
     clickables            = new Array<Piece>();
     
     piecesDock            = new PiecesDock(this);
@@ -270,24 +273,27 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .start          (tweener);
     this.cameraState  = cameraState;
   }
-  public Piece        getUnit         () { return unit; }
-  public Piece        getTarget       () { return target; }
-  public Array<Piece> getPieces       () { return pieces; }
-  public Array<Piece> getClickables   () { return clickables; }
+  public Piece        getUnit           () { return unit; }
+  public Piece        getTarget         () { return target; }
+  public Array<Piece> getPieces         () { return pieces; }
+  public Array<Piece> getAvailablePieces() { return availablePieces; }
+  public Array<Piece> getClickables     () { return clickables; }
   public void cyclePieces (final int firstPieceIndex) {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void selectPiece (final Piece piece) {
-    piece.targetPosition.set(-5, 5, 0);
+    piece.targetPosition.set  (-5, 5, 0);
     Tween
       .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
       .target     (-5, 5, 0)
       .ease       (Quad.INOUT)
       .start      (tweener);
   }
+  public void deselectPiece () {
+    piecesDock.refresh    ();
+  }
   public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetPosition.add(translation);
-    
     int       order       = 0;
     byte      reqSize     = 0;
     if (translation.x!=0.0f) {
@@ -308,9 +314,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     if (translation.y!=0.0f)  targets[reqSize++]  = piece.targetPosition.y;
     if (translation.z!=0.0f)  targets[reqSize++]  = piece.targetPosition.z;
     Tween
-      .to                 (piece, order, 0.2f)
+      .to                 (piece, order, 0.3f)
       .target             (targets)
-      .ease               (Expo.OUT)
+      .ease               (Quad.INOUT)
       .start              (tweener);
   }
   public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
@@ -343,8 +349,14 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .start              (tweener);
   }
   public void playPiece (final Piece piece) {
-    final int idx = pieces.indexOf(piece, true);
-    // TODO: Find the correct relative translation / rotation to send when we'll have a nice Unit object to work with.
+    if (!availablePieces.removeValue(piece, true)) {
+      ctx.setLastError(0, "You cannot play this piece twice.");
+      return;
+    }
+    final int idx           = pieces.indexOf(piece, true);
+    clickables.removeValue  (piece, true);
+    instances.removeValue   (piece, true);
+    piecesDock.refresh      ();
     tmpVec3
       .set(piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
       .sub(unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z);
@@ -371,6 +383,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     if (newPieces!=null) {
       tmpVec3.set               (0, 0, -5);
       pieces.clear              ();
+      availablePieces.clear     ();
+      clickables.clear          ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
@@ -379,9 +393,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
           .set(tmpVec3);
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
-        instances.add           (obj);
       }
-      clickables.clear          ();
+      availablePieces.addAll    (pieces);
+      instances.addAll          (pieces);
       clickables.add            (this.target);
       clickables.addAll         (pieces);
       cyclePieces               (0);
@@ -412,12 +426,11 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     
     // Update any pending tweening.
     tweener.update      (delta);
-
     // Update camera controller.
     combCtrlMain.update ();
 
     // Capture FBO for post-processing.
-    postProMain.capture();
+    postProMain.capture ();
     
     // Mark the beginning of our rendering phase.
     ctx.modelBatch.begin(camMain);
@@ -426,13 +439,12 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       if (instance.isVisible(camMain))
         ctx.modelBatch.render(instance, envMain);
     // Rendering is over.
-    ctx.modelBatch.end();
+    ctx.modelBatch.end  ();
     
     // Apply post-processing.
-    postProMain.render();
-
+    postProMain.render  ();
     // Update flat UI.
-    ui.actAndDraw             (delta);
+    ui.actAndDraw       (delta);
   }
 
   @Override public void resize (final int width, final int height) {

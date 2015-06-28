@@ -7,10 +7,13 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.g3d.Attribute;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
@@ -34,6 +37,7 @@ import fr.pierreqr.communitrix.screens.SCCombat;
 import fr.pierreqr.communitrix.screens.SCLobby;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
+import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
   // Possible directions around a cube to check for.
@@ -94,6 +98,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Register motion tweening accessors.
     Tween.setCombinedAttributesLimit  (6);
     Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
+    Tween.registerAccessor            (PointLight.class,        new PointLightAccessor());
     Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
   }
   // Getters / Setters.
@@ -106,19 +111,18 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType         = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop) {
-      //final DisplayMode     dm    = Gdx.graphics.getDesktopDisplayMode();
-      //Gdx.graphics.setDisplayMode (dm.width, dm.height, true);
-    }
+    if (applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
-      faceMaterials[0]  = new Material(ColorAttribute.createDiffuse(0.9f, 0.6f, 0.6f, 1.0f));
-      faceMaterials[1]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.8f, 0.4f, 1.0f));
-      faceMaterials[2]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.9f, 0.6f, 1.0f));
-      faceMaterials[3]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.4f, 0.8f, 1.0f));
-      faceMaterials[4]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.6f, 0.9f, 1.0f));
-      faceMaterials[5]  = new Material(ColorAttribute.createDiffuse(0.4f, 0.8f, 0.8f, 1.0f));
+      Attribute   blend = new BlendingAttribute(0.94f);
+      faceMaterials[0]  = new Material(ColorAttribute.createDiffuse(0.9f, 0.6f, 0.6f, 1.0f), blend);
+      faceMaterials[1]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.8f, 0.4f, 1.0f), blend);
+      faceMaterials[2]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.9f, 0.6f, 1.0f), blend);
+      faceMaterials[3]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.4f, 0.8f, 1.0f), blend);
+      faceMaterials[4]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.6f, 0.9f, 1.0f), blend);
+      faceMaterials[5]  = new Material(ColorAttribute.createDiffuse(0.4f, 0.8f, 0.8f, 1.0f), blend);
     }
 
     // Force cache viewport size.

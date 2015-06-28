@@ -23,9 +23,11 @@ public class ICLobby extends InputAdapter {
     Piece         getUnit             ();
     Piece         getTarget           ();
     Array<Piece>  getPieces           ();
+    Array<Piece>  getAvailablePieces  ();
     Array<Piece>  getClickables       ();
     void          cyclePieces         (final int pieceIndex);
     void          selectPiece         (final Piece piece);
+    void          deselectPiece       ();
     void          translatePiece      (final Piece piece, final Vector3 axis);
     void          rotatePiece         (final Piece piece, final Vector3 axis, final int angle);
     void          resetPieceRotation  (final Piece piece);
@@ -176,9 +178,12 @@ public class ICLobby extends InputAdapter {
   private void handleBack () {
     if (Gdx.input.isKeyJustPressed(Keys.ESCAPE))
       if (camState==CameraState.Target)
-        transitionTo  (selection==null ? CameraState.Pieces : CameraState.Unit);
-      else if (camState==CameraState.Unit)
-        transitionTo  (CameraState.Pieces);
+        transitionTo    (selection==null ? CameraState.Pieces : CameraState.Unit);
+      else if (camState==CameraState.Unit) {
+        if (selection!=null)
+          delegate.deselectPiece  ();
+        transitionTo              (CameraState.Pieces);
+      }
   }
   // Checks whether the user is to translating / rotating.
   private void handleMovement (final Piece moveable, final boolean translate) {
