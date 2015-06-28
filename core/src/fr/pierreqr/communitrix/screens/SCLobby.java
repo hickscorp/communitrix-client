@@ -21,7 +21,6 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
@@ -51,13 +50,12 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   static {
     CameraPOVs.put(CameraState.Lobby,   new float[]{});
     CameraPOVs.put(CameraState.Pieces,  new float[]{  0,  5, -10,     0,  0,  0 });
-    CameraPOVs.put(CameraState.Target,  new float[]{  3,  7,  -5,     5,  5,  0 }); // {  5,  7,  -5,     5,  5,  0 });
-    CameraPOVs.put(CameraState.Unit,    new float[]{ -3,  7,  -5,    -5,  5,  0 }); // { -5,  7,  -5,    -5,  5,  0 });
+    CameraPOVs.put(CameraState.Target,  new float[]{  5,  7,  -5,     5,  5,  0 });
+    CameraPOVs.put(CameraState.Unit,    new float[]{ -5,  7,  -5,    -5,  5,  0 });
   }
   // Various locations for objects.
   public final static HashMap<String, float[]>      Locations   = new HashMap<String, float[]>();
 
-  private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Vector3       tmpVec3       = new Vector3();
   private final static  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
@@ -152,29 +150,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     unit.transform
       .translate          (-5, 5, 0);
     instances.add          (unit);
-    
-    GameObject t;
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.x    = -5;
-    unit.addChild         (t);
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.x    =  5;
-    unit.addChild         (t);
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.y    = -5;
-    unit.addChild         (t);
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.y    =  5;
-    unit.addChild         (t);
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.z    = -5;
-    unit.addChild         (t);
-    t                     = new GameObject(ctx.modelBuilder.createBox(1, 1, 1, ctx.defaultMaterial, Usage.Position | Usage.Normal));
-    t.targetPosition.z    =  5;
-    unit.addChild         (t);
-
-    unit.updateChildren   (true);
-
     // Create pieces array, and clickables.
     pieces                = new Array<Piece>();
     clickables            = new Array<Piece>();
@@ -269,7 +244,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
         mat.rotate            (Vector3.Y, 180);
         mat.getRotation       (obj.targetRotation);
         obj.targetPosition.y  = -30;
-        obj.slerpFactor       = 0.0f;
+        obj.prepareSlerping   (tweener);
         Tween
           .to                 (obj, GameObjectAccessor.TransY | GameObjectAccessor.SLERP, 0.5f)
           .target             (obj.targetPosition.y, 1)
@@ -333,7 +308,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     if (translation.y!=0.0f)  targets[reqSize++]  = piece.targetPosition.y;
     if (translation.z!=0.0f)  targets[reqSize++]  = piece.targetPosition.z;
     Tween
-      .to                 (piece, order, 0.1f)
+      .to                 (piece, order, 0.2f)
       .target             (targets)
       .ease               (Expo.OUT)
       .start              (tweener);
@@ -350,12 +325,21 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     tmpMat4
       .rotate       (piece.targetRotation)
       .getRotation  (piece.targetRotation);
-    piece.roundTargetRotation();
     // Start tweening.
-    piece.slerpFactor     = 0.0f;
+    piece.prepareSlerping (tweener);
     Tween
-      .to                 (piece, GameObjectAccessor.SLERP, 0.1f)
+      .to                 (piece, GameObjectAccessor.SLERP, 0.2f)
       .target             (1.0f)
+      .start              (tweener);
+  }
+  public void resetPieceRotation (final Piece piece) {
+    piece.targetRotation.idt();
+    // Start tweening.
+    piece.prepareSlerping (tweener);
+    Tween
+      .to                 (piece, GameObjectAccessor.SLERP, 0.5f)
+      .target             (1.0f)
+      .ease               (Quad.INOUT)
       .start              (tweener);
   }
   public void playPiece (final Piece piece) {
@@ -364,7 +348,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     tmpVec3
       .set(piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
       .sub(unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z);
-    Gdx.app.log(LogTag, "Trns: " + tmpVec3.toString());
     ctx.networkingManager.send(
       new TXCombatPlayTurn(
         idx,

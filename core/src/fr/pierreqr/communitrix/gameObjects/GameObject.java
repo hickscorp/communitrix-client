@@ -1,5 +1,7 @@
 package fr.pierreqr.communitrix.gameObjects;
 
+import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -27,6 +29,8 @@ public class GameObject extends ModelInstance {
   private final     Quaternion    curRot          = new Quaternion();
   private final     Vector3       curScl          = new Vector3();
   private final     Matrix4       nestedTransform = new Matrix4();
+  
+  private           Tween         lastSlerp;
 
   private           GameObject          parent    = null;
   public final      Array<GameObject>   children  = new Array<GameObject>();
@@ -47,6 +51,11 @@ public class GameObject extends ModelInstance {
     radius                = dimensions.len() / 2f;
   }
   
+  public void prepareSlerping (final TweenManager tweener) {
+    roundTargetRotation ();
+    slerpFactor         = 0.0f;
+    tweener.killTarget  (this);
+  }
   public void roundTargetRotation () {
     targetRotation.x    = Math.round(targetRotation.x * 100.0) / 100.0f;
     targetRotation.y    = Math.round(targetRotation.y * 100.0) / 100.0f;
