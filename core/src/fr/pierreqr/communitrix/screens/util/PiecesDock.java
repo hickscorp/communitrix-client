@@ -28,21 +28,18 @@ public class PiecesDock {
   }
   public void setFirstPieceIndex (final int firstPieceIndex) {
     // Compute largest piece size.
-    final SHVector      largest = new SHVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     final Array<Piece>  pieces  = delegate.getAvailablePieces();
-    for (final Piece piece : pieces) {
-      if (largest.x<piece.sharedPiece.size.x)  largest.x   = piece.sharedPiece.size.x;
-      if (largest.y<piece.sharedPiece.size.x)  largest.y   = piece.sharedPiece.size.y;
-      if (largest.z<piece.sharedPiece.size.x)  largest.z   = piece.sharedPiece.size.z;
-    }
-    largest.add                 (2, 2, 2);
+    int                 largest = Integer.MIN_VALUE;
+    for (final Piece piece : pieces)
+      largest   = Math.max(Math.max(Math.max(largest, piece.sharedPiece.size.x), piece.sharedPiece.size.y), piece.sharedPiece.size.z);
+    largest     += 2;
     final int           width   = (int)Math.round(Math.sqrt(pieces.size));
-    final Vector3       origin  = new Vector3(-(width-1)/2.0f*largest.x, -3, -(width-1)/2.0f*largest.z);
+    final Vector3       origin  = new Vector3(-(width-1)/2.0f*largest, -3, -(width-1)/2.0f*largest);
     final Vector3       shift   = new Vector3(0, 0, 0);
     for (int i=0; i<pieces.size; ++i) {
       final int         index   = ( i + firstPieceIndex ) % pieces.size;
-      final int         x       = ( i % width ) * largest.x;
-      final int         z       = ( i / width ) * largest.z;
+      final int         x       = ( i % width ) * largest;
+      final int         z       = ( i / width ) * largest;
       final Piece       piece   = pieces.get(index);
       shift
         .set  (x, 0, z)
