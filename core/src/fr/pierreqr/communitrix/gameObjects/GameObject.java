@@ -84,9 +84,9 @@ public class GameObject extends ModelInstance {
     recomputeBounds             ();
   }
   public void removeChild (final GameObject child) {
-    child.unparent          ();
+    child.parent            = null;
     children.removeValue    (child, true);
-    recomputeBounds             ();
+    recomputeBounds         ();
   }
   
   public void updateChildren (final boolean updateCurrentValues) {

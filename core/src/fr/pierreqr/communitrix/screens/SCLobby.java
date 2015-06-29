@@ -20,11 +20,14 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
+import com.bitfire.postprocessing.effects.CrtMonitor;
 import com.bitfire.postprocessing.effects.MotionBlur;
+import com.bitfire.postprocessing.filters.CrtScreen.RgbMode;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
@@ -42,20 +45,20 @@ import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
 public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public                enum          State         { Unknown, Global, Joined, Starting, NewTurn }
-  public                enum          CameraState   { Unknown, Lobby, Pieces, Target, Unit, Observe }
+  public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
   public final static HashMap<CameraState, float[]> CameraPOVs  = new HashMap<CameraState, float[]>();
   static {
     CameraPOVs.put(CameraState.Lobby,   new float[]{});
-    CameraPOVs.put(CameraState.Pieces,  new float[]{  0,  5, -10,     0,  0,  0 });
-    CameraPOVs.put(CameraState.Target,  new float[]{  5,  7,  -5,     5,  5,  0 });
-    CameraPOVs.put(CameraState.Unit,    new float[]{ -5,  7,  -5,    -5,  5,  0 });
+    CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 5,-10,  0, 0, 0 });
+    CameraPOVs.put(CameraState.Unit,    new float[]{ 0, 5, -6,  0, 3, 0 });
   }
   // Various locations for objects.
-  public final static HashMap<String, float[]>      Locations   = new HashMap<String, float[]>();
+  public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
 
   private final static  Vector3       tmpVec3       = new Vector3();
+  private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
   
@@ -66,7 +69,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   // Scene setup related objects.
   private final TweenManager          tweener;
   private final Environment           envMain;
-  private final Camera                camMain;
+  private final Camera                camMain, camTarget;
   private final ICLobby               combCtrlMain;
   private final PostProcessor         postProMain;
   // State related members.
@@ -83,7 +86,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Piece                 unit;
   private final Array<Piece>          pieces;
   private final Array<Piece>          availablePieces;
-  private final Array<Piece>          clickables;
   private final PiecesDock            piecesDock;
 
   private static        Vector3       relXAxis, relYAxis, relZAxis;
@@ -114,48 +116,51 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
     if (ctx.applicationType!=ApplicationType.WebGL) {
-      // Add bloom to post-processor.
-      Bloom blm             = new Bloom(ctx.viewWidth/4, ctx.viewHeight/4);
-      blm.setEnabled        (true);
-      blm.setBloomIntesity  (0.8f);
-      blm.setBloomSaturation(0.9f);
-      postProMain.addEffect (blm);
-      // Add motion blur to post-processor.
-      MotionBlur blur       = new MotionBlur();
-      blur.setEnabled       (true);
-      blur.setBlurOpacity   (0.65f);
-      postProMain.addEffect (blur);
+//      // Add bloom to post-processor.
+//      Bloom blm             = new Bloom(ctx.viewWidth/3, ctx.viewHeight/3);
+//      blm.setEnabled        (true);
+//      blm.setBloomIntesity  (0.9f);
+//      blm.setBloomSaturation(0.6f);
+//      postProMain.addEffect (blm);
+//      // Add motion blur to post-processor.
+//      MotionBlur blur       = new MotionBlur();
+//      blur.setEnabled       (true);
+//      blur.setBlurOpacity   (0.65f);
+//      postProMain.addEffect (blur);
     }
 
-    // Set up our main camera, and position it.
-    camMain               = new Camera(100, ctx.viewWidth, ctx.viewHeight);
+    // Set up our target camera.
+    camTarget             = new Camera(60, ctx.viewWidth/2.5f, ctx.viewHeight/2.5f);
+    camTarget.position.set(0, 2, -6);
+    camTarget.lookAt      (0, 0, 0);
+    camTarget.near        = 1f;
+    camTarget.far         = 32f;
+    camTarget.update      ();
+    
+    // Create objective piece. It is not added to the instances list, as it is rendered on the side.
+    target                = new Piece();
+
+    // Set up our scene.
+    camMain               = new Camera(60, ctx.viewWidth, ctx.viewHeight);
     camMain.position.set  (0f, 5f, -10f);
-    camMain.near          = 1f;
-    camMain.far           = 150f;
     camMain.lookAt        (0, 0, 0);
+    camMain.near          = 1f;
+    camMain.far           = 32f;
     camMain.update        ();
     
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
     
-    // Create objective piece.
-    target                = new Piece();
-    target.targetPosition
-      .set                (5, 5, 0);
-    target.transform
-      .translate          (5, 5, 0);
-    instances.add         (target);
     // Create unit piece.
     unit                  = new Piece();
     unit.targetPosition
-      .set                (-5, 5, 0);
+      .set                (0, 3, 0);
     unit.transform
-      .translate          (-5, 5, 0);
+      .translate          (0, 3, 0);
     instances.add          (unit);
-    // Create pieces array, and clickables.
+    // Create various arrays..
     pieces                = new Array<Piece>();
     availablePieces       = new Array<Piece>();
-    clickables            = new Array<Piece>();
     
     piecesDock            = new PiecesDock(this);
     
@@ -277,19 +282,18 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   public Piece        getTarget         () { return target; }
   public Array<Piece> getPieces         () { return pieces; }
   public Array<Piece> getAvailablePieces() { return availablePieces; }
-  public Array<Piece> getClickables     () { return clickables; }
   public void cyclePieces (final int firstPieceIndex) {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void selectPiece (final Piece piece) {
-    piece.targetPosition.set  (-5, 5, 0);
+    piece.targetPosition.set(unit.targetPosition);
     Tween
       .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
-      .target     (-5, 5, 0)
+      .target     (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
       .ease       (Quad.INOUT)
       .start      (tweener);
   }
-  public void deselectPiece () {
+  public void deselectPiece (final Piece piece) {
     piecesDock.refresh    ();
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
@@ -354,19 +358,22 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       return;
     }
     final int idx           = pieces.indexOf(piece, true);
-    clickables.removeValue  (piece, true);
     instances.removeValue   (piece, true);
     piecesDock.refresh      ();
+    // Get current unit rotation, invert it.
+    tmpQuat
+      .set      (unit.targetRotation)
+      .conjugate();
+    // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
     tmpVec3
-      .set(piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
-      .sub(unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z);
-    ctx.networkingManager.send(
-      new TXCombatPlayTurn(
-        idx,
-        piece.targetRotation,
-        tmpVec3
-      )
-    );
+      .set      (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
+      .sub      (unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z)
+      .mul      (tmpQuat);
+    // Post-rotate the unit rotation by the piece rotation. The result is a translation / rotation relative to the unit.
+    tmpQuat
+      .mul      (piece.targetRotation);
+    // Give the order!
+    ctx.networkingManager.send(new TXCombatPlayTurn(idx, tmpQuat, tmpVec3));
   }
   public void setTurn (final int turn) {
     currentTurn = turn;
@@ -384,7 +391,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       tmpVec3.set               (0, 0, -5);
       pieces.clear              ();
       availablePieces.clear     ();
-      clickables.clear          ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
@@ -396,8 +402,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       }
       availablePieces.addAll    (pieces);
       instances.addAll          (pieces);
-      clickables.add            (this.target);
-      clickables.addAll         (pieces);
       cyclePieces               (0);
     }
     return this;
@@ -415,7 +419,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   
   @Override public void render (final float delta) {
     // Clear viewport etc.
-    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
     Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -433,6 +436,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     postProMain.capture ();
     
     // Mark the beginning of our rendering phase.
+    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
     ctx.modelBatch.begin(camMain);
     // Render all instances in our batch array.
     for (final GameObject instance : instances)
@@ -440,12 +444,18 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
         ctx.modelBatch.render(instance, envMain);
     // Rendering is over.
     ctx.modelBatch.end  ();
-    
+
+    Gdx.gl.glViewport(0, (int)(ctx.viewHeight-(ctx.viewHeight/2.5f)), (int)(ctx.viewWidth/2.5f), (int)(ctx.viewHeight/2.5f));
+    ctx.modelBatch.begin  (camTarget);
+    ctx.modelBatch.render (target, envMain);
+    ctx.modelBatch.end    ();
+
+    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
     // Apply post-processing.
     postProMain.render  ();
     // Update flat UI.
     ui.actAndDraw       (delta);
-  }
+}
 
   @Override public void resize (final int width, final int height) {
     // Update flat UI.
