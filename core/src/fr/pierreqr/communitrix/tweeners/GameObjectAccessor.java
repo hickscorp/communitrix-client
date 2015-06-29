@@ -67,12 +67,12 @@ public class GameObjectAccessor implements TweenAccessor<GameObject> {
     if ((type & SLERP)!=0) {
       obj.transform
         .getRotation(tmpRot)
-        .slerp(obj.targetRotation, ( obj.slerpFactor = newVals[tmpInt++] )).nor();
+        .slerp(obj.targetRotation, ( obj.slerpFactor = newVals[tmpInt++] ))
+        .nor();
     }
     else
       tmpRot.set(obj.targetRotation);
     
     obj.transform.set       (tmpPos, tmpRot, tmpScl);
-    obj.updateChildren      (true);
   }
 }

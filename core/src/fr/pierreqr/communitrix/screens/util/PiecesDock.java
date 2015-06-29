@@ -3,7 +3,6 @@ package fr.pierreqr.communitrix.screens.util;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import fr.pierreqr.communitrix.gameObjects.Piece;
-import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class PiecesDock {
   public interface PiecesDockDelegate {

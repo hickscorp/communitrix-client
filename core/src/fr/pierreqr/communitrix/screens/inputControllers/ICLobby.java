@@ -155,8 +155,8 @@ public class ICLobby extends InputAdapter {
     if (Gdx.input.isKeyJustPressed(Keys.SPACE))
       delegate.setCameraState(camState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
     // Player is willing to go back.
-    else if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
-      if (camState!=CameraState.Pieces) {
+    else if (camState!=CameraState.Pieces) {
+      if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
         delegate.setCameraState(CameraState.Pieces);
         if (selection!=null) {
           delegate.deselectPiece  (selection);
@@ -168,6 +168,8 @@ public class ICLobby extends InputAdapter {
     else if (Gdx.input.isKeyJustPressed(Keys.R)) {
       delegate.resetPieceRotation (delegate.getTarget());
       delegate.resetPieceRotation (delegate.getUnit());
+      for (final Piece p : delegate.getPieces())
+        delegate.resetPieceRotation (p);
     }
   }
   // Checks whether the user is to translating / rotating.

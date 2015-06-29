@@ -58,7 +58,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public  static final  Material[]  faceMaterials         = new Material[6];
   // Various constants.
   private static final  String      LogTag                = "Communitrix";
-  public  static final  float       CellComponentRadius   = 0.5f;
 
   // Shared members.
   public          ApplicationType   applicationType;
@@ -110,9 +109,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Cache application type.
     applicationType         = Gdx.app.getType();
 
-    // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop)
-      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+//    // After starting the application, we can query for the desktop dimensions
+//    if (applicationType==ApplicationType.Desktop)
+//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {

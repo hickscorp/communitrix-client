@@ -24,10 +24,6 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
-import com.bitfire.postprocessing.effects.Bloom;
-import com.bitfire.postprocessing.effects.CrtMonitor;
-import com.bitfire.postprocessing.effects.MotionBlur;
-import com.bitfire.postprocessing.filters.CrtScreen.RgbMode;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
@@ -97,7 +93,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     // Initialize our UI manager.
     ui                    = new UILobby();
     ctx.setErrorResponder (ui);
-    // Initialize tweening engine.
+    // Initialize animation engine.
     tweener               = new TweenManager();
     
     // Prepare our relative axis if needed.
@@ -335,7 +331,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     tmpMat4
       .rotate       (piece.targetRotation)
       .getRotation  (piece.targetRotation);
-    // Start tweening.
+    // Start animating.
     piece.prepareSlerping (tweener);
     Tween
       .to                 (piece, GameObjectAccessor.SLERP, 0.2f)
@@ -344,7 +340,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   }
   public void resetPieceRotation (final Piece piece) {
     piece.targetRotation.idt();
-    // Start tweening.
+    // Start animating.
     piece.prepareSlerping (tweener);
     Tween
       .to                 (piece, GameObjectAccessor.SLERP, 0.5f)
@@ -427,7 +423,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     Gdx.gl.glEnable(GL20.GL_CULL_FACE);
     Gdx.gl.glCullFace(GL20.GL_BACK);
     
-    // Update any pending tweening.
+    // Update any pending animation.
     tweener.update      (delta);
     // Update camera controller.
     combCtrlMain.update ();
@@ -453,6 +449,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
     // Apply post-processing.
     postProMain.render  ();
+
     // Update flat UI.
     ui.actAndDraw       (delta);
 }

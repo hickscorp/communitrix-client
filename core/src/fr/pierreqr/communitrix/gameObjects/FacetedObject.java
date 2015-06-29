@@ -18,6 +18,8 @@ public abstract class FacetedObject extends GameObject {
     super(Communitrix.getInstance().dummyModel);
   }
   
+  
+  private static final float r = 0.5f;
   public void setFromSharedPiece (final SHPiece newPiece) {
     clear               ();
     sharedPiece         = newPiece;
@@ -25,7 +27,6 @@ public abstract class FacetedObject extends GameObject {
       return;
 
     // Cache stuff.
-    final float   r   = Communitrix.CellComponentRadius;
     final SHPiece p   = sharedPiece;
     // Make the temporary contents array.
     final int[][][]   contents  = new int[p.size.x][p.size.y][p.size.z];
