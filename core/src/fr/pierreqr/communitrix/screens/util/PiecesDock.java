@@ -26,6 +26,7 @@ public class PiecesDock {
     return firstPieceIndex;
   }
   public void setFirstPieceIndex (final int firstPieceIndex) {
+    this.firstPieceIndex        = firstPieceIndex;
     // Compute largest piece size.
     final Array<Piece>  pieces  = delegate.getAvailablePieces();
     int                 largest = Integer.MIN_VALUE;

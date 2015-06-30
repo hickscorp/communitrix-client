@@ -3,8 +3,9 @@ package fr.pierreqr.communitrix.networking.commands.rx;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 
 public class RXCombatPlayerTurn extends RXBase {
-  public    String      playerUUID;
-  public    SHPiece       piece;
+  public    String        playerUUID;
+  public    int           unitId;
+  public    SHPiece       unit;
   public RXCombatPlayerTurn () {
     super   (Rx.CombatPlayerTurn);
   }

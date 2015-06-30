@@ -79,6 +79,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
   private final Piece                 target;
+  private final Array<SHPiece>        units;
   private final Piece                 unit;
   private final Array<Piece>          pieces;
   private final Array<Piece>          availablePieces;
@@ -148,6 +149,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
     
     // Create unit piece.
+    units                 = new Array<SHPiece>();
     unit                  = new Piece();
     unit.transform
       .translate          (unit.targetPosition.set(0, 3, 0));
@@ -216,9 +218,11 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     instances.add         (obj);
     players.add           (player);
     // Schedule animation.
+    obj.targetPosition.y  = 0;
+    obj.prepareTweening   (tweener);
     Tween
       .to                 (obj, GameObjectAccessor.TransY, 1.2f)
-      .target             (0)
+      .target             (obj.targetPosition.y)
       .ease               (Bounce.OUT)
       .start              (tweener);
     return this;
@@ -231,9 +235,10 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     for (final SHPlayer player : players) {
       if (shift) {
         final GameObject obj  = characters.get(player.uuid);
+        obj.targetPosition.x  = (idx-1) * 2.5f;
         Tween
           .to             (obj, GameObjectAccessor.TransX, 0.5f)
-          .target         ((idx-1) * 2.5f)
+          .target         (obj.targetPosition.x)
           .delay          (0.3f)
           .ease           (Bounce.OUT)
           .start          (tweener);
@@ -246,10 +251,10 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
         mat.rotate            (Vector3.Y, 180);
         mat.getRotation       (obj.targetRotation);
         obj.targetPosition.y  = -30;
-        obj.prepareSlerping   (tweener);
+        obj.prepareTweening   (tweener);
         Tween
-          .to                 (obj, GameObjectAccessor.TransY | GameObjectAccessor.SLERP, 0.5f)
-          .target             (obj.targetPosition.y, 1)
+          .to                 (obj, GameObjectAccessor.AllAuto, 0.5f)
+          .target             (1)
           .ease               (aurelienribon.tweenengine.equations.Expo.IN)
           .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }})
           .start              (tweener);
@@ -280,7 +285,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void selectPiece (final Piece piece) {
-    piece.targetPosition.set(unit.targetPosition);
+    piece.targetPosition
+      .set        (unit.targetPosition);
     Tween
       .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
       .target     (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
@@ -292,31 +298,13 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetPosition
-      .add    (translation);
-    int       order       = 0;
-    byte      reqSize     = 0;
-    if (translation.x!=0.0f) {
-      order     = order | GameObjectAccessor.TransX;
-      reqSize   ++;
-    }
-    if (translation.y!=0.0f) {
-      order     = order | GameObjectAccessor.TransY;
-      reqSize   ++;
-    }
-    if (translation.z!=0.0f) {
-      order     = order | GameObjectAccessor.TransZ;
-      reqSize   ++;
-    }
-    final float[] targets     = new float[reqSize];
-    reqSize                   = 0;
-    if (translation.x!=0.0f)  targets[reqSize++]  = piece.targetPosition.x;
-    if (translation.y!=0.0f)  targets[reqSize++]  = piece.targetPosition.y;
-    if (translation.z!=0.0f)  targets[reqSize++]  = piece.targetPosition.z;
+      .add        (translation);
+    piece.prepareTweening(tweener);
     Tween
-      .to                 (piece, order, 0.3f)
-      .target             (targets)
-      .ease               (Quad.INOUT)
-      .start              (tweener);
+      .to         (piece, GameObjectAccessor.AllAuto, 0.3f)
+      .target     (1.0f)
+      .ease       (Quad.INOUT)
+      .start      (tweener);
   }
   public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
     tmpMat4.idt();
@@ -331,18 +319,18 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .rotate       (piece.targetRotation)
       .getRotation  (piece.targetRotation);
     // Start animating.
-    piece.prepareSlerping (tweener);
+    piece.prepareTweening (tweener);
     Tween
-      .to                 (piece, GameObjectAccessor.SLERP, 0.2f)
+      .to                 (piece, GameObjectAccessor.AllAuto, 0.2f)
       .target             (1.0f)
       .start              (tweener);
   }
   public void resetPieceRotation (final Piece piece) {
     piece.targetRotation.idt();
     // Start animating.
-    piece.prepareSlerping (tweener);
+    piece.prepareTweening (tweener);
     Tween
-      .to                 (piece, GameObjectAccessor.SLERP, 0.5f)
+      .to                 (piece, GameObjectAccessor.AllAuto, 0.5f)
       .target             (1.0f)
       .ease               (Quad.INOUT)
       .start              (tweener);
@@ -361,8 +349,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .conjugate();
     // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
     tmpVec3
-      .set      (piece.targetPosition)
-      .sub      (unit.targetPosition)
+      .set      (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
+      .sub      (unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z)
       .mul      (tmpQuat);
     // Post-rotate the unit rotation by the piece rotation. The result is a translation / rotation relative to the unit.
     tmpQuat
@@ -370,14 +358,14 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     // Give the order!
     ctx.networkingManager.send(new TXCombatPlayTurn(idx, tmpQuat, tmpVec3));
   }
-  public void setTurn (final int turn) {
-    currentTurn = turn;
-  }
-  public void setTurnUnit (final SHPiece newUnit) {
-    unit.setFromSharedPiece(newUnit);
+  public void setTurn (final int turn, final int unitId) {
+    currentTurn               = turn;
+    final SHPiece currentUnit = units.get(unitId);
+    if (currentUnit.size.volume()!=0)
+      unit.setFromSharedPiece (currentUnit);
   }
 
-  public SCLobby prepare (final SHPiece target, final SHPiece[] newPieces) {
+  public SCLobby prepare (final SHPiece target, final SHPiece[] newUnits, final SHPiece[] newPieces) {
     // Set up the target.
     if (target!=null)
       this.target.setFromSharedPiece(target);
@@ -397,9 +385,18 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       }
       availablePieces.addAll    (pieces);
       instances.addAll          (pieces);
+      units.clear               ();
+      units.addAll              (newUnits);
       cyclePieces               (0);
     }
     return this;
+  }
+  public void registerPlayerTurn (final String playerUUID, final int unitId, final SHPiece unit) {
+    final SHPiece oldUnit  = units.get(unitId);
+    oldUnit.size    = unit.size;
+    oldUnit.min     = unit.min;
+    oldUnit.max     = unit.max;
+    oldUnit.content = unit.content;
   }
   
   @Override public void show ()   {}

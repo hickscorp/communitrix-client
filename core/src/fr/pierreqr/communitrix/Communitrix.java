@@ -6,13 +6,17 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g3d.Attribute;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -60,6 +64,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
   // Shared members.
   public          ApplicationType   applicationType;
+  public          FPSLogger         fpsLogger;
   public          int               viewWidth, viewHeight;
   public          Skin              uiSkin;
   public          ModelBuilder      modelBuilder;
@@ -105,21 +110,30 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   
   @Override public void create () {
     // Cache application type.
-    applicationType         = Gdx.app.getType();
+    applicationType     = Gdx.app.getType();
+    fpsLogger           = new FPSLogger();
 
     // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop)
-      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+//    if (applicationType==ApplicationType.Desktop)
+//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
-      Attribute   blend = new BlendingAttribute(0.94f);
-      faceMaterials[0]  = new Material(ColorAttribute.createDiffuse(0.9f, 0.6f, 0.6f, 1.0f), blend);
-      faceMaterials[1]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.8f, 0.4f, 1.0f), blend);
-      faceMaterials[2]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.9f, 0.6f, 1.0f), blend);
-      faceMaterials[3]  = new Material(ColorAttribute.createDiffuse(0.8f, 0.4f, 0.8f, 1.0f), blend);
-      faceMaterials[4]  = new Material(ColorAttribute.createDiffuse(0.6f, 0.6f, 0.9f, 1.0f), blend);
-      faceMaterials[5]  = new Material(ColorAttribute.createDiffuse(0.4f, 0.8f, 0.8f, 1.0f), blend);
+      TextureAtlas  atlas     = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
+      AtlasRegion   lRegion   = atlas.findRegion("left");
+      AtlasRegion   rRegion   = atlas.findRegion("right");
+      AtlasRegion   boRegion  = atlas.findRegion("bottom");
+      AtlasRegion   tRegion   = atlas.findRegion("top");
+      AtlasRegion   baRegion  = atlas.findRegion("backward");
+      AtlasRegion   fRegion   = atlas.findRegion("forward");
+
+      Attribute     blend     = new BlendingAttribute(1.0f);
+      faceMaterials[Left]     = new Material(TextureAttribute.createDiffuse(lRegion), blend);
+      faceMaterials[Right]    = new Material(TextureAttribute.createDiffuse(rRegion), blend);
+      faceMaterials[Bottom]   = new Material(TextureAttribute.createDiffuse(boRegion), blend);
+      faceMaterials[Top]      = new Material(TextureAttribute.createDiffuse(tRegion), blend);
+      faceMaterials[Backward] = new Material(TextureAttribute.createDiffuse(baRegion), blend);
+      faceMaterials[Forward]  = new Material(TextureAttribute.createDiffuse(fRegion), blend);
     }
 
     // Force cache viewport size.
@@ -161,6 +175,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
   // Occurs whenever the viewport needs to render.
   @Override public void render () {
+    fpsLogger.log ();
     super.render  ();
   }
 
@@ -229,11 +244,11 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         Gdx.app.log(LogTag, "Server is sending us into combat (" +
                               "UUID: " + cmd.uuid + ", " +
                               "Target blocks: " + cmd.target.content.length + ", " +
-                              "Cells: " + cmd.cells.length + ", " +
+                              "Cells: " + cmd.units.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
         getLazyLobbyScreen()
           .setState(SCLobby.State.Starting)
-          .prepare        (cmd.target, cmd.pieces);
+          .prepare        (cmd.target, cmd.units, cmd.pieces);
         break;
       }
       case CombatNewTurn: {
@@ -241,13 +256,13 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
         getLazyLobbyScreen()
           .setState       (SCLobby.State.NewTurn)
-          .setTurn        (cmd.turnId);
+          .setTurn        (cmd.turnId, cmd.unitId);
         break;
       }
       case CombatPlayerTurn: {
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
         getLazyLobbyScreen()
-          .setTurnUnit       (cmd.piece);
+          .registerPlayerTurn   (cmd.playerUUID, cmd.unitId, cmd.unit);
          break;
       }
       case CombatEnd: {

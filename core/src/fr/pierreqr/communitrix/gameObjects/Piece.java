@@ -23,7 +23,7 @@ public class Piece extends FacetedObject {
   protected void begin (final SHPiece piece) {
     // Prepare mesh builders.
     for (final MeshBuilder builder : builders) {
-      builder.begin (Usage.Position | Usage.Normal, GL20.GL_TRIANGLES);
+      builder.begin (Usage.Position | Usage.Normal | Usage.TextureCoordinates, GL20.GL_TRIANGLES);
     }
   }
   protected MeshPartBuilder builderFor (final int x, final int y, final int z, final int index, final int direction) {

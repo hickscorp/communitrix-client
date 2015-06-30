@@ -14,7 +14,9 @@ public class GameObject extends ModelInstance {
   public final      BoundingBox   bounds;
   public            float         radius;
   
+  public final      Vector3       startPosition   = new Vector3();
   public final      Vector3       targetPosition  = new Vector3();
+  public final      Quaternion    startRotation   = new Quaternion();
   public final      Quaternion    targetRotation  = new Quaternion();
   public            float         lerpFactor, slerpFactor;
   
@@ -32,18 +34,16 @@ public class GameObject extends ModelInstance {
     radius                = dimensions.len() / 2f;
   }
   
-  public void prepareSlerping (final TweenManager tweener) {
-    slerpFactor         = 0.0f;
-    tweener.killTarget  (this);
-    roundTargetRotation ();
-    transform
-      .setTranslation   (targetPosition);
+  public void prepareTweening (final TweenManager tweener) {
+    tweener.killTarget        (this);
+    lerpFactor                = 0.0f;
+    slerpFactor               = 0.0f;
+    transform.getTranslation  (startPosition);
+    transform.getRotation     (startRotation);
+    roundTargetRotation       ();
   }
-  public void roundRotation () {
-    Vector3     tmpVec  = transform.getTranslation(new Vector3());
-    transform.set       (tmpVec, targetRotation);
-  }
-  public void roundTargetRotation () {
+  private void roundTargetRotation () {
+    targetRotation.nor        ();
     targetRotation.x    = Math.round(targetRotation.x * 100.0) / 100.0f;
     targetRotation.y    = Math.round(targetRotation.y * 100.0) / 100.0f;
     targetRotation.z    = Math.round(targetRotation.z * 100.0) / 100.0f;
