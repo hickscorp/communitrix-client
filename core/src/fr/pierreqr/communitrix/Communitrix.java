@@ -33,7 +33,6 @@ import fr.pierreqr.communitrix.networking.commands.rx.RXCombatPlayerTurn;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
 import fr.pierreqr.communitrix.networking.commands.rx.RXError;
 import fr.pierreqr.communitrix.networking.commands.rx.RXWelcome;
-import fr.pierreqr.communitrix.screens.SCCombat;
 import fr.pierreqr.communitrix.screens.SCLobby;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
@@ -81,7 +80,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   
   // All our different screens.
   private         SCLobby       lobbyScreen;
-  private         SCCombat      combatScreen;
 
   public static Communitrix getInstance() {
     return instance;
@@ -109,9 +107,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Cache application type.
     applicationType         = Gdx.app.getType();
 
-//    // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop)
-//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+    // After starting the application, we can query for the desktop dimensions
+    if (applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -157,7 +155,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       networkingManager.stop  ();
     }
     if (dummyModel!=null)     dummyModel.dispose();
-    if (combatScreen!=null)   combatScreen.dispose();
     if (lobbyScreen!=null)    lobbyScreen.dispose();
     modelBatch.dispose      ();
   }
@@ -195,9 +192,10 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case Welcome: {
         Gdx.app.log         (LogTag, "Server is welcoming us: " + ((RXWelcome)baseCmd).message);
-        getLazyLobbyScreen()
-          .setState         (SCLobby.State.Global);
-        setScreen           (lobbyScreen);
+        setScreen           (
+          getLazyLobbyScreen()
+            .setState         (SCLobby.State.Global)
+        );
         break;
       }
       case Registered: {
@@ -209,11 +207,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         break;
       }
       case CombatJoin: {
-        setScreen(
-          getLazyLobbyScreen()
-            .setState         (SCLobby.State.Joined)
-            .setPlayers       (((RXCombatJoin)baseCmd).combat.players)
-        );
+        getLazyLobbyScreen()
+          .setState         (SCLobby.State.Joined)
+          .setPlayers       (((RXCombatJoin)baseCmd).combat.players);
         break;
       }
       case CombatPlayerJoined: {
@@ -235,27 +231,22 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
                               "Target blocks: " + cmd.target.content.length + ", " +
                               "Cells: " + cmd.cells.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
-        setScreen(
-            getLazyLobbyScreen()
-              .setState(SCLobby.State.Starting)
-              .prepare        (cmd.target, cmd.pieces)
-          );
-        // Should in fact be this one.
-        getLazyCombatScreen()
-          .setUp            (combatScreen.new Configuration(cmd, lobbyScreen.players));
+        getLazyLobbyScreen()
+          .setState(SCLobby.State.Starting)
+          .prepare        (cmd.target, cmd.pieces);
         break;
       }
       case CombatNewTurn: {
         RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
         Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
         getLazyLobbyScreen()
-        .setState(SCLobby.State.NewTurn)
-        .setTurn        (cmd.turnId);
+          .setState       (SCLobby.State.NewTurn)
+          .setTurn        (cmd.turnId);
         break;
       }
       case CombatPlayerTurn: {
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
-          getLazyLobbyScreen()
+        getLazyLobbyScreen()
           .setTurnUnit       (cmd.piece);
          break;
       }
@@ -267,5 +258,4 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   }
 
   private SCLobby getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new SCLobby(this)   : lobbyScreen; }
-  private SCCombat getLazyCombatScreen  () { return combatScreen==null  ? combatScreen  = new SCCombat(this)  : combatScreen; }
 }

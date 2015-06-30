@@ -149,10 +149,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     
     // Create unit piece.
     unit                  = new Piece();
-    unit.targetPosition
-      .set                (0, 3, 0);
     unit.transform
-      .translate          (0, 3, 0);
+      .translate          (unit.targetPosition.set(0, 3, 0));
     instances.add          (unit);
     // Create various arrays..
     pieces                = new Array<Piece>();
@@ -293,7 +291,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     piecesDock.refresh    ();
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
-    piece.targetPosition.add(translation);
+    piece.targetPosition
+      .add    (translation);
     int       order       = 0;
     byte      reqSize     = 0;
     if (translation.x!=0.0f) {
@@ -362,8 +361,8 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .conjugate();
     // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
     tmpVec3
-      .set      (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
-      .sub      (unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z)
+      .set      (piece.targetPosition)
+      .sub      (unit.targetPosition)
       .mul      (tmpQuat);
     // Post-rotate the unit rotation by the piece rotation. The result is a translation / rotation relative to the unit.
     tmpQuat

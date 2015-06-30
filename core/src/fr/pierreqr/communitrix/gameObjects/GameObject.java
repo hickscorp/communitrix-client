@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
-import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class GameObject extends ModelInstance {
   // Center and dimensions will be re-calculated based on radius.
@@ -15,9 +14,9 @@ public class GameObject extends ModelInstance {
   public final      BoundingBox   bounds;
   public            float         radius;
   
-  public final      SHVector      targetPosition  = new SHVector();
+  public final      Vector3       targetPosition  = new Vector3();
   public final      Quaternion    targetRotation  = new Quaternion();
-  public            float         slerpFactor;
+  public            float         lerpFactor, slerpFactor;
   
   public GameObject (Model model) {
     super           (model);
@@ -34,9 +33,15 @@ public class GameObject extends ModelInstance {
   }
   
   public void prepareSlerping (final TweenManager tweener) {
-    roundTargetRotation ();
     slerpFactor         = 0.0f;
     tweener.killTarget  (this);
+    roundTargetRotation ();
+    transform
+      .setTranslation   (targetPosition);
+  }
+  public void roundRotation () {
+    Vector3     tmpVec  = transform.getTranslation(new Vector3());
+    transform.set       (tmpVec, targetRotation);
   }
   public void roundTargetRotation () {
     targetRotation.x    = Math.round(targetRotation.x * 100.0) / 100.0f;

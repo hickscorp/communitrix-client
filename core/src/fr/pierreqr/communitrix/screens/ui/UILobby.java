@@ -20,19 +20,19 @@ import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 import fr.pierreqr.communitrix.screens.SCLobby;
 
 public class UILobby extends InputAdapter implements ErrorResponder {
-  private       Communitrix         ctx;
+  private       Communitrix     ctx;
   private       SCLobby.State   state;
-  private final boolean             debug       = false;
-  private final int                 pad         = 5;
+  private final boolean         debug       = false;
+  private final int             pad         = 5;
 
-  private       String[]            combats;
+  private       String[]        combats;
   
-  private final Timer               timer;
-  private final Stage               stage;
-  private final Skin                skin;
-  private final Table               tblMain, tblCombats;
-  private final Label               lblTitle, lblStatus;
-  private final TextField           txtUsername;
+  private final Timer           timer;
+  private final Stage           stage;
+  private final Skin            skin;
+  private final Table           tblMain, tblCombats;
+  private final Label           lblTitle, lblStatus;
+  private final TextField       txtUsername;
 
   public UILobby () {
     // Cache some global things.
@@ -123,6 +123,8 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         // Title row.
         lblTitle.setText  ("Starting combat...");
         break;
+      case NewTurn:
+        lblTitle.setText  ("In a turn.");
       default :
         break;
     }
