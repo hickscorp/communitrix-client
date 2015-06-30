@@ -27,6 +27,7 @@ import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
+import fr.pierreqr.communitrix.networking.commands.rx.RXAcknowledgment;
 import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.rx.RXCombatList;
@@ -203,6 +204,12 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         if (errorResponder==null)
           errorResponder  = this;
         errorResponder.setLastError(cmd.code, cmd.reason);
+        break;
+      }
+      case Acknowledgment: {
+        final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
+        getLazyLobbyScreen()
+          .handleAcknowledgment(cmd.serial, cmd.valid);
         break;
       }
       case Welcome: {

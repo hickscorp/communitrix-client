@@ -81,6 +81,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Piece                 target;
   private final Array<SHPiece>        units;
   private final Piece                 unit;
+  private       Piece                 pieceBeingPlayed  = null;
   private final Array<Piece>          pieces;
   private final Array<Piece>          availablePieces;
   private final PiecesDock            piecesDock;
@@ -341,8 +342,10 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       return;
     }
     final int idx           = pieces.indexOf(piece, true);
-    instances.removeValue   (piece, true);
-    piecesDock.refresh      ();
+
+    // Store the piece that is being played so we can rollback / validate upon server ack.
+    pieceBeingPlayed        = piece;
+    
     // Get current unit rotation, invert it.
     tmpQuat
       .set      (unit.targetRotation)
@@ -356,7 +359,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     tmpQuat
       .mul      (piece.targetRotation);
     // Give the order!
-    ctx.networkingManager.send(new TXCombatPlayTurn(idx, tmpQuat, tmpVec3));
+    final TXCombatPlayTurn cmd  = new TXCombatPlayTurn(idx, tmpQuat, tmpVec3);
+    cmd.serial                  = "PlayTurn";
+    ctx.networkingManager.send  (cmd);
   }
   public void setTurn (final int turn, final int unitId) {
     currentTurn               = turn;
@@ -364,7 +369,15 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     if (currentUnit.size.volume()!=0)
       unit.setFromSharedPiece (currentUnit);
   }
-
+  
+  public void handleAcknowledgment (final String serial, final boolean valid) {
+    if (serial.equals("PlayTurn")) {
+      if (valid)
+        instances.removeValue (pieceBeingPlayed, true);
+      piecesDock.refresh      ();
+    }
+  }
+  
   public SCLobby prepare (final SHPiece target, final SHPiece[] newUnits, final SHPiece[] newPieces) {
     // Set up the target.
     if (target!=null)

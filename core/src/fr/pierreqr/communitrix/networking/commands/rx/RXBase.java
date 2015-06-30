@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 public class RXBase {
   public enum Rx {
     Error,              // Error notification.
+    Acknowledgment,     // Acceptation / Deny of a previous command.
     Welcome,            // Server welcome.
     Registered,         // Received upon successful registration.
     CombatList,         // List of combats.
@@ -22,7 +23,7 @@ public class RXBase {
     private final static  HashMap<RXBase.Rx,TypeReference<?>> TypesMap; static {
       TypesMap      = new HashMap<RXBase.Rx,TypeReference<?>>();
       TypesMap.put  (Rx.Error,              new TypeReference<RXError>(){});
-      TypesMap.put  (Rx.Error,              new TypeReference<RXError>(){});
+      TypesMap.put  (Rx.Acknowledgment,     new TypeReference<RXAcknowledgment>(){});
       TypesMap.put  (Rx.Welcome,            new TypeReference<RXWelcome>(){});
       TypesMap.put  (Rx.Registered,         new TypeReference<RXRegistered>(){});
       TypesMap.put  (Rx.CombatList,         new TypeReference<RXCombatList>(){});

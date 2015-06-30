@@ -9,6 +9,7 @@ public class TXBase {
     CombatPlayTurn      // Plays a turn.
   }
   public    TXBase.Tx    type;
+  public    String       serial;
   public TXBase (final Tx type) {
     this.type   = type;
   }
