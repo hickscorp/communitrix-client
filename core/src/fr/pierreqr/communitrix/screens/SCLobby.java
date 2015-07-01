@@ -29,18 +29,20 @@ import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
+import fr.pierreqr.communitrix.networking.shared.SHCombat;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
+import fr.pierreqr.communitrix.screens.ui.UILobby.UILobbyDelegate;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
-public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Global, Joined, Starting, NewTurn }
+public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
+  public                enum          State         { Unknown, Global, Joined, NewTurn }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
@@ -53,7 +55,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   // Various locations for objects.
   public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
 
-  private final static  Vector3       tmpVec3       = new Vector3();
+  private final static  Vector3       tmpVec        = new Vector3();
   private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
@@ -68,11 +70,21 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Camera                camMain, camTarget;
   private final ICLobby               combCtrlMain;
   private final PostProcessor         postProMain;
+
   // State related members.
   private       State                 state         = State.Unknown;
   private       CameraState           cameraState   = CameraState.Unknown;
-  public final  Array<SHPlayer>       players       = new Array<SHPlayer>();
-  private       int                   currentTurn   = 0;
+  // The last loaded list of combats.
+  private final Array<SHCombat>       combats       = new Array<SHCombat>();
+  // The current combat we've joined.
+  private       SHCombat              combat        = null;
+  // The list of players.
+  private final Array<SHPlayer>       players       = new Array<SHPlayer>();
+  // The currently selected piece.
+  private       Piece                 selectedPiece = null;
+  // The piece being played / that was played this turn.
+  private       Piece                 playedPiece   = null;
+
   // Various object instances.
   private final Model                 characterModel;
   private final Array<GameObject>     instances     = new Array<GameObject>();
@@ -81,7 +93,6 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   private final Piece                 target;
   private final Array<SHPiece>        units;
   private final Piece                 unit;
-  private       Piece                 pieceBeingPlayed  = null;
   private final Array<Piece>          pieces;
   private final Array<Piece>          availablePieces;
   private final PiecesDock            piecesDock;
@@ -93,7 +104,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     // Cache our game instance.
     ctx                   = communitrix;
     // Initialize our UI manager.
-    ui                    = new UILobby();
+    ui                    = new UILobby(this);
     ctx.setErrorResponder (ui);
     // Initialize animation engine.
     tweener               = new TweenManager();
@@ -107,9 +118,9 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     
     // Set up the scene environment.
     envMain               = new Environment();
-    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.7f, 0.7f, 0.7f, 1.0f));
+    envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1.0f));
     envMain.set           (new ColorAttribute(ColorAttribute.Fog, 0.01f, 0.01f, 0.01f, 1.0f));
-    envMain.add           (new DirectionalLight().set(new Color(0.3f, 0.3f, 0.3f, 1.0f), -1f, -0.8f, -0.2f));
+    envMain.add           (new DirectionalLight().set(new Color(0.6f, 0.6f, 0.6f, 1.0f), -1f, -0.8f, -0.2f));
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
@@ -167,36 +178,49 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
   // Setter on state, handles transitions.
   public SCLobby setState (final State state) {
     if (this.state!=state) {
-      ui.setState         (this.state = state);
       switch (state) {
         case Global:
-          ui.loadCombatList();
-          Gdx.input.setInputProcessor (ui.getStage());
+          Gdx.input
+            .setInputProcessor  (ui.getStage());
           break;
         case Joined:
-          setCameraState(CameraState.Lobby);
-          Gdx.input.setInputProcessor (combCtrlMain);
-          break;
-        case Starting:
-          setState(State.NewTurn);
-          currentTurn = 1;
+          Gdx.input
+            .setInputProcessor  (combCtrlMain);
+          setCameraState        (CameraState.Lobby);
           break;
         case NewTurn:
-          setCameraState(CameraState.Pieces);
+          setCameraState        (CameraState.Pieces);
           break;
         default :
           break;
       }
     }
+    ui.setState         (this.state = state);
     return this;
   }
   
-  // Whenever the server updates the client with a combat list, this gets called.
-  public SCLobby setCombats (final String[] combats) {
-    ui.setCombats (combats);
-    return        this;
+  public Array<SHCombat> getCombats () { return combats; }
+  public SCLobby setCombats (final SHCombat[] newCombats) {
+    combats.clear     ();
+    combats.addAll    (newCombats);
+    ui.updateCombats  ();
+    return            this;
   }
+  public SCLobby setCombat (final SHCombat newCombat) {
+    combat      = newCombat;
+    for (final SHCombat c : combats) {
+      if (combat.uuid.equals(c.uuid)) {
+        combat    = c;
+        break;
+      }
+    }
+    return      this;
+  }
+  public SHCombat getCombat () { return combat; }
   // Setter on players, handles list population.
+  public Array<SHPlayer> getPlayers () {
+    return players;
+  }
   public SCLobby setPlayers (final ArrayList<SHPlayer> players) {
     Gdx.app.log         (LogTag, "Setting new player list (" + players.size() + ").");
     // Remove all character instances.
@@ -266,7 +290,7 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     return this;
   }
   
-  public int          getTurn         ()  { return currentTurn; }
+  public int          getTurn         ()  { return combat.currentTurn; }
   public Camera       getCamera       ()  { return camMain; }
   public CameraState  getCameraState  ()  { return cameraState; }
   public void setCameraState (final CameraState cameraState) {
@@ -286,16 +310,23 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     piecesDock.setFirstPieceIndex(firstPieceIndex);
   }
   public void selectPiece (final Piece piece) {
-    piece.targetPosition
-      .set        (unit.targetPosition);
-    Tween
-      .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
-      .target     (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
-      .ease       (Quad.INOUT)
-      .start      (tweener);
-  }
-  public void deselectPiece (final Piece piece) {
-    piecesDock.refresh    ();
+    if (selectedPiece!=piece) {
+      selectedPiece   = piece;
+      // This is a selection.
+      if (selectedPiece!=null) {
+        piece.targetPosition
+          .set        (unit.targetPosition);
+        Tween
+          .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
+          .target     (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
+          .ease       (Quad.INOUT)
+          .start      (tweener);
+      }
+      // This is a deselection.
+      else {
+        piecesDock.refresh    ();
+      }
+    }
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
     piece.targetPosition
@@ -337,21 +368,24 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
       .start              (tweener);
   }
   public void playPiece (final Piece piece) {
-    if (!availablePieces.removeValue(piece, true)) {
-      ctx.setLastError(0, "You cannot play this piece twice.");
+    if (playedPiece!=null) {
+      ctx.setLastError  (0, "You already have played this turn, please wait.");
       return;
     }
-    final int idx           = pieces.indexOf(piece, true);
-
+    else if (!availablePieces.contains(piece, true)) {
+      ctx.setLastError  (0, "You cannot play this piece twice.");
+      return;
+    }
+    // Get the index of the piece to be played.
+    final int idx     = pieces.indexOf(piece, true);
     // Store the piece that is being played so we can rollback / validate upon server ack.
-    pieceBeingPlayed        = piece;
-    
+    playedPiece       = piece;
     // Get current unit rotation, invert it.
     tmpQuat
       .set      (unit.targetRotation)
       .conjugate();
     // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
-    tmpVec3
+    tmpVec
       .set      (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
       .sub      (unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z)
       .mul      (tmpQuat);
@@ -359,40 +393,50 @@ public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
     tmpQuat
       .mul      (piece.targetRotation);
     // Give the order!
-    final TXCombatPlayTurn cmd  = new TXCombatPlayTurn(idx, tmpQuat, tmpVec3);
+    final TXCombatPlayTurn cmd  = new TXCombatPlayTurn(idx, tmpQuat, tmpVec);
     cmd.serial                  = "PlayTurn";
     ctx.networkingManager.send  (cmd);
   }
-  public void setTurn (final int turn, final int unitId) {
-    currentTurn               = turn;
+  public SCLobby setTurn (final int turn, final int unitId) {
+    // Update our combat object.
+    combat.currentTurn        = turn;
+    // Register that no piece was played this turn.
+    playedPiece               = null;
     final SHPiece currentUnit = units.get(unitId);
     if (currentUnit.size.volume()!=0)
       unit.setFromSharedPiece (currentUnit);
+    return this;
   }
   
   public void handleAcknowledgment (final String serial, final boolean valid) {
+    Gdx.app.log(LogTag, String.format("Serial: %s, Valid: %b", serial, valid));
     if (serial.equals("PlayTurn")) {
-      if (valid)
-        instances.removeValue (pieceBeingPlayed, true);
+      if (valid) {
+        availablePieces.removeValue (playedPiece, true);
+        instances.removeValue       (playedPiece, true);
+      }
+      else {
+        ctx.setLastError      (0, "This piece cannot be played there at this time.");
+        playedPiece           = null;
+      }
       piecesDock.refresh      ();
     }
   }
   
   public SCLobby prepare (final SHPiece target, final SHPiece[] newUnits, final SHPiece[] newPieces) {
-    // Set up the target.
-    if (target!=null)
-      this.target.setFromSharedPiece(target);
+    this.target
+      .setFromSharedPiece       (target);
     // Place all my pieces.
     if (newPieces!=null) {
-      tmpVec3.set               (0, 0, -5);
+      tmpVec.set               (0, 0, -5);
       pieces.clear              ();
       availablePieces.clear     ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
-          .setTranslation(tmpVec3);
+          .setTranslation(tmpVec);
         obj.targetPosition
-          .set(tmpVec3);
+          .set(tmpVec);
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
       }

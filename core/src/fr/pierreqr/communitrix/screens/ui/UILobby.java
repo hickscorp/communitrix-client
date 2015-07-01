@@ -11,22 +11,30 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
+import fr.pierreqr.communitrix.networking.shared.SHCombat;
+import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.SCLobby;
 
 public class UILobby extends InputAdapter implements ErrorResponder {
+  public interface UILobbyDelegate {
+    Array<SHPlayer> getPlayers          ();
+    Array<SHCombat> getCombats          ();
+    int             getTurn             ();
+  };
+
   private       Communitrix     ctx;
   private       SCLobby.State   state;
   private final boolean         debug       = false;
   private final int             pad         = 5;
 
-  private       String[]        combats;
-  
+  private final UILobbyDelegate delegate;
   private final Timer           timer;
   private final Stage           stage;
   private final Skin            skin;
@@ -34,7 +42,10 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   private final Label           lblTitle, lblStatus;
   private final TextField       txtUsername;
 
-  public UILobby () {
+  public UILobby (final UILobbyDelegate delegate) {
+    // Save delegate.
+    this.delegate           = delegate;
+    
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
     skin                    = ctx.uiSkin;
@@ -56,7 +67,6 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     tblCombats.top          ();
     // Prepare the title field.
     lblTitle                = new Label("", skin);
-    lblTitle.setFontScale   (1.3f);
     // Prepare the status field.
     lblStatus               = new Label("", skin);
     lblStatus.setColor      (Color.RED);
@@ -66,7 +76,10 @@ public class UILobby extends InputAdapter implements ErrorResponder {
 
   // ErrorResponder implementation.
   public void setLastError (final int code, final String reason) {
-    lblStatus.setText (String.format("Error #%d: %s", code, reason));
+    flash (code==0 ? reason : String.format("Error #%d: %s", code, reason));
+  }
+  private void flash (final String message) {
+    lblStatus.setText (message);
     timer.scheduleTask(new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 3.0f);
   }
   
@@ -111,39 +124,31 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         tblMain.add       (tblCombats).colspan(2).pad(5);
         tblMain.row       ();
         // Refresh combats list.
-        updateCombats     ();
+        loadCombatList    ();
         break;
       case Joined:
-        // Clear combats table.
-        tblCombats.clear  ();
         // Title row.
-        lblTitle.setText  ("Joined state.");
-        break;
-      case Starting:
-        // Title row.
-        lblTitle.setText  ("Starting combat...");
+        if (delegate.getTurn()==0)
+          lblTitle.setText  ("Waiting for other players...");
+        else
+          lblTitle.setText  ("Starting combat...");
         break;
       case NewTurn:
-        lblTitle.setText  ("In a turn.");
+        lblTitle.setText  (String.format("In turn %d.", delegate.getTurn()));
       default :
         break;
     }
     return this;
   }
 
-  public UILobby setCombats (final String[] combats) {
-    this.combats    = combats;
-    updateCombats   ();
-    return          this;
-  }
-
   public void updateCombats () {
     // Remove combats list.
     tblCombats.clear  ();
     // Add the combats list.
+    final Array<SHCombat> combats = delegate.getCombats();
     if (combats!=null) {
-      lblStatus.setText(String.format("Loaded %d combat(s).", combats.length));
-      for (final String combat : combats) {
+      flash                   (String.format("Loaded %d combat(s).", combats.size));
+      for (final SHCombat combat : combats) {
         // Button row.
         final TextButton btnJoin = new TextButton("Join", skin);
         btnJoin.addListener(new ClickListener() {
@@ -151,10 +156,10 @@ public class UILobby extends InputAdapter implements ErrorResponder {
             ctx
               .networkingManager
               .send(new TXRegister(txtUsername.getText()))
-              .send(new TXCombatJoin(combat));
+              .send(new TXCombatJoin(combat.uuid));
           }
         });
-        tblCombats.add        (combat).pad(pad).right();
+        tblCombats.add        (String.format("%s: %d over %d to %d", combat.uuid, combat.players.size(), combat.minPlayers, combat.maxPlayers)).pad(pad).right();
         tblCombats.add        (btnJoin).pad(pad).left();
         tblCombats.row        ();
       }
@@ -172,7 +177,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   }
 
   public UILobby loadCombatList () {
-    lblStatus.setText  ("Loading combats list...");
+    flash             ("Loading combats list...");
     ctx
       .networkingManager
       .send           (new TXCombatList());

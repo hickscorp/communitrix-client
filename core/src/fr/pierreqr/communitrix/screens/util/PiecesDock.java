@@ -20,7 +20,7 @@ public class PiecesDock {
   }
   
   public void refresh () {
-    setFirstPieceIndex(firstPieceIndex);
+    setFirstPieceIndex  (firstPieceIndex);
   }
   public int getFirstPieceIndex () {
     return firstPieceIndex;

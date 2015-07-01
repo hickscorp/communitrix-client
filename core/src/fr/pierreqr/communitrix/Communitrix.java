@@ -6,10 +6,8 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g3d.Attribute;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
@@ -27,20 +25,10 @@ import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
-import fr.pierreqr.communitrix.networking.commands.rx.RXAcknowledgment;
-import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatJoin;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatList;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatNewTurn;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatPlayerJoined;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatPlayerLeft;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatPlayerTurn;
-import fr.pierreqr.communitrix.networking.commands.rx.RXCombatStart;
-import fr.pierreqr.communitrix.networking.commands.rx.RXError;
-import fr.pierreqr.communitrix.networking.commands.rx.RXWelcome;
+import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.screens.SCLobby;
-import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
+import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
@@ -65,7 +53,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
   // Shared members.
   public          ApplicationType   applicationType;
-  public          FPSLogger         fpsLogger;
   public          int               viewWidth, viewHeight;
   public          Skin              uiSkin;
   public          ModelBuilder      modelBuilder;
@@ -93,48 +80,40 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   
   public Communitrix () {
     // Store singleton instance.
-    instance                = this;
+    setErrorResponder       (instance = this);
     // Configure assets etc.
     ShaderLoader.BasePath   = "shaders/";
     // Prepare our random generator instance.
     rand                    = new Random();
     // Register motion tweening accessors.
     Tween.setCombinedAttributesLimit  (6);
-    Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
-    Tween.registerAccessor            (PointLight.class,        new PointLightAccessor());
-    Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
+    Tween.registerAccessor  (GameObject.class,        new GameObjectAccessor());
+    Tween.registerAccessor  (PointLight.class,        new PointLightAccessor());
+    Tween.registerAccessor  (PerspectiveCamera.class, new CameraAccessor());
   }
   // Getters / Setters.
-  public void setErrorResponder (final ErrorResponder er) {
-    errorResponder          = er;
+  public void setErrorResponder (final ErrorResponder newErrorResponder) {
+    errorResponder          = newErrorResponder;
   }
   
   @Override public void create () {
     // Cache application type.
     applicationType     = Gdx.app.getType();
-    fpsLogger           = new FPSLogger();
 
-    // After starting the application, we can query for the desktop dimensions
+//    // After starting the application, we can query for the desktop dimensions
 //    if (applicationType==ApplicationType.Desktop)
 //      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
       TextureAtlas  atlas     = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
-      AtlasRegion   lRegion   = atlas.findRegion("left");
-      AtlasRegion   rRegion   = atlas.findRegion("right");
-      AtlasRegion   boRegion  = atlas.findRegion("bottom");
-      AtlasRegion   tRegion   = atlas.findRegion("top");
-      AtlasRegion   baRegion  = atlas.findRegion("backward");
-      AtlasRegion   fRegion   = atlas.findRegion("forward");
-
-      Attribute     blend     = new BlendingAttribute(1.0f);
-      faceMaterials[Left]     = new Material(TextureAttribute.createDiffuse(lRegion), blend);
-      faceMaterials[Right]    = new Material(TextureAttribute.createDiffuse(rRegion), blend);
-      faceMaterials[Bottom]   = new Material(TextureAttribute.createDiffuse(boRegion), blend);
-      faceMaterials[Top]      = new Material(TextureAttribute.createDiffuse(tRegion), blend);
-      faceMaterials[Backward] = new Material(TextureAttribute.createDiffuse(baRegion), blend);
-      faceMaterials[Forward]  = new Material(TextureAttribute.createDiffuse(fRegion), blend);
+      Attribute     blend     = new BlendingAttribute(0.95f);
+      faceMaterials[Left]     = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),      blend);
+      faceMaterials[Right]    = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),     blend);
+      faceMaterials[Bottom]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),    blend);
+      faceMaterials[Top]      = new Material(TextureAttribute.createDiffuse(atlas.findRegion("top")),       blend);
+      faceMaterials[Backward] = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backward")),  blend);
+      faceMaterials[Forward]  = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forward")),   blend);
     }
 
     // Force cache viewport size.
@@ -160,7 +139,10 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   
   // ErrorResponder implementation.
   public void setLastError (final int code, final String reason) {
-    Gdx.app.log     (LogTag, "An error has occured: #" + code + " - " + reason);
+    if (errorResponder==this)
+      Gdx.app.log                 (LogTag, "An error has occured: #" + code + " - " + reason);
+    else
+      errorResponder.setLastError (code, reason);
   };
   
   // Occurs when the game exits.
@@ -176,7 +158,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
   // Occurs whenever the viewport needs to render.
   @Override public void render () {
-    fpsLogger.log ();
     super.render  ();
   }
 
@@ -201,23 +182,21 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     switch (baseCmd.type) {
       case Error: {
         final RXError cmd = (RXError)baseCmd;
-        if (errorResponder==null)
-          errorResponder  = this;
-        errorResponder.setLastError(cmd.code, cmd.reason);
+        setLastError(cmd.code, cmd.reason);
         break;
       }
       case Acknowledgment: {
         final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
+        Gdx.app.log         (LogTag, "Got Ack from server: " + cmd.toString());
         getLazyLobbyScreen()
           .handleAcknowledgment(cmd.serial, cmd.valid);
         break;
       }
       case Welcome: {
         Gdx.app.log         (LogTag, "Server is welcoming us: " + ((RXWelcome)baseCmd).message);
-        setScreen           (
+        setScreen(
           getLazyLobbyScreen()
-            .setState         (SCLobby.State.Global)
-        );
+            .setState         (SCLobby.State.Global));
         break;
       }
       case Registered: {
@@ -229,7 +208,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         break;
       }
       case CombatJoin: {
+        final RXCombatJoin cmd = (RXCombatJoin)baseCmd;
         getLazyLobbyScreen()
+          .setCombat        (cmd.combat)
           .setState         (SCLobby.State.Joined)
           .setPlayers       (((RXCombatJoin)baseCmd).combat.players);
         break;
@@ -254,16 +235,16 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
                               "Cells: " + cmd.units.length + ", " +
                               "Pieces: " + cmd.pieces.length + ").");
         getLazyLobbyScreen()
-          .setState(SCLobby.State.Starting)
-          .prepare        (cmd.target, cmd.units, cmd.pieces);
+          .prepare        (cmd.target, cmd.units, cmd.pieces)
+          .setState       (SCLobby.State.NewTurn);
         break;
       }
       case CombatNewTurn: {
         RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
         Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
         getLazyLobbyScreen()
-          .setState       (SCLobby.State.NewTurn)
-          .setTurn        (cmd.turnId, cmd.unitId);
+          .setTurn        (cmd.turnId, cmd.unitId)
+          .setState       (SCLobby.State.NewTurn);
         break;
       }
       case CombatPlayerTurn: {

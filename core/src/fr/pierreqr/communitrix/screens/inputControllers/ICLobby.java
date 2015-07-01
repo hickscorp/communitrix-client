@@ -25,7 +25,6 @@ public class ICLobby extends InputAdapter {
     Array<Piece>  getAvailablePieces  ();
     void          cyclePieces         (final int pieceIndex);
     void          selectPiece         (final Piece piece);
-    void          deselectPiece       (final Piece piece);
     void          translatePiece      (final Piece piece, final Vector3 axis);
     void          rotatePiece         (final Piece piece, final Vector3 axis, final int angle);
     void          resetPieceRotation  (final Piece piece);
@@ -78,7 +77,7 @@ public class ICLobby extends InputAdapter {
         if (selection!=clicked) {
           // We had a previous selection.
           if (selection!=null)
-            delegate.deselectPiece    (selection);
+            delegate.selectPiece    (null);
           delegate.selectPiece      (selection = clicked);
           delegate.setCameraState   (CameraState.Unit);
         }
@@ -158,10 +157,8 @@ public class ICLobby extends InputAdapter {
     else if (camState!=CameraState.Pieces) {
       if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
         delegate.setCameraState(CameraState.Pieces);
-        if (selection!=null) {
-          delegate.deselectPiece  (selection);
-          selection               = null;
-        }
+        if (selection!=null)
+          delegate.selectPiece    (selection = null);
       }
     }
     // Player is asking to reset target and unit.

@@ -11,7 +11,7 @@ public class TXCombatPlayTurn extends TXBase {
   public    SHVector      translation;
 
   public TXCombatPlayTurn (final int pieceIndex, final Quaternion rotation, final Vector3 translation) {
-    super         (Tx.CombatPlayTurn);
+    super             (Tx.CombatPlayTurn);
     this.pieceIndex   = pieceIndex;
     this.rotation     = new SHQuaternion(rotation);
     this.translation  = new SHVector(translation);
