@@ -344,7 +344,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     if (axis==Vector3.X)      tmpMat4.rotate(relXAxis, angle);
     // Asked to rotate around Y.
     else if (axis==Vector3.Y) tmpMat4.rotate(relYAxis, angle);
-    // Asked to rotate around Z, should *never* happend.
+    // Asked to rotate around Z, should never happen.
     else                      tmpMat4.rotate(relZAxis, angle);
     // Rotate by previous rotation and translation.
     tmpMat4

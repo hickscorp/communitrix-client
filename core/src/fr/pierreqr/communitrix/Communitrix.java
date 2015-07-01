@@ -6,6 +6,7 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g3d.Attribute;
@@ -100,14 +101,14 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Cache application type.
     applicationType     = Gdx.app.getType();
 
-//    // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop)
-//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+    // After starting the application, we can query for the desktop dimensions
+    if (applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
       TextureAtlas  atlas     = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
-      Attribute     blend     = new BlendingAttribute(0.95f);
+      Attribute     blend     = new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
       faceMaterials[Left]     = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),      blend);
       faceMaterials[Right]    = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),     blend);
       faceMaterials[Bottom]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),    blend);

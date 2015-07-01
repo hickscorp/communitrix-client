@@ -4,6 +4,7 @@ import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
@@ -12,6 +13,7 @@ public class GameObject extends ModelInstance {
   // Center and dimensions will be re-calculated based on radius.
   public final      Vector3       center, dimensions;
   public final      BoundingBox   bounds;
+  public final      BoundingBox   fakeBounds;
   public            float         radius;
   
   public final      Vector3       startPosition   = new Vector3();
@@ -25,6 +27,7 @@ public class GameObject extends ModelInstance {
     center          = new Vector3();
     dimensions      = new Vector3();
     bounds          = new BoundingBox();
+    fakeBounds      = new BoundingBox();
     recomputeBounds ();
   }
   public void recomputeBounds () {
@@ -34,6 +37,7 @@ public class GameObject extends ModelInstance {
     radius                = dimensions.len() / 2f;
   }
   
+  private final static Matrix4 tmpMat = new Matrix4();
   public void prepareTweening (final TweenManager tweener) {
     tweener.killTarget        (this);
     lerpFactor                = 0.0f;
@@ -41,6 +45,9 @@ public class GameObject extends ModelInstance {
     transform.getTranslation  (startPosition);
     transform.getRotation     (startRotation);
     roundTargetRotation       ();
+    fakeBounds
+      .set                    (bounds)
+      .mul                    (tmpMat.idt().rotate(targetRotation));
   }
   private void roundTargetRotation () {
     targetRotation.nor        ();

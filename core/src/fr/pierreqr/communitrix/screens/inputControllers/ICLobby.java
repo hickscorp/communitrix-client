@@ -48,16 +48,16 @@ public class ICLobby extends InputAdapter {
     Piece       clicked     = null;
     // Pick a ray from the cam.
     final Ray   ray         = delegate.getCamera().getPickRay(screenX, screenY);
-    // Dist will be a temp, while sDist will be the shortest found distance.
+    // Variable dist will be a temp, while sDist will be the shortest found distance.
     float       dist, sDist = Float.MAX_VALUE;
     BoundingBox bounds      = null;
     // Iterate through all instances.
     final Array<Piece> all  = delegate.getPieces();
     for (final Piece obj : all) {
-      obj.transform.getTranslation (tmpVec3);
+      tmpVec3.set       (obj.targetPosition);
       dist              = ray.origin.dst2(tmpVec3);
       if (dist<sDist) {
-        bounds          = new BoundingBox(obj.bounds);
+        bounds          = new BoundingBox(obj.fakeBounds);
         bounds.min.add  (tmpVec3);
         bounds.max.add  (tmpVec3);
         if (Intersector.intersectRayBounds(ray, bounds, null)) {
