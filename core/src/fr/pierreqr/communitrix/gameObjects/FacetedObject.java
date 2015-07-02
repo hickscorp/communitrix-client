@@ -15,10 +15,10 @@ public abstract class FacetedObject extends GameObject {
   public              SHPiece         sharedPiece;
 
   public FacetedObject () {
-    super(Communitrix.getInstance().dummyModel);
+    super (Communitrix.getInstance().dummyModel);
   }
   
-  private static final float r = 0.5f;
+  private static final float r = 0.47f;
   public void setFromSharedPiece (final SHPiece newPiece) {
     clear               ();
     sharedPiece         = newPiece;

@@ -54,10 +54,10 @@ public class ICLobby extends InputAdapter {
     // Iterate through all instances.
     final Array<Piece> all  = delegate.getPieces();
     for (final Piece obj : all) {
-      tmpVec3.set       (obj.targetPosition);
+      tmpVec3.set       (obj.anim.targetPosition);
       dist              = ray.origin.dst2(tmpVec3);
       if (dist<sDist) {
-        bounds          = new BoundingBox(obj.fakeBounds);
+        bounds          = new BoundingBox(obj.anim.fakeBounds);
         bounds.min.add  (tmpVec3);
         bounds.max.add  (tmpVec3);
         if (Intersector.intersectRayBounds(ray, bounds, null)) {
@@ -110,7 +110,8 @@ public class ICLobby extends InputAdapter {
         handleMovement    (delegate.getTarget(), true, false);
         handleMovement    (delegate.getUnit(), true, false);
         for (final Piece piece : delegate.getPieces())
-          handleMovement  (piece, true, false);
+          if (piece!=selection)
+            handleMovement  (piece, true, false);
       }
       return;
     }

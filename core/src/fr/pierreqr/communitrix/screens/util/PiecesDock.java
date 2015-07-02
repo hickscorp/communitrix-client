@@ -44,7 +44,7 @@ public class PiecesDock {
       shift
         .set  (x, 0, z)
         .add  (origin)
-        .sub  (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z);
+        .sub  (piece.anim.targetPosition);
       delegate.translatePiece   (piece, shift);
     }
   }

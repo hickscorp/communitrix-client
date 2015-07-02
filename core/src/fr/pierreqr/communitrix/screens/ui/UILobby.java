@@ -36,6 +36,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
 
   private final UILobbyDelegate delegate;
   private final Timer           timer;
+  private       Timer.Task      lastTask;
   private final Stage           stage;
   private final Skin            skin;
   private final Table           tblMain, tblCombats;
@@ -80,7 +81,9 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   }
   private void flash (final String message) {
     lblStatus.setText (message);
-    timer.scheduleTask(new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 3.0f);
+    if (lastTask!=null && lastTask.isScheduled())
+      lastTask.cancel ();
+    timer.scheduleTask(lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 3.0f);
   }
   
   // Getters

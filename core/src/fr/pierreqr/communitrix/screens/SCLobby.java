@@ -39,7 +39,6 @@ import fr.pierreqr.communitrix.screens.ui.UILobby.UILobbyDelegate;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
-import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
 public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
   public                enum          State         { Unknown, Global, Joined, NewTurn }
@@ -164,7 +163,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     units                 = new Array<SHPiece>();
     unit                  = new Piece();
     unit.transform
-      .translate          (unit.targetPosition.set(0, 3, 0));
+      .translate          (0, 3, 0);
+    unit.anim.reset       ();
     instances.add          (unit);
     // Create various arrays..
     pieces                = new Array<Piece>();
@@ -239,17 +239,14 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     Gdx.app.log           (LogTag, "Adding player (" + player.uuid + ").");
     final GameObject obj  = new GameObject(characterModel);
     obj.transform.setTranslation(players.size * 2.5f, 30, 10);
+    obj.anim.reset        ();
     characters.put        (player.uuid, obj);
     instances.add         (obj);
     players.add           (player);
     // Schedule animation.
-    obj.targetPosition.y  = 0;
-    obj.prepareTweening   (tweener);
-    Tween
-      .to                 (obj, GameObjectAccessor.TransY, 1.2f)
-      .target             (obj.targetPosition.y)
-      .ease               (Bounce.OUT)
-      .start              (tweener);
+    obj.anim
+      .targetPosition.y   = 0;
+    obj.anim.start        (tweener, 1.2f, Bounce.OUT);
     return this;
   }
   public SCLobby removePlayer (final String uuid) {
@@ -260,29 +257,24 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     for (final SHPlayer player : players) {
       if (shift) {
         final GameObject obj  = characters.get(player.uuid);
-        obj.targetPosition.x  = (idx-1) * 2.5f;
-        Tween
-          .to             (obj, GameObjectAccessor.TransX, 0.5f)
-          .target         (obj.targetPosition.x)
-          .delay          (0.3f)
-          .ease           (Bounce.OUT)
-          .start          (tweener);
+        obj.anim
+          .targetPosition.x = (idx-1) * 2.5f;
+        obj.anim
+          .start          (tweener, 0.5f, Bounce.OUT)
+          .delay          (0.3f);
       }
       else if (player.uuid.equals(uuid)) {
         final GameObject obj  = characters.remove(player.uuid);
         remove                = player;
         shift                 = true;
-        final Matrix4     mat = new Matrix4(obj.targetRotation);
+        final Matrix4     mat = new Matrix4(obj.anim.targetRotation);
         mat.rotate            (Vector3.Y, 180);
-        mat.getRotation       (obj.targetRotation);
-        obj.targetPosition.y  = -30;
-        obj.prepareTweening   (tweener);
-        Tween
-          .to                 (obj, GameObjectAccessor.AllAuto, 0.5f)
-          .target             (1)
-          .ease               (aurelienribon.tweenengine.equations.Expo.IN)
-          .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }})
-          .start              (tweener);
+        mat.getRotation       (obj.anim.targetRotation);
+        obj.anim
+          .targetPosition.y   = -30;
+        obj.anim
+          .start              (tweener, 0.5f, aurelienribon.tweenengine.equations.Expo.IN)
+          .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }});
       }
       ++idx;
     }
@@ -314,13 +306,10 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       selectedPiece   = piece;
       // This is a selection.
       if (selectedPiece!=null) {
-        piece.targetPosition
-          .set        (unit.targetPosition);
-        Tween
-          .to         (piece, GameObjectAccessor.TransXYZ, 0.3f)
-          .target     (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
-          .ease       (Quad.INOUT)
-          .start      (tweener);
+        piece.anim.targetPosition
+          .set            (unit.anim.targetPosition);
+        piece.anim
+          .start          (tweener, 0.3f, Quad.INOUT);
       }
       // This is a deselection.
       else {
@@ -329,14 +318,10 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     }
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
-    piece.targetPosition
+    piece.anim.targetPosition
       .add        (translation);
-    piece.prepareTweening(tweener);
-    Tween
-      .to         (piece, GameObjectAccessor.AllAuto, 0.3f)
-      .target     (1.0f)
-      .ease       (Quad.INOUT)
-      .start      (tweener);
+    piece.anim
+      .start      (tweener, 0.3f, Quad.INOUT);
   }
   public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
     tmpMat4.idt();
@@ -348,24 +333,18 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     else                      tmpMat4.rotate(relZAxis, angle);
     // Rotate by previous rotation and translation.
     tmpMat4
-      .rotate       (piece.targetRotation)
-      .getRotation  (piece.targetRotation);
+      .rotate       (piece.anim.targetRotation)
+      .getRotation  (piece.anim.targetRotation);
     // Start animating.
-    piece.prepareTweening (tweener);
-    Tween
-      .to                 (piece, GameObjectAccessor.AllAuto, 0.2f)
-      .target             (1.0f)
-      .start              (tweener);
+    piece.anim
+      .start              (tweener, 0.2f, Quad.INOUT);
   }
   public void resetPieceRotation (final Piece piece) {
-    piece.targetRotation.idt();
+    piece.anim.targetRotation
+      .idt                ();
     // Start animating.
-    piece.prepareTweening (tweener);
-    Tween
-      .to                 (piece, GameObjectAccessor.AllAuto, 0.5f)
-      .target             (1.0f)
-      .ease               (Quad.INOUT)
-      .start              (tweener);
+    piece.anim
+      .start              (tweener, 0.5f, Quad.INOUT);
   }
   public void playPiece (final Piece piece) {
     if (playedPiece!=null) {
@@ -378,20 +357,22 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     }
     // Get the index of the piece to be played.
     final int idx     = pieces.indexOf(piece, true);
+    selectedPiece     = null;
     // Store the piece that is being played so we can rollback / validate upon server ack.
     playedPiece       = piece;
+    // Prepare animation.
     // Get current unit rotation, invert it.
     tmpQuat
-      .set      (unit.targetRotation)
+      .set      (unit.anim.targetRotation)
       .conjugate();
     // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
     tmpVec
-      .set      (piece.targetPosition.x, piece.targetPosition.y, piece.targetPosition.z)
-      .sub      (unit.targetPosition.x, unit.targetPosition.y, unit.targetPosition.z)
+      .set      (piece.anim.targetPosition.x, piece.anim.targetPosition.y, piece.anim.targetPosition.z)
+      .sub      (unit.anim.targetPosition.x, unit.anim.targetPosition.y, unit.anim.targetPosition.z)
       .mul      (tmpQuat);
     // Post-rotate the unit rotation by the piece rotation. The result is a translation / rotation relative to the unit.
     tmpQuat
-      .mul      (piece.targetRotation);
+      .mul      (piece.anim.targetRotation);
     // Give the order!
     final TXCombatPlayTurn cmd  = new TXCombatPlayTurn(idx, tmpQuat, tmpVec);
     cmd.serial                  = "PlayTurn";
@@ -409,7 +390,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   }
   
   public void handleAcknowledgment (final String serial, final boolean valid) {
-    Gdx.app.log(LogTag, String.format("Serial: %s, Valid: %b", serial, valid));
     if (serial.equals("PlayTurn")) {
       if (valid) {
         availablePieces.removeValue (playedPiece, true);
@@ -429,20 +409,19 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Place all my pieces.
     if (newPieces!=null) {
       tmpVec.set               (0, 0, -5);
+      units.clear               ();
       pieces.clear              ();
       availablePieces.clear     ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
-          .setTranslation(tmpVec);
-        obj.targetPosition
-          .set(tmpVec);
+          .setTranslation       (tmpVec);
+        obj.anim.reset          ();
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
       }
       availablePieces.addAll    (pieces);
       instances.addAll          (pieces);
-      units.clear               ();
       units.addAll              (newUnits);
       cyclePieces               (0);
     }

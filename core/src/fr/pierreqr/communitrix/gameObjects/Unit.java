@@ -17,7 +17,7 @@ public class Unit extends FacetedObject {
   private final   HashMap<Integer,MeshBuilder>  builders;
 
   public Unit () {
-    super    ();
+    super       ();
     materials   = new HashMap<Integer, Material>();
     builders    = new HashMap<Integer, MeshBuilder>();
   }
