@@ -32,7 +32,7 @@ public class PiecesDock {
     int                 largest = Integer.MIN_VALUE;
     for (final Piece piece : pieces)
       largest   = Math.max(Math.max(Math.max(largest, piece.sharedPiece.size.x), piece.sharedPiece.size.y), piece.sharedPiece.size.z);
-    largest     += 2;
+    largest     += 1.5f;
     final int           width   = (int)Math.round(Math.sqrt(pieces.size));
     final Vector3       origin  = new Vector3(-(width-1)/2.0f*largest, -3, -(width-1)/2.0f*largest);
     final Vector3       shift   = new Vector3(0, 0, 0);

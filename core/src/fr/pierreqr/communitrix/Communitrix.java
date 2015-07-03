@@ -19,7 +19,9 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
@@ -102,8 +104,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop)
-      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+//    if (applicationType==ApplicationType.Desktop)
+//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -188,13 +190,11 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case Acknowledgment: {
         final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
-        Gdx.app.log         (LogTag, "Got Ack from server: " + cmd.toString());
         getLazyLobbyScreen()
           .handleAcknowledgment(cmd.serial, cmd.valid);
         break;
       }
       case Welcome: {
-        Gdx.app.log         (LogTag, "Server is welcoming us: " + ((RXWelcome)baseCmd).message);
         setScreen(
           getLazyLobbyScreen()
             .setState         (SCLobby.State.Global));
@@ -223,7 +223,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case CombatPlayerLeft: {
         final RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
-        Gdx.app.log(LogTag, "Player " + cmd.uuid + " has left the lobby.");
         getLazyLobbyScreen  ()
           .removePlayer       (cmd.uuid);
         break;
@@ -261,5 +260,29 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     }
   }
 
-  private SCLobby getLazyLobbyScreen    () { return lobbyScreen==null   ? lobbyScreen   = new SCLobby(this)   : lobbyScreen; }
+  private SCLobby getLazyLobbyScreen    () {
+    return lobbyScreen==null ? lobbyScreen = new SCLobby(this) : lobbyScreen;
+  }
+
+  public static float round (final float v) {
+    return    Math.round(v * 100.0f) / 100.0f;
+  }
+  public static Vector3 round (final Vector3 v) {
+    v.x     = round(v.x);
+    v.y     = round(v.y);
+    v.z     = round(v.z);
+    return  v;
+  }
+  public static Quaternion round (final Quaternion q) {
+    q.x     = round(q.x);
+    q.y     = round(q.y);
+    q.z     = round(q.z);
+    q.w     = round(q.w);
+    return  q.nor();
+  }
+  public static BoundingBox round (final BoundingBox b) {
+    round   (b.min);
+    round   (b.max);
+    return  b;
+  }
 }

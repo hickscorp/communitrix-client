@@ -54,10 +54,9 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   // Various locations for objects.
   public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
 
-  private final static  Vector3       tmpVec        = new Vector3();
-  private final static  Quaternion    tmpQuat       = new Quaternion();
   private final static  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
+  private final static  Quaternion    tmpRot        = new Quaternion();
   
   // Game instance cache.
   private final Communitrix           ctx;
@@ -166,6 +165,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .translate          (0, 3, 0);
     unit.anim.reset       ();
     instances.add          (unit);
+    
     // Create various arrays..
     pieces                = new Array<Piece>();
     availablePieces       = new Array<Piece>();
@@ -303,48 +303,55 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   }
   public void selectPiece (final Piece piece) {
     if (selectedPiece!=piece) {
-      selectedPiece   = piece;
+      // De-select old selection.
+      if (selectedPiece!=null)
+        selectedPiece
+          .unparent   (true);
       // This is a selection.
-      if (selectedPiece!=null) {
-        piece.anim.targetPosition
-          .set            (unit.anim.targetPosition);
-        piece.anim
-          .start          (tweener, 0.3f, Quad.INOUT);
+      if ((selectedPiece = piece)!=null) {
+        selectedPiece
+          .setParent  (unit, true);
+        selectedPiece.anim.targetPosition
+          .set        (0, 0, 0);
+        selectedPiece.anim
+          .start      (tweener, 0.3f, Quad.INOUT);
       }
-      // This is a deselection.
-      else {
+      // This is a de-selection.
+      else
         piecesDock.refresh    ();
-      }
     }
   }
   public void translatePiece (final Piece piece, final Vector3 translation) {
+    // TODO: Fix this so the relative translation facing the camera takes the
+    // ancestor chain into consideration.
     piece.anim.targetPosition
       .add        (translation);
     piece.anim
       .start      (tweener, 0.3f, Quad.INOUT);
   }
   public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
-    tmpMat4.idt();
+    // TODO: Fix this so the relative rotation facing the camera takes the
+    // ancestor chain into consideration.
+    tmpMat4
+      .idt          ();
     // Asked to rotate around X.
     if (axis==Vector3.X)      tmpMat4.rotate(relXAxis, angle);
     // Asked to rotate around Y.
     else if (axis==Vector3.Y) tmpMat4.rotate(relYAxis, angle);
-    // Asked to rotate around Z, should never happen.
-    else                      tmpMat4.rotate(relZAxis, angle);
-    // Rotate by previous rotation and translation.
+    
     tmpMat4
       .rotate       (piece.anim.targetRotation)
       .getRotation  (piece.anim.targetRotation);
     // Start animating.
     piece.anim
-      .start              (tweener, 0.2f, Quad.INOUT);
+      .start        (tweener, 0.3f, Quad.INOUT);
   }
   public void resetPieceRotation (final Piece piece) {
     piece.anim.targetRotation
       .idt                ();
     // Start animating.
     piece.anim
-      .start              (tweener, 0.5f, Quad.INOUT);
+      .start              (tweener, 0.3f, Quad.INOUT);
   }
   public void playPiece (final Piece piece) {
     if (playedPiece!=null) {
@@ -356,27 +363,12 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       return;
     }
     // Get the index of the piece to be played.
-    final int idx     = pieces.indexOf(piece, true);
-    selectedPiece     = null;
+    final int idx               = pieces.indexOf(piece, true);
     // Store the piece that is being played so we can rollback / validate upon server ack.
-    playedPiece       = piece;
-    // Prepare animation.
-    // Get current unit rotation, invert it.
-    tmpQuat
-      .set      (unit.anim.targetRotation)
-      .conjugate();
-    // Get piece location, and rotate it by the inverse of the unit rotation. Then calculate the delta.
-    tmpVec
-      .set      (piece.anim.targetPosition.x, piece.anim.targetPosition.y, piece.anim.targetPosition.z)
-      .sub      (unit.anim.targetPosition.x, unit.anim.targetPosition.y, unit.anim.targetPosition.z)
-      .mul      (tmpQuat);
-    // Post-rotate the unit rotation by the piece rotation. The result is a translation / rotation relative to the unit.
-    tmpQuat
-      .mul      (piece.anim.targetRotation);
+    playedPiece                 = piece;
+    selectedPiece               = null;
     // Give the order!
-    final TXCombatPlayTurn cmd  = new TXCombatPlayTurn(idx, tmpQuat, tmpVec);
-    cmd.serial                  = "PlayTurn";
-    ctx.networkingManager.send  (cmd);
+    ctx.networkingManager.send  (new TXCombatPlayTurn(idx, piece.anim.targetPosition, piece.anim.targetRotation));
   }
   public SCLobby setTurn (final int turn, final int unitId) {
     // Update our combat object.
@@ -391,15 +383,16 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   
   public void handleAcknowledgment (final String serial, final boolean valid) {
     if (serial.equals("PlayTurn")) {
+      playedPiece.unparent          (true);
       if (valid) {
         availablePieces.removeValue (playedPiece, true);
         instances.removeValue       (playedPiece, true);
       }
       else {
-        ctx.setLastError      (0, "This piece cannot be played there at this time.");
-        playedPiece           = null;
+        ctx.setLastError            (0, "This piece cannot be played there at this time.");
+        playedPiece                 = null;
       }
-      piecesDock.refresh      ();
+      piecesDock.refresh            ();
     }
   }
   
@@ -408,14 +401,13 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .setFromSharedPiece       (target);
     // Place all my pieces.
     if (newPieces!=null) {
-      tmpVec.set               (0, 0, -5);
       units.clear               ();
       pieces.clear              ();
       availablePieces.clear     ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
-          .setTranslation       (tmpVec);
+          .setTranslation       (0, 0, -5);
         obj.anim.reset          ();
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);

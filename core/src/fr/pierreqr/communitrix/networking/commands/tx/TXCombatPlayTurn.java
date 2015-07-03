@@ -7,13 +7,14 @@ import fr.pierreqr.communitrix.networking.shared.SHVector;
 
 public class TXCombatPlayTurn extends TXBase {
   public    int           pieceIndex;
-  public    SHQuaternion  rotation;
   public    SHVector      translation;
+  public    SHQuaternion  rotation;
 
-  public TXCombatPlayTurn (final int pieceIndex, final Quaternion rotation, final Vector3 translation) {
+  public TXCombatPlayTurn (final int pieceIndex, final Vector3 translation, final Quaternion rotation) {
     super             (Tx.CombatPlayTurn);
     this.pieceIndex   = pieceIndex;
-    this.rotation     = new SHQuaternion(rotation);
     this.translation  = new SHVector(translation);
+    this.rotation     = new SHQuaternion(rotation);
+    this.serial       = "PlayTurn";
   }
 }
