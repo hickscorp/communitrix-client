@@ -52,7 +52,7 @@ public class ICLobby extends InputAdapter {
     float       dist, sDist = Float.MAX_VALUE;
     BoundingBox bounds      = null;
     // Iterate through all instances.
-    final Array<Piece> all  = delegate.getPieces();
+    final Array<Piece> all  = delegate.getAvailablePieces();
     for (final Piece obj : all) {
       tmpVec3.set       (obj.anim.targetPosition);
       dist              = ray.origin.dst2(tmpVec3);
