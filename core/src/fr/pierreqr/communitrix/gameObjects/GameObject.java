@@ -154,9 +154,6 @@ public class GameObject extends ModelInstance implements RenderableProvider {
     }
     
     public BaseTween<?> start (final TweenManager tweener, final float duration, final TweenEquation ease) {
-      // Round targets.
-      Communitrix.round   (targetPosition);
-      Communitrix.round   (targetRotation);
       // Prepare this object and all his children.
       prepare             (tweener);
       for (final Animator child : children)
@@ -169,6 +166,9 @@ public class GameObject extends ModelInstance implements RenderableProvider {
         .start            (tweener);
     }
     private void prepare (final TweenManager tweener) {
+      // Round targets.
+      Communitrix.round   (targetPosition);
+      Communitrix.round   (targetRotation);
       // Kill any pending animation involving this object.
       tweener.killTarget  (target);
       // Store current values into current markers.

@@ -6,10 +6,10 @@ import fr.pierreqr.communitrix.gameObjects.Piece;
 
 public class PiecesDock {
   public interface PiecesDockDelegate {
-    Array<Piece>  getAvailablePieces  ();
-    void          selectPiece         (final Piece piece);
-    void          translatePiece      (final Piece piece, final Vector3 axis);
-    void          rotatePiece         (final Piece piece, final Vector3 axis, final int angle);
+    Array<Piece>  getAvailablePieces        ();
+    void          selectPiece               (final Piece piece);
+    void          translatePieceWithinView  (final Piece piece, final Vector3 axis);
+    void          rotatePieceWithinView     (final Piece piece, final Vector3 axis, final int angle);
   };
   
   private final         PiecesDockDelegate  delegate;
@@ -45,7 +45,7 @@ public class PiecesDock {
         .set  (x, 0, z)
         .add  (origin)
         .sub  (piece.anim.targetPosition);
-      delegate.translatePiece   (piece, shift);
+      delegate.translatePieceWithinView(piece, shift);
     }
   }
 }

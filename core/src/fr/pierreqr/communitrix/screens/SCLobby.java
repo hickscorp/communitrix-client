@@ -54,9 +54,11 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   // Various locations for objects.
   public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
 
-  private final static  Matrix4       tmpMat4       = new Matrix4();
+  private static final  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
-  private final static  Quaternion    tmpRot        = new Quaternion();
+  
+  private static final  Vector3       tmpVec        = new Vector3();
+  private static final  Quaternion    tmpRot        = new Quaternion();
   
   // Game instance cache.
   private final Communitrix           ctx;
@@ -321,24 +323,33 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         piecesDock.refresh    ();
     }
   }
-  public void translatePiece (final Piece piece, final Vector3 translation) {
-    // TODO: Fix this so the relative translation facing the camera takes the
-    // ancestor chain into consideration.
+  public void translatePieceWithinView (final Piece piece, final Vector3 translation) {
+    tmpVec
+      .set            (translation);
+    if (piece.anim.parent!=null) {
+      tmpRot
+        .set          (piece.anim.parent.currentRotation)
+        .conjugate    ()
+        .transform    (tmpVec);
+    }
     piece.anim.targetPosition
-      .add        (translation);
+      .add            (tmpVec);
     piece.anim
-      .start      (tweener, 0.3f, Quad.INOUT);
+      .start          (tweener, 0.3f, Quad.INOUT);
   }
-  public void rotatePiece (final Piece piece, final Vector3 axis, final int angle) {
-    // TODO: Fix this so the relative rotation facing the camera takes the
-    // ancestor chain into consideration.
-    tmpMat4
-      .idt          ();
+  public void rotatePieceWithinView (final Piece piece, final Vector3 axis, final int angle) {
+    tmpMat4.idt       ();
+    if (piece.anim.parent!=null)
+      tmpMat4.rotate  (piece.anim.parent.targetRotation.cpy().conjugate());
+
     // Asked to rotate around X.
     if (axis==Vector3.X)      tmpMat4.rotate(relXAxis, angle);
     // Asked to rotate around Y.
     else if (axis==Vector3.Y) tmpMat4.rotate(relYAxis, angle);
     
+    if (piece.anim.parent!=null)
+      tmpMat4.rotate  (piece.anim.parent.targetRotation);
+
     tmpMat4
       .rotate       (piece.anim.targetRotation)
       .getRotation  (piece.anim.targetRotation);

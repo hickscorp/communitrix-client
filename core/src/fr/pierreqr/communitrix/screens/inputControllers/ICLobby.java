@@ -25,8 +25,8 @@ public class ICLobby extends InputAdapter {
     Array<Piece>  getAvailablePieces  ();
     void          cyclePieces         (final int pieceIndex);
     void          selectPiece         (final Piece piece);
-    void          translatePiece      (final Piece piece, final Vector3 axis);
-    void          rotatePiece         (final Piece piece, final Vector3 axis, final int angle);
+    void          translatePieceWithinView      (final Piece piece, final Vector3 axis);
+    void          rotatePieceWithinView         (final Piece piece, final Vector3 axis, final int angle);
     void          resetPieceRotation  (final Piece piece);
     void          playPiece           (final Piece piece);
   };
@@ -173,18 +173,18 @@ public class ICLobby extends InputAdapter {
   // Checks whether the user is to translating / rotating.
   private void handleMovement (final Piece moveable, final boolean rotate, final boolean translate) {
     if (translate) {
-      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translatePiece (moveable, Communitrix.PositiveZ);
-      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translatePiece (moveable, Communitrix.NegativeZ);
-      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translatePiece (moveable, Communitrix.PositiveX);
-      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translatePiece (moveable, Communitrix.NegativeX);
-      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translatePiece (moveable, Communitrix.PositiveY);
-      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translatePiece (moveable, Communitrix.NegativeY);
+      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveZ);
+      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translatePieceWithinView (moveable, Communitrix.NegativeZ);
+      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveX);
+      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translatePieceWithinView (moveable, Communitrix.NegativeX);
+      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveY);
+      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translatePieceWithinView (moveable, Communitrix.NegativeY);
     }
     if (rotate) {
-      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotatePiece    (moveable, Vector3.X,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotatePiece    (moveable, Vector3.X, -90);
-      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotatePiece    (moveable, Vector3.Y,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotatePiece    (moveable, Vector3.Y, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotatePieceWithinView    (moveable, Vector3.X,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotatePieceWithinView    (moveable, Vector3.X, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotatePieceWithinView    (moveable, Vector3.Y,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotatePieceWithinView    (moveable, Vector3.Y, -90);
     }
   }
 }
