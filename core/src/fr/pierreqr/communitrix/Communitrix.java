@@ -104,8 +104,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop)
-//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+    if (applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -130,7 +130,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Start talking with the server.
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("localhost", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkingManager.start ();
     // Set up our default error responder.
     errorResponder          = this;
