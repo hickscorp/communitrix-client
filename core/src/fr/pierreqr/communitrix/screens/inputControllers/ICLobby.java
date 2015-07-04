@@ -52,8 +52,7 @@ public class ICLobby extends InputAdapter {
     float       dist, sDist = Float.MAX_VALUE;
     BoundingBox bounds      = null;
     // Iterate through all instances.
-    final Array<Piece> all  = delegate.getAvailablePieces();
-    for (final Piece obj : all) {
+    for (final Piece obj : delegate.getAvailablePieces()) {
       tmpVec3.set       (obj.anim.targetPosition);
       dist              = ray.origin.dst2(tmpVec3);
       if (dist<sDist) {
@@ -154,20 +153,20 @@ public class ICLobby extends InputAdapter {
     // Toggle between unit view and target view.
     if (Gdx.input.isKeyJustPressed(Keys.SPACE))
       delegate.setCameraState(camState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
+    // Player is asking to reset target and unit.
+    if (Gdx.input.isKeyJustPressed(Keys.R)) {
+      delegate.resetPieceRotation (delegate.getTarget());
+      delegate.resetPieceRotation (delegate.getUnit());
+      for (final Piece p : delegate.getPieces())
+        delegate.resetPieceRotation (p);
+    }
     // Player is willing to go back.
-    else if (camState!=CameraState.Pieces) {
+    if (camState!=CameraState.Pieces) {
       if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
         delegate.setCameraState(CameraState.Pieces);
         if (selection!=null)
           delegate.selectPiece    (selection = null);
       }
-    }
-    // Player is asking to reset target and unit.
-    else if (Gdx.input.isKeyJustPressed(Keys.R)) {
-      delegate.resetPieceRotation (delegate.getTarget());
-      delegate.resetPieceRotation (delegate.getUnit());
-      for (final Piece p : delegate.getPieces())
-        delegate.resetPieceRotation (p);
     }
   }
   // Checks whether the user is to translating / rotating.

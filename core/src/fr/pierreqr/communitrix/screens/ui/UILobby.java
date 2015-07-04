@@ -1,6 +1,5 @@
 package fr.pierreqr.communitrix.screens.ui;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -104,7 +103,6 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   }
 
   public UILobby setState (final SCLobby.State state) {
-    Gdx.app.log       ("LobbyUI", "Changing state to " + state + ".");
     this.state        = state;
     // Remove everything from the UI.
     tblMain.clear     ();
