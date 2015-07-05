@@ -114,7 +114,7 @@ public final class Bloom extends PostProcessorEffect {
 		combine.setSource1Saturation(saturation);
 	}
 
-	public void setBloomIntesity (float intensity) {
+	public void setBloomIntensity (float intensity) {
 		combine.setSource2Intensity(intensity);
 	}
 
@@ -149,7 +149,7 @@ public final class Bloom extends PostProcessorEffect {
 		// setup combine filter
 		setBaseIntesity(settings.baseIntensity);
 		setBaseSaturation(settings.baseSaturation);
-		setBloomIntesity(settings.bloomIntensity);
+		setBloomIntensity(settings.bloomIntensity);
 		setBloomSaturation(settings.bloomSaturation);
 
 		// setup blur filter

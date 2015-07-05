@@ -24,6 +24,8 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
+import com.bitfire.postprocessing.effects.Bloom;
+import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
@@ -70,7 +72,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   private final Camera                camMain, camTarget;
   private final ICLobby               combCtrlMain;
   private final PostProcessor         postProMain;
-
+  
   // State related members.
   private       State                 state         = State.Unknown;
   private       CameraState           cameraState   = CameraState.Unknown;
@@ -124,18 +126,20 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     
     // Set up the main post-processor.
     postProMain           = new PostProcessor(true, true, true);
-    if (ctx.applicationType!=ApplicationType.WebGL) {
-//      // Add bloom to post-processor.
-//      Bloom blm             = new Bloom(ctx.viewWidth/3, ctx.viewHeight/3);
-//      blm.setEnabled        (true);
-//      blm.setBloomIntesity  (0.9f);
-//      blm.setBloomSaturation(0.6f);
-//      postProMain.addEffect (blm);
-//      // Add motion blur to post-processor.
-//      MotionBlur blur       = new MotionBlur();
-//      blur.setEnabled       (true);
-//      blur.setBlurOpacity   (0.65f);
-//      postProMain.addEffect (blur);
+    
+    boolean enablePostPro = false;
+    if (enablePostPro && ctx.applicationType!=ApplicationType.WebGL) {
+      // Add bloom to post-processor.
+      Bloom blm             = new Bloom(ctx.viewWidth/4, ctx.viewHeight/4);
+      blm.setEnabled        (true);
+      blm.setBloomIntensity (0.60f);
+      blm.setBloomSaturation(0.90f);
+      postProMain.addEffect (blm);
+      // Add motion blur to post-processor.
+      MotionBlur blur       = new MotionBlur();
+      blur.setEnabled       (true);
+      blur.setBlurOpacity   (0.60f);
+      postProMain.addEffect (blur);
     }
 
     // Set up our target camera.
@@ -154,25 +158,28 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     camMain.position.set  (0f, 5f, -10f);
     camMain.lookAt        (0, 0, 0);
     camMain.near          = 1f;
-    camMain.far           = 32f;
+    camMain.far           = 64f;
     camMain.update        ();
     
     // Prepare character model.
     characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
     
-    // Create unit piece.
+    // Prepare units list.
     units                 = new Array<SHPiece>();
+
+    // Create unit piece.
     unit                  = new Piece();
     unit.transform
       .translate          (0, 3, 0);
-    unit.anim.reset       ();
-    instances.add          (unit);
+    unit.reset            ();
+    instances.add         (unit);
     
     // Create various arrays..
     pieces                = new Array<Piece>();
     availablePieces       = new Array<Piece>();
     
     piecesDock            = new PiecesDock(this);
+    instances.add         (piecesDock);
     
     // Instantiate our interaction controller.
     combCtrlMain          = new ICLobby(this);
@@ -224,7 +231,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     return players;
   }
   public SCLobby setPlayers (final ArrayList<SHPlayer> players) {
-    Gdx.app.log         (LogTag, "Setting new player list (" + players.size() + ").");
     // Remove all character instances.
     for (final SHPlayer player : this.players)
       instances.removeValue(
@@ -241,14 +247,15 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     Gdx.app.log           (LogTag, "Adding player (" + player.uuid + ").");
     final GameObject obj  = new GameObject(characterModel);
     obj.transform.setTranslation(players.size * 2.5f, 30, 10);
-    obj.anim.reset        ();
+    obj.reset             ();
     characters.put        (player.uuid, obj);
     instances.add         (obj);
     players.add           (player);
     // Schedule animation.
-    obj.anim
+    obj
       .targetPosition.y   = 0;
-    obj.anim.start        (tweener, 1.2f, Bounce.OUT);
+    obj
+      .start              (tweener, 1.2f, Bounce.OUT);
     return this;
   }
   public SCLobby removePlayer (final String uuid) {
@@ -259,9 +266,9 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     for (final SHPlayer player : players) {
       if (shift) {
         final GameObject obj  = characters.get(player.uuid);
-        obj.anim
+        obj
           .targetPosition.x = (idx-1) * 2.5f;
-        obj.anim
+        obj
           .start          (tweener, 0.5f, Bounce.OUT)
           .delay          (0.3f);
       }
@@ -269,12 +276,12 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         final GameObject obj  = characters.remove(player.uuid);
         remove                = player;
         shift                 = true;
-        final Matrix4     mat = new Matrix4(obj.anim.targetRotation);
+        final Matrix4     mat = new Matrix4(obj.targetRotation);
         mat.rotate            (Vector3.Y, 180);
-        mat.getRotation       (obj.anim.targetRotation);
-        obj.anim
+        mat.getRotation       (obj.targetRotation);
+        obj
           .targetPosition.y   = -30;
-        obj.anim
+        obj
           .start              (tweener, 0.5f, aurelienribon.tweenengine.equations.Expo.IN)
           .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }});
       }
@@ -285,19 +292,31 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   }
   
   public int          getTurn         ()  { return combat.currentTurn; }
+  public boolean      canPlayThisTurn ()  { return playedPiece==null; }
   public Camera       getCamera       ()  { return camMain; }
   public CameraState  getCameraState  ()  { return cameraState; }
   public void setCameraState (final CameraState cameraState) {
     final float[] pov = CameraPOVs.get(cameraState);
+    this.cameraState  = cameraState;
     Tween
       .to             (camMain, CameraAccessor.Trans, 0.3f)
       .target         (pov)
       .ease           (Quad.INOUT)
       .start          (tweener);
-    this.cameraState  = cameraState;
+  }
+  public void zoom (final int amount) {
+    camMain
+      .translate(
+        tmpVec
+          .set(camMain.direction)
+          .scl(amount)
+      );
+    camMain.update();
   }
   public Piece        getUnit           () { return unit; }
   public Piece        getTarget         () { return target; }
+  public PiecesDock   getPiecesDock     () { return piecesDock; }
+  public Piece        getPlayedPiece    () { return playedPiece; }
   public Array<Piece> getPieces         () { return pieces; }
   public Array<Piece> getAvailablePieces() { return availablePieces; }
   public void cyclePieces (final int firstPieceIndex) {
@@ -306,16 +325,23 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   public void selectPiece (final Piece piece) {
     if (selectedPiece!=piece) {
       // De-select old selection.
-      if (selectedPiece!=null)
+      if (selectedPiece!=null) {
+        // Re-parent the piece to the pieces dock.
         selectedPiece
-          .unparent   (true);
+          .setParent  (piecesDock);
+        // As the pieces dock itself isn't rotating, pre-rotate the piece.
+        selectedPiece.targetRotation
+          .set        (unit.targetRotation);
+      }
       // This is a selection.
       if ((selectedPiece = piece)!=null) {
+        // Re-parent the piece inside the unit.
         selectedPiece
-          .setParent  (unit, true);
-        selectedPiece.anim.targetPosition
+          .setParent  (unit);
+        // The piece needs to be at the unit's origin.
+        selectedPiece.targetPosition
           .set        (0, 0, 0);
-        selectedPiece.anim
+        selectedPiece
           .start      (tweener, 0.3f, Quad.INOUT);
       }
       // This is a de-selection.
@@ -323,87 +349,71 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         piecesDock.refresh    ();
     }
   }
-  public void translatePieceWithinView (final Piece piece, final Vector3 translation) {
+  public void translateWithinView (final GameObject obj, final Vector3 translation) {
     tmpVec
       .set            (translation);
-    if (piece.anim.parent!=null) {
+    if (obj.parent!=null) {
       tmpRot
-        .set          (piece.anim.parent.currentRotation)
+        .set          (obj.parent.currentRotation)
         .conjugate    ()
         .transform    (tmpVec);
     }
-    piece.anim.targetPosition
+    obj.targetPosition
       .add            (tmpVec);
-    piece.anim
+    obj
       .start          (tweener, 0.3f, Quad.INOUT);
   }
-  public void rotatePieceWithinView (final Piece piece, final Vector3 axis, final int angle) {
+  public void rotateWithinView (final GameObject obj, final Vector3 axis, final int angle) {
     tmpMat4.idt       ();
-    if (piece.anim.parent!=null)
-      tmpMat4.rotate  (piece.anim.parent.targetRotation.cpy().conjugate());
-
+    if (obj.parent!=null)
+      tmpMat4.rotate  (obj.parent.targetRotation.cpy().conjugate());
     // Asked to rotate around X.
     if (axis==Vector3.X)      tmpMat4.rotate(relXAxis, angle);
     // Asked to rotate around Y.
     else if (axis==Vector3.Y) tmpMat4.rotate(relYAxis, angle);
-    
-    if (piece.anim.parent!=null)
-      tmpMat4.rotate  (piece.anim.parent.targetRotation);
-
+    if (obj.parent!=null)
+      tmpMat4.rotate  (obj.parent.targetRotation);
     tmpMat4
-      .rotate       (piece.anim.targetRotation)
-      .getRotation  (piece.anim.targetRotation);
-    // Start animating.
-    piece.anim
-      .start        (tweener, 0.3f, Quad.INOUT);
+      .rotate         (obj.targetRotation)
+      .getRotation    (obj.targetRotation);
+    obj
+      .start          (tweener, 0.3f, Quad.INOUT);
   }
-  public void resetPieceRotation (final Piece piece) {
-    piece.anim.targetRotation
-      .idt                ();
-    // Start animating.
-    piece.anim
-      .start              (tweener, 0.3f, Quad.INOUT);
+  public void resetRotation (final GameObject obj) {
+    obj.targetRotation
+      .idt            ();
+    obj
+      .start          (tweener, 0.3f, Quad.INOUT);
   }
   public void playPiece (final Piece piece) {
+    // There already is a played piece for this turn...
     if (playedPiece!=null) {
-      ctx.setLastError  (0, "You already have played this turn, please wait.");
-      return;
-    }
-    else if (!availablePieces.contains(piece, true)) {
-      ctx.setLastError  (0, "You cannot play this piece twice.");
+      selectPiece         (null);
+      ctx.setLastError    (0, "You already have played this turn, please wait.");
       return;
     }
     // Get the index of the piece to be played.
-    final int idx               = pieces.indexOf(piece, true);
+    final int idx         = pieces.indexOf(piece, true);
     // Store the piece that is being played so we can rollback / validate upon server ack.
-    playedPiece                 = piece;
-    selectedPiece               = null;
+    playedPiece           = piece;
+    // Make an empty selection, but don't reset / animate the piece.
+    selectedPiece         = null;
     // Give the order!
-    ctx.networkingManager.send  (new TXCombatPlayTurn(idx, piece.anim.targetPosition, piece.anim.targetRotation));
+    ctx.networkingManager
+      .send               (new TXCombatPlayTurn(idx, piece.targetPosition, piece.targetRotation));
   }
-  public SCLobby setTurn (final int turn, final int unitId) {
-    // Update our combat object.
-    combat.currentTurn        = turn;
-    // Register that no piece was played this turn.
-    playedPiece               = null;
-    final SHPiece currentUnit = units.get(unitId);
-    if (currentUnit.size.volume()!=0)
-      unit.setFromSharedPiece (currentUnit);
-    return this;
-  }
-  
   public void handleAcknowledgment (final String serial, final boolean valid) {
     if (serial.equals("PlayTurn")) {
-      playedPiece.unparent          (true);
-      if (valid) {
-        availablePieces.removeValue (playedPiece, true);
-        instances.removeValue       (playedPiece, true);
-      }
+      if (valid)
+        availablePieces
+          .removeValue    (playedPiece, true);
       else {
-        ctx.setLastError            (0, "This piece cannot be played there at this time.");
-        playedPiece                 = null;
+        ctx.setLastError  (0, "This piece cannot be played there at this time.");
+        selectedPiece     = playedPiece;
+        playedPiece       = null;
+        selectPiece       (null);
       }
-      piecesDock.refresh            ();
+      piecesDock.refresh  ();
     }
   }
   
@@ -419,23 +429,44 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         final Piece   obj       = new Piece();
         obj.transform
           .setTranslation       (0, 0, -5);
-        obj.anim.reset          ();
+        obj.reset               ();
         obj.setFromSharedPiece  (newPieces[i]);
         pieces.add              (obj);
+        piecesDock.addChild     (obj);
       }
       availablePieces.addAll    (pieces);
-      instances.addAll          (pieces);
+      //instances.addAll          (pieces);
       units.addAll              (newUnits);
       cyclePieces               (0);
     }
     return this;
   }
+  public SCLobby setTurn (final int turn, final int unitId) {
+    // Update our combat object.
+    combat.currentTurn        = turn;
+    // If a piece was played this turn, remove it from the scene.
+    if (playedPiece!=null) {
+      // Unparent the played piece from the unit.
+      playedPiece.unparent      ();
+      // The played unit should not be visible anymore.
+      instances.removeValue     (playedPiece, true);
+      playedPiece               = null;
+    }
+    final SHPiece currentUnit = units.get(unitId);
+    if (currentUnit.size.volume()!=0)
+      unit.setFromSharedPiece (currentUnit);
+    return this;
+  }
+
   public void registerPlayerTurn (final String playerUUID, final int unitId, final SHPiece unit) {
     final SHPiece oldUnit  = units.get(unitId);
     oldUnit.size    = unit.size;
     oldUnit.min     = unit.min;
     oldUnit.max     = unit.max;
     oldUnit.content = unit.content;
+  }
+  public TweenManager getTweener () {
+    return tweener;
   }
   
   @Override public void show ()   {}
@@ -450,43 +481,45 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   
   @Override public void render (final float delta) {
     // Clear viewport etc.
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+    Gdx.gl.glClear        (GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
     // Enable alpha blending.
-    Gdx.gl.glEnable(GL20.GL_BLEND);
-    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    Gdx.gl.glEnable       (GL20.GL_BLEND);
+    Gdx.gl.glBlendFunc    (GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     // Enable back-face culling.
-    Gdx.gl.glEnable(GL20.GL_CULL_FACE);
-    Gdx.gl.glCullFace(GL20.GL_BACK);
+    Gdx.gl.glEnable       (GL20.GL_CULL_FACE);
+    Gdx.gl.glCullFace     (GL20.GL_BACK);
     
     // Update any pending animation.
-    tweener.update      (delta);
+    tweener.update        (delta);
     // Update camera controller.
-    combCtrlMain.update ();
+    combCtrlMain.update   ();
 
     // Capture FBO for post-processing.
-    postProMain.capture ();
+    postProMain.capture   ();
     
     // Mark the beginning of our rendering phase.
-    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
-    ctx.modelBatch.begin(camMain);
+    Gdx.gl.glViewport     (0, 0, ctx.viewWidth, ctx.viewHeight);
+    ctx.modelBatch.begin  (camMain);
     // Render all instances in our batch array.
+    GameObject.renderCam  = camMain;
     for (final GameObject instance : instances)
-      if (instance.isVisible(camMain))
-        ctx.modelBatch.render(instance, envMain);
+      //if (instance.isVisible(camMain))
+      ctx.modelBatch.render(instance, envMain);
     // Rendering is over.
-    ctx.modelBatch.end  ();
+    ctx.modelBatch.end    ();
 
-    Gdx.gl.glViewport(0, (int)(ctx.viewHeight-(ctx.viewHeight/2.5f)), (int)(ctx.viewWidth/2.5f), (int)(ctx.viewHeight/2.5f));
+    Gdx.gl.glViewport     (0, (int)(ctx.viewHeight-(ctx.viewHeight/2.5f)), (int)(ctx.viewWidth/2.5f), (int)(ctx.viewHeight/2.5f));
+    GameObject.renderCam  = camTarget;
     ctx.modelBatch.begin  (camTarget);
     ctx.modelBatch.render (target, envMain);
     ctx.modelBatch.end    ();
 
-    Gdx.gl.glViewport(0, 0, ctx.viewWidth, ctx.viewHeight);
+    Gdx.gl.glViewport     (0, 0, ctx.viewWidth, ctx.viewHeight);
     // Apply post-processing.
-    postProMain.render  ();
+    postProMain.render    ();
 
     // Update flat UI.
-    ui.actAndDraw       (delta);
+    ui.actAndDraw         (delta);
 }
 
   @Override public void resize (final int width, final int height) {

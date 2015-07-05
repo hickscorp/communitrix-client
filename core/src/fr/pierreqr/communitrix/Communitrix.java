@@ -104,8 +104,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    if (applicationType==ApplicationType.Desktop)
-      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+//    if (applicationType==ApplicationType.Desktop)
+//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -130,7 +130,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Start talking with the server.
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
+    networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkingManager.start ();
     // Set up our default error responder.
     errorResponder          = this;
@@ -264,25 +264,25 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     return lobbyScreen==null ? lobbyScreen = new SCLobby(this) : lobbyScreen;
   }
 
-  public static float round (final float v) {
-    return    Math.round(v * 100.0f) / 100.0f;
+  public static float round (final float v, final float precision) {
+    return    Math.round(v * precision) / precision;
   }
-  public static Vector3 round (final Vector3 v) {
-    v.x     = round(v.x);
-    v.y     = round(v.y);
-    v.z     = round(v.z);
+  public static Vector3 round (final Vector3 v, final float precision) {
+    v.x     = round(v.x, precision);
+    v.y     = round(v.y, precision);
+    v.z     = round(v.z, precision);
     return  v;
   }
-  public static Quaternion round (final Quaternion q) {
-    q.x     = round(q.x);
-    q.y     = round(q.y);
-    q.z     = round(q.z);
-    q.w     = round(q.w);
+  public static Quaternion round (final Quaternion q, final float precision) {
+    q.x     = round(q.x, precision);
+    q.y     = round(q.y, precision);
+    q.z     = round(q.z, precision);
+    q.w     = round(q.w, precision);
     return  q.nor();
   }
-  public static BoundingBox round (final BoundingBox b) {
-    round   (b.min);
-    round   (b.max);
+  public static BoundingBox round (final BoundingBox b, final float precision) {
+    round   (b.min, precision);
+    round   (b.max, precision);
     return  b;
   }
 }

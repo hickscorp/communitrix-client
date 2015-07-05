@@ -10,25 +10,30 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.Camera;
+import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.screens.SCLobby.CameraState;
+import fr.pierreqr.communitrix.screens.util.PiecesDock;
 
 public class ICLobby extends InputAdapter {
   public interface ICLobbyDelegate {
-    int           getTurn             ();
-    Camera        getCamera           ();
-    CameraState   getCameraState      ();
-    void          setCameraState      (final CameraState state);
-    Piece         getUnit             ();
-    Piece         getTarget           ();
-    Array<Piece>  getPieces           ();
-    Array<Piece>  getAvailablePieces  ();
-    void          cyclePieces         (final int pieceIndex);
-    void          selectPiece         (final Piece piece);
-    void          translatePieceWithinView      (final Piece piece, final Vector3 axis);
-    void          rotatePieceWithinView         (final Piece piece, final Vector3 axis, final int angle);
-    void          resetPieceRotation  (final Piece piece);
-    void          playPiece           (final Piece piece);
+    int           getTurn               ();
+    Camera        getCamera             ();
+    CameraState   getCameraState        ();
+    void          setCameraState        (final CameraState state);
+    void          zoom                  (int amount);
+    Piece         getUnit               ();
+    Piece         getTarget             ();
+    PiecesDock    getPiecesDock         ();
+    Piece         getPlayedPiece        ();
+    Array<Piece>  getPieces             ();
+    Array<Piece>  getAvailablePieces    ();
+    void          cyclePieces           (final int pieceIndex);
+    void          selectPiece           (final Piece piece);
+    void          translateWithinView   (final GameObject obj, final Vector3 axis);
+    void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
+    void          resetRotation         (final GameObject obj);
+    void          playPiece             (final Piece piece);
   };
   
   private final         ICLobbyDelegate     delegate;
@@ -44,6 +49,11 @@ public class ICLobby extends InputAdapter {
   }
   
   @Override public boolean touchDown (int screenX, int screenY, int pointer, int button) {
+    if (delegate.getPlayedPiece()!=null) {
+      Communitrix.getInstance()
+        .setLastError       (0, "Please wait for all players to complete this turn.");
+      return false;
+    }
     // Reset selection.
     Piece       clicked     = null;
     // Pick a ray from the cam.
@@ -53,10 +63,10 @@ public class ICLobby extends InputAdapter {
     BoundingBox bounds      = null;
     // Iterate through all instances.
     for (final Piece obj : delegate.getAvailablePieces()) {
-      tmpVec3.set       (obj.anim.targetPosition);
+      tmpVec3.set       (obj.targetPosition);
       dist              = ray.origin.dst2(tmpVec3);
       if (dist<sDist) {
-        bounds          = new BoundingBox(obj.anim.fakeBounds);
+        bounds          = new BoundingBox(obj.fakeBounds);
         bounds.min.add  (tmpVec3);
         bounds.max.add  (tmpVec3);
         if (Intersector.intersectRayBounds(ray, bounds, null)) {
@@ -89,6 +99,11 @@ public class ICLobby extends InputAdapter {
     return true;
   }
   
+  @Override public boolean scrolled (int amount) {
+    delegate.zoom   (amount);
+    return true;
+  }
+  
   public void update () {
     // Cache some variables.
     camState        = delegate.getCameraState();
@@ -108,8 +123,9 @@ public class ICLobby extends InputAdapter {
       else {
         handleMovement    (delegate.getTarget(), true, false);
         handleMovement    (delegate.getUnit(), true, false);
-        for (final Piece piece : delegate.getPieces())
-          if (piece!=selection)
+        final Piece unit = delegate.getUnit();
+        for (final Piece piece : delegate.getAvailablePieces())
+          if (piece.parent!=unit)
             handleMovement  (piece, true, false);
       }
       return;
@@ -118,7 +134,7 @@ public class ICLobby extends InputAdapter {
     // There is no selection made.
     if (camState==CameraState.Pieces) {
       // Cache some members.
-      final Array<Piece>  pieces    = delegate.getPieces();
+      final Array<Piece>  pieces    = delegate.getAvailablePieces();
       // Cycle pieces left.
       if (Gdx.input.isKeyJustPressed(Keys.A)) {
         if (++firstPieceIndex>=pieces.size)
@@ -155,15 +171,15 @@ public class ICLobby extends InputAdapter {
       delegate.setCameraState(camState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
     // Player is asking to reset target and unit.
     if (Gdx.input.isKeyJustPressed(Keys.R)) {
-      delegate.resetPieceRotation (delegate.getTarget());
-      delegate.resetPieceRotation (delegate.getUnit());
-      for (final Piece p : delegate.getPieces())
-        delegate.resetPieceRotation (p);
+      delegate.resetRotation (delegate.getTarget());
+      delegate.resetRotation (delegate.getUnit());
+      for (final Piece piece : delegate.getAvailablePieces())
+        delegate.resetRotation (piece);
     }
     // Player is willing to go back.
     if (camState!=CameraState.Pieces) {
       if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
-        delegate.setCameraState(CameraState.Pieces);
+        delegate.setCameraState   (CameraState.Pieces);
         if (selection!=null)
           delegate.selectPiece    (selection = null);
       }
@@ -172,18 +188,18 @@ public class ICLobby extends InputAdapter {
   // Checks whether the user is to translating / rotating.
   private void handleMovement (final Piece moveable, final boolean rotate, final boolean translate) {
     if (translate) {
-      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveZ);
-      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translatePieceWithinView (moveable, Communitrix.NegativeZ);
-      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveX);
-      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translatePieceWithinView (moveable, Communitrix.NegativeX);
-      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translatePieceWithinView (moveable, Communitrix.PositiveY);
-      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translatePieceWithinView (moveable, Communitrix.NegativeY);
+      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translateWithinView (moveable, Communitrix.PositiveZ);
+      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translateWithinView (moveable, Communitrix.NegativeZ);
+      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translateWithinView (moveable, Communitrix.PositiveX);
+      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translateWithinView (moveable, Communitrix.NegativeX);
+      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translateWithinView (moveable, Communitrix.PositiveY);
+      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translateWithinView (moveable, Communitrix.NegativeY);
     }
     if (rotate) {
-      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotatePieceWithinView    (moveable, Vector3.X,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotatePieceWithinView    (moveable, Vector3.X, -90);
-      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotatePieceWithinView    (moveable, Vector3.Y,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotatePieceWithinView    (moveable, Vector3.Y, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotateWithinView    (moveable, Vector3.X,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotateWithinView    (moveable, Vector3.X, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotateWithinView    (moveable, Vector3.Y,  90);
+      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotateWithinView    (moveable, Vector3.Y, -90);
     }
   }
 }

@@ -1,22 +1,27 @@
 package fr.pierreqr.communitrix.screens.util;
 
+import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 
-public class PiecesDock {
+public class PiecesDock extends GameObject {
   public interface PiecesDockDelegate {
-    Array<Piece>  getAvailablePieces        ();
-    void          selectPiece               (final Piece piece);
-    void          translatePieceWithinView  (final Piece piece, final Vector3 axis);
-    void          rotatePieceWithinView     (final Piece piece, final Vector3 axis, final int angle);
+    Array<Piece>  getAvailablePieces    ();
+    void          selectPiece           (final Piece piece);
+    void          translateWithinView   (final GameObject obj, final Vector3 axis);
+    void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
+    TweenManager  getTweener            ();
   };
   
   private final         PiecesDockDelegate  delegate;
   private               int                 firstPieceIndex = 0;
   
-  public PiecesDock (final PiecesDockDelegate delegate) {
-    this.delegate   = delegate;
+  public PiecesDock (final PiecesDockDelegate newDelegate) {
+    super           (Communitrix.getInstance().dummyModel);
+    delegate        = newDelegate;
   }
   
   public void refresh () {
@@ -44,8 +49,8 @@ public class PiecesDock {
       shift
         .set  (x, 0, z)
         .add  (origin)
-        .sub  (piece.anim.targetPosition);
-      delegate.translatePieceWithinView(piece, shift);
+        .sub  (piece.targetPosition);
+      delegate.translateWithinView(piece, shift);
     }
   }
 }
