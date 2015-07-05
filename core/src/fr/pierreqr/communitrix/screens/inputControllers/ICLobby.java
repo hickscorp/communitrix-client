@@ -28,7 +28,7 @@ public class ICLobby extends InputAdapter {
     Piece         getPlayedPiece        ();
     Array<Piece>  getPieces             ();
     Array<Piece>  getAvailablePieces    ();
-    void          cyclePieces           (final int pieceIndex);
+    void          cyclePieces           (final int increment);
     void          selectPiece           (final Piece piece);
     void          translateWithinView   (final GameObject obj, final Vector3 axis);
     void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
@@ -38,7 +38,6 @@ public class ICLobby extends InputAdapter {
   
   private final         ICLobbyDelegate     delegate;
   private               Piece               selection         = null;
-  private               int                 firstPieceIndex   = 0;
   private               boolean             inAltMode         = false;
   
   private final static  Vector3             tmpVec3           = new Vector3();
@@ -133,20 +132,12 @@ public class ICLobby extends InputAdapter {
 
     // There is no selection made.
     if (camState==CameraState.Pieces) {
-      // Cache some members.
-      final Array<Piece>  pieces    = delegate.getAvailablePieces();
       // Cycle pieces left.
-      if (Gdx.input.isKeyJustPressed(Keys.A)) {
-        if (++firstPieceIndex>=pieces.size)
-          firstPieceIndex     = 0;
-        delegate.cyclePieces  (firstPieceIndex);
-      }
+      if (Gdx.input.isKeyJustPressed(Keys.A))
+        delegate.cyclePieces  (-1);
       // Cycle pieces right.
-      else if (Gdx.input.isKeyJustPressed(Keys.D)) {
-        if (--firstPieceIndex<0)
-          firstPieceIndex     = pieces.size-1;
-        delegate.cyclePieces  (firstPieceIndex);
-      }
+      else if (Gdx.input.isKeyJustPressed(Keys.D))
+        delegate.cyclePieces  (1);
     }
 
     else if (camState==CameraState.Unit) {

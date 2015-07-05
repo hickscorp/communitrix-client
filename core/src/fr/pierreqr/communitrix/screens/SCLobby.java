@@ -319,8 +319,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   public Piece        getPlayedPiece    () { return playedPiece; }
   public Array<Piece> getPieces         () { return pieces; }
   public Array<Piece> getAvailablePieces() { return availablePieces; }
-  public void cyclePieces (final int firstPieceIndex) {
-    piecesDock.setFirstPieceIndex(firstPieceIndex);
+  public void cyclePieces (final int increment) {
+    piecesDock.cycle  (increment);
   }
   public void selectPiece (final Piece piece) {
     if (selectedPiece!=piece) {
@@ -332,7 +332,10 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         // As the pieces dock itself isn't rotating, pre-rotate the piece.
         selectedPiece.targetRotation
           .set        (unit.targetRotation);
+        piecesDock
+          .refresh      ();
       }
+      
       // This is a selection.
       if ((selectedPiece = piece)!=null) {
         // Re-parent the piece inside the unit.
@@ -344,9 +347,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         selectedPiece
           .start      (tweener, 0.3f, Quad.INOUT);
       }
-      // This is a de-selection.
-      else
-        piecesDock.refresh    ();
     }
   }
   public void translateWithinView (final GameObject obj, final Vector3 translation) {
@@ -435,9 +435,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         piecesDock.addChild     (obj);
       }
       availablePieces.addAll    (pieces);
-      //instances.addAll          (pieces);
       units.addAll              (newUnits);
-      cyclePieces               (0);
+      piecesDock.refresh        ();
     }
     return this;
   }
