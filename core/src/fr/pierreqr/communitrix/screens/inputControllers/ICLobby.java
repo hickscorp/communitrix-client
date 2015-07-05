@@ -13,10 +13,13 @@ import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.screens.SCLobby.CameraState;
+import fr.pierreqr.communitrix.screens.SCLobby.State;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 
 public class ICLobby extends InputAdapter {
   public interface ICLobbyDelegate {
+    State         getState              ();
+    void          setState              (final State state);
     int           getTurn               ();
     Camera        getCamera             ();
     CameraState   getCameraState        ();
@@ -53,6 +56,9 @@ public class ICLobby extends InputAdapter {
         .setLastError       (0, "Please wait for all players to complete this turn.");
       return false;
     }
+    else if (delegate.getState()!=State.NewTurn || delegate.getCameraState()!=CameraState.Pieces)
+      return false;
+
     // Reset selection.
     Piece       clicked     = null;
     // Pick a ray from the cam.
@@ -99,11 +105,16 @@ public class ICLobby extends InputAdapter {
   }
   
   @Override public boolean scrolled (int amount) {
+    if (delegate.getState()!=State.Joined || delegate.getCameraState()!=CameraState.Pieces)
+      return false;
     delegate.zoom   (amount);
     return true;
   }
   
   public void update () {
+    if (delegate.getState()==State.Global)
+      return;
+    
     // Cache some variables.
     camState        = delegate.getCameraState();
     // Check for camera toggling.
@@ -170,7 +181,10 @@ public class ICLobby extends InputAdapter {
     // Player is willing to go back.
     if (camState!=CameraState.Pieces) {
       if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
-        delegate.setCameraState   (CameraState.Pieces);
+        if (delegate.getState()==State.EndGame)
+          delegate.setState(State.Global);
+        else
+          delegate.setCameraState   (CameraState.Pieces);
         if (selection!=null)
           delegate.selectPiece    (selection = null);
       }

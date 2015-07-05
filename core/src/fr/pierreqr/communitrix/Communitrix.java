@@ -104,8 +104,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-//    if (applicationType==ApplicationType.Desktop)
-//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+    boolean fullScreen = true;
+    if (fullScreen && applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -195,9 +196,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         break;
       }
       case Welcome: {
-        setScreen(
-          getLazyLobbyScreen()
-            .setState         (SCLobby.State.Global));
+        getLazyLobbyScreen()
+          .setState         (SCLobby.State.Global);
+        setScreen           (lobbyScreen);
         break;
       }
       case Registered: {
@@ -212,8 +213,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         final RXCombatJoin cmd = (RXCombatJoin)baseCmd;
         getLazyLobbyScreen()
           .setCombat        (cmd.combat)
-          .setState         (SCLobby.State.Joined)
           .setPlayers       (((RXCombatJoin)baseCmd).combat.players);
+        lobbyScreen
+          .setState         (SCLobby.State.Joined);
         break;
       }
       case CombatPlayerJoined: {
@@ -254,6 +256,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
          break;
       }
       case CombatEnd: {
+        getLazyLobbyScreen()
+          .setState             (SCLobby.State.EndGame);
+        break;
       }
       default:
         Gdx.app.log         (LogTag, "Unhandled command type: " + baseCmd.type + ".");

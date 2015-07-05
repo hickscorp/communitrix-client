@@ -106,7 +106,7 @@ public abstract class FacetedObject extends GameObject {
     recomputeBounds         ();
   }
 
-  private void clear () {
+  public void clear () {
     sharedPiece     = null;
     // Remove superfluous nodes.
     nodes.clear     ();

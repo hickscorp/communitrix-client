@@ -1,6 +1,5 @@
 package fr.pierreqr.communitrix.screens.util;
 
-import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.math.CatmullRomSpline;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -14,7 +13,6 @@ public class PiecesDock extends GameObject {
     void          selectPiece           (final Piece piece);
     void          translateWithinView   (final GameObject obj, final Vector3 axis);
     void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
-    TweenManager  getTweener            ();
   };
   
   private final   PiecesDockDelegate        delegate;
@@ -47,6 +45,7 @@ public class PiecesDock extends GameObject {
   }
   public void cycle (final int increment) {
     final int size        = delegate.getAvailablePieces().size;
+    if (size==0)          return;
     int       newIndex    = (firstPieceIndex + increment) % size;
     while (newIndex < 0)  newIndex += size;
     setFirstPieceIndex    (newIndex);
@@ -55,6 +54,7 @@ public class PiecesDock extends GameObject {
     this.firstPieceIndex        = firstPieceIndex;
     // Cache some variables.
     final Array<Piece>  pieces  = delegate.getAvailablePieces();
+    if (pieces.size==0)         return;
     // Compute largest piece size.
     int                 largest = Integer.MIN_VALUE;
     for (final Piece piece : pieces)

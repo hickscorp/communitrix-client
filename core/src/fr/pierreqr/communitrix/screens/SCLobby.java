@@ -43,7 +43,7 @@ import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
 public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Global, Joined, NewTurn }
+  public                enum          State         { Unknown, Global, Joined, NewTurn, EndGame }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
@@ -185,14 +185,18 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     combCtrlMain          = new ICLobby(this);
   }
   // Setter on state, handles transitions.
-  public SCLobby setState (final State state) {
+  public void setState (final State state) {
     if (this.state!=state) {
       switch (state) {
         case Global:
+          target.clear          ();
+          unit.clear            ();
+          units.clear           ();
           Gdx.input
             .setInputProcessor  (ui.getStage());
           break;
         case Joined:
+          setPlayers            (null);
           Gdx.input
             .setInputProcessor  (combCtrlMain);
           setCameraState        (CameraState.Lobby);
@@ -200,12 +204,18 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         case NewTurn:
           setCameraState        (CameraState.Pieces);
           break;
+        case EndGame:
+          pieces.clear          ();
+          availablePieces.clear ();
+          piecesDock.refresh    ();
+          playedPiece           = null;
+          selectedPiece         = null;
+          break;
         default :
           break;
       }
     }
     ui.setState         (this.state = state);
-    return this;
   }
   
   public Array<SHCombat> getCombats () { return combats; }
@@ -239,8 +249,9 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Clear character list.
     this.players.clear  ();
     // Create our players.
-    for (final SHPlayer player : players)
-      addPlayer         (player);
+    if (players!=null)
+      for (final SHPlayer player : players)
+        addPlayer         (player);
     return this;
   }
   public SCLobby addPlayer (final SHPlayer player) {
@@ -291,6 +302,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     return this;
   }
   
+  public State        getState        ()  { return state; }
   public int          getTurn         ()  { return combat.currentTurn; }
   public boolean      canPlayThisTurn ()  { return playedPiece==null; }
   public Camera       getCamera       ()  { return camMain; }
@@ -422,9 +434,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .setFromSharedPiece       (target);
     // Place all my pieces.
     if (newPieces!=null) {
-      units.clear               ();
-      pieces.clear              ();
-      availablePieces.clear     ();
       for (int i=0; i<newPieces.length; i++) {
         final Piece   obj       = new Piece();
         obj.transform
@@ -463,9 +472,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     oldUnit.min     = unit.min;
     oldUnit.max     = unit.max;
     oldUnit.content = unit.content;
-  }
-  public TweenManager getTweener () {
-    return tweener;
   }
   
   @Override public void show ()   {}
