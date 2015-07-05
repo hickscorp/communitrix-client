@@ -75,7 +75,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   private static  Communitrix       instance;
   
   // All our different screens.
-  private         SCLobby       lobbyScreen;
+  private         SCLobby           lobbyScreen;
 
   public static Communitrix getInstance() {
     return instance;
@@ -131,7 +131,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Start talking with the server.
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("localhost", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkingManager.start ();
     // Set up our default error responder.
     errorResponder          = this;
