@@ -1,7 +1,12 @@
 package fr.pierreqr.communitrix.gameObjects;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.model.Node;
+import com.badlogic.gdx.graphics.g3d.model.NodePart;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector3;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
@@ -12,7 +17,7 @@ public abstract class FacetedObject extends GameObject {
   protected abstract  Model           end             ();
   
   private             Model           model;
-  public              SHPiece         sharedPiece;
+  public              SHPiece         sharedPiece     = new SHPiece();
 
   public FacetedObject () {
     super (Communitrix.getInstance().dummyModel);
@@ -104,6 +109,40 @@ public abstract class FacetedObject extends GameObject {
     // Start building our final model, which will be the sum of all meshes.
     nodes.addAll            (( model = end() ).nodes);
     recomputeBounds         ();
+  }
+  
+  private static final Vector3  tmpVec    = new Vector3();
+  private static final Matrix4  tmpMat    = new Matrix4();
+  public boolean collidesWith (final FacetedObject other) {
+    tmpMat.set(targetPosition, targetRotation);
+    for (final SHCell v : sharedPiece.content) {
+      tmpVec
+        .set            (v.x, v.y, v.z)
+        .mul            (tmpMat);
+      for (final SHCell c : other.sharedPiece.content)
+        if (c.x==Math.round(tmpVec.x) && c.y==Math.round(tmpVec.y) && c.z==Math.round(tmpVec.z))
+          return true;
+    }
+    return false;
+  }
+  public void switchToRegularMaterials () {
+    Gdx.app.log("FacetedObject", "BACK!!!");
+    for (final Node node : nodes) {
+      int i = 0;
+      for (final NodePart part : node.parts) {
+        part.material   = Communitrix.faceMaterials[i+Communitrix.Left];
+        i++;
+      }
+    }
+  }
+  public void switchToCollisionMaterials () {
+    for (final Node node : nodes) {
+      int i = 0;
+      for (final NodePart part : node.parts) {
+        part.material   = Communitrix.faceMaterials[i+Communitrix.LeftCollides];
+        i++;
+      }
+    }
   }
 
   public void clear () {

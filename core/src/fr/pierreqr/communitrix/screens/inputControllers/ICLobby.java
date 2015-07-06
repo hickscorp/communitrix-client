@@ -33,8 +33,8 @@ public class ICLobby extends InputAdapter {
     Array<Piece>  getAvailablePieces    ();
     void          cyclePieces           (final int increment);
     void          selectPiece           (final Piece piece);
-    void          translateWithinView   (final GameObject obj, final Vector3 axis);
-    void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
+    void          translateWithinView   (final GameObject obj, final Vector3 axis, final boolean checkCollisions);
+    void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle, final boolean checkCollisions);
     void          resetRotation         (final GameObject obj);
     void          playPiece             (final Piece piece);
   };
@@ -131,12 +131,12 @@ public class ICLobby extends InputAdapter {
         inAltMode     = false;
       // We are staying in ALT mode.
       else {
-        handleMovement    (delegate.getTarget(), true, false);
-        handleMovement    (delegate.getUnit(), true, false);
+        handleMovement    (delegate.getTarget(), true, false, false);
+        handleMovement    (delegate.getUnit(), true, false, false);
         final Piece unit = delegate.getUnit();
         for (final Piece piece : delegate.getAvailablePieces())
           if (piece.parent!=unit)
-            handleMovement  (piece, true, false);
+            handleMovement  (piece, true, false, false);
       }
       return;
     }
@@ -155,7 +155,7 @@ public class ICLobby extends InputAdapter {
       // We are not in alt mode, and there is a selection.
       if (selection!=null) {
         // Only allow piece translation if not within first turn.
-        handleMovement    (selection, true, delegate.getTurn()!=1);
+        handleMovement    (selection, true, delegate.getTurn()!=1, true);
         // Send turn to server.
         if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
           delegate.playPiece      (selection);
@@ -191,20 +191,20 @@ public class ICLobby extends InputAdapter {
     }
   }
   // Checks whether the user is to translating / rotating.
-  private void handleMovement (final Piece moveable, final boolean rotate, final boolean translate) {
+  private void handleMovement (final Piece moveable, final boolean rotate, final boolean translate, final boolean checkCollisions) {
     if (translate) {
-      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translateWithinView (moveable, Communitrix.PositiveZ);
-      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translateWithinView (moveable, Communitrix.NegativeZ);
-      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translateWithinView (moveable, Communitrix.PositiveX);
-      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translateWithinView (moveable, Communitrix.NegativeX);
-      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translateWithinView (moveable, Communitrix.PositiveY);
-      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translateWithinView (moveable, Communitrix.NegativeY);
+      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translateWithinView (moveable, Communitrix.PositiveZ, checkCollisions);
+      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translateWithinView (moveable, Communitrix.NegativeZ, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translateWithinView (moveable, Communitrix.PositiveX, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translateWithinView (moveable, Communitrix.NegativeX, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translateWithinView (moveable, Communitrix.PositiveY, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translateWithinView (moveable, Communitrix.NegativeY, checkCollisions);
     }
     if (rotate) {
-      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotateWithinView    (moveable, Vector3.X,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotateWithinView    (moveable, Vector3.X, -90);
-      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotateWithinView    (moveable, Vector3.Y,  90);
-      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotateWithinView    (moveable, Vector3.Y, -90);
+      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
     }
   }
 }

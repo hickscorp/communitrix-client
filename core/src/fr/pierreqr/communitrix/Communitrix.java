@@ -37,11 +37,17 @@ import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
   // Possible directions around a cube to check for.
   public final static   int         Left                  = 0;
-  public final static   int         Right                 = Left+1;
-  public final static   int         Bottom                = Right+1;
-  public final static   int         Top                   = Bottom+1;
-  public final static   int         Backward              = Top+1;
-  public final static   int         Forward               = Backward+1;
+  public final static   int         Right                 = Left              + 1;
+  public final static   int         Bottom                = Right             + 1;
+  public final static   int         Top                   = Bottom            + 1;
+  public final static   int         Backward              = Top               + 1;
+  public final static   int         Forward               = Backward          + 1;
+  public final static   int         LeftCollides          = Forward           + 1;
+  public final static   int         RightCollides         = LeftCollides      + 1;
+  public final static   int         BottomCollides        = RightCollides     + 1;
+  public final static   int         TopCollides           = BottomCollides    + 1;
+  public final static   int         BackwardCollides      = TopCollides       + 1;
+  public final static   int         ForwardCollides       = BackwardCollides  + 1;
   // Some rotation constants.
   public final static   Vector3     PositiveX             = new Vector3( 1,  0,  0);
   public final static   Vector3     NegativeX             = new Vector3(-1,  0,  0);
@@ -50,7 +56,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public final static   Vector3     PositiveZ             = new Vector3( 0,  0,  1);
   public final static   Vector3     NegativeZ             = new Vector3( 0,  0, -1);
   // Common materials.
-  public  static final  Material[]  faceMaterials         = new Material[6];
+  public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
   private static final  String      LogTag                = "Communitrix";
 
@@ -104,20 +110,26 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    boolean fullScreen = true;
+    boolean fullScreen = false;
     if (fullScreen && applicationType==ApplicationType.Desktop)
       Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
-      TextureAtlas  atlas     = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
-      Attribute     blend     = new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-      faceMaterials[Left]     = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),      blend);
-      faceMaterials[Right]    = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),     blend);
-      faceMaterials[Bottom]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),    blend);
-      faceMaterials[Top]      = new Material(TextureAttribute.createDiffuse(atlas.findRegion("top")),       blend);
-      faceMaterials[Backward] = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backward")),  blend);
-      faceMaterials[Forward]  = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forward")),   blend);
+      TextureAtlas  atlas             = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
+      Attribute     blend             = new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+      faceMaterials[Left]             = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),              blend);
+      faceMaterials[Right]            = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),             blend);
+      faceMaterials[Bottom]           = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),            blend);
+      faceMaterials[Top]              = new Material(TextureAttribute.createDiffuse(atlas.findRegion("top")),               blend);
+      faceMaterials[Backward]         = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backward")),          blend);
+      faceMaterials[Forward]          = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forward")),           blend);
+      faceMaterials[LeftCollides]     = new Material(TextureAttribute.createDiffuse(atlas.findRegion("leftColliding")),     blend);
+      faceMaterials[RightCollides]    = new Material(TextureAttribute.createDiffuse(atlas.findRegion("rightColliding")),    blend);
+      faceMaterials[BottomCollides]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottomColliding")),   blend);
+      faceMaterials[TopCollides]      = new Material(TextureAttribute.createDiffuse(atlas.findRegion("topColliding")),      blend);
+      faceMaterials[BackwardCollides] = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backwardColliding")), blend);
+      faceMaterials[ForwardCollides]  = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forwardColliding")),  blend);
     }
 
     // Force cache viewport size.
@@ -128,11 +140,12 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     modelBatch              = new ModelBatch();
     dummyModel              = new Model();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-    // Start talking with the server.
+
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
+    networkingManager       = new NetworkingManager("localhost", 9003, this);
     networkingManager.start ();
+    
     // Set up our default error responder.
     errorResponder          = this;
     // Prepare our shared model loader.

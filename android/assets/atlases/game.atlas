@@ -1,6 +1,6 @@
 
 game.png
-size: 256,64
+size: 512,64
 format: RGBA8888
 filter: Nearest,Nearest
 repeat: none
@@ -11,37 +11,79 @@ backward
   orig: 32, 32
   offset: 0, 0
   index: -1
-bottom
+backwardColliding
   rotate: false
   xy: 36, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-forward
+bottom
   rotate: false
   xy: 70, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-left
+bottomColliding
   rotate: false
   xy: 104, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-right
+forward
   rotate: false
   xy: 138, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-top
+forwardColliding
+  rotate: false
+  xy: 376, 2
+  size: 31, 32
+  orig: 31, 32
+  offset: 0, 0
+  index: -1
+left
   rotate: false
   xy: 172, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+leftColliding
+  rotate: false
+  xy: 206, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+right
+  rotate: false
+  xy: 240, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+rightColliding
+  rotate: false
+  xy: 274, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+top
+  rotate: false
+  xy: 308, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+topColliding
+  rotate: false
+  xy: 342, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0

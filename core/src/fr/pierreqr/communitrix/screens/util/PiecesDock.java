@@ -11,8 +11,7 @@ public class PiecesDock extends GameObject {
   public interface PiecesDockDelegate {
     Array<Piece>  getAvailablePieces    ();
     void          selectPiece           (final Piece piece);
-    void          translateWithinView   (final GameObject obj, final Vector3 axis);
-    void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle);
+    void          translateWithinView   (final GameObject obj, final Vector3 axis, final boolean checkCollisions);
   };
   
   private final   PiecesDockDelegate        delegate;
@@ -76,7 +75,7 @@ public class PiecesDock extends GameObject {
         .add              (0, -3, -3);
       shift.sub           (tmpVec3);
       delegate
-        .translateWithinView(piece, shift);
+        .translateWithinView(piece, shift, false);
     }
   }
 }

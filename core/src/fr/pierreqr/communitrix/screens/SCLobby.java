@@ -28,6 +28,7 @@ import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.Camera;
+import fr.pierreqr.communitrix.gameObjects.FacetedObject;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
@@ -52,6 +53,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     CameraPOVs.put(CameraState.Lobby,   new float[]{});
     CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 5,-10,  0, 0, 0 });
     CameraPOVs.put(CameraState.Unit,    new float[]{ 0, 5, -6,  0, 3, 0 });
+    CameraPOVs.put(CameraState.Observe, new float[]{ 0, 5, -6,  0, 3, 0 });
   }
   // Various locations for objects.
   public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
@@ -84,6 +86,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   private final Array<SHPlayer>       players       = new Array<SHPlayer>();
   // The currently selected piece.
   private       Piece                 selectedPiece = null;
+  private       boolean               isColliding   = false;
   // The piece being played / that was played this turn.
   private       Piece                 playedPiece   = null;
 
@@ -361,7 +364,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       }
     }
   }
-  public void translateWithinView (final GameObject obj, final Vector3 translation) {
+  public void translateWithinView (final GameObject obj, final Vector3 translation, final boolean checkCollisions) {
     tmpVec
       .set            (translation);
     if (obj.parent!=null) {
@@ -374,8 +377,11 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .add            (tmpVec);
     obj
       .start          (tweener, 0.3f, Quad.INOUT);
+
+    if (checkCollisions)
+      checkCollisionsWithUnit((FacetedObject)obj);
   }
-  public void rotateWithinView (final GameObject obj, final Vector3 axis, final int angle) {
+  public void rotateWithinView (final GameObject obj, final Vector3 axis, final int angle, final boolean checkCollisions) {
     tmpMat4.idt       ();
     if (obj.parent!=null)
       tmpMat4.rotate  (obj.parent.targetRotation.cpy().conjugate());
@@ -390,6 +396,16 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .getRotation    (obj.targetRotation);
     obj
       .start          (tweener, 0.3f, Quad.INOUT);
+    
+    if (checkCollisions)
+      checkCollisionsWithUnit((FacetedObject)obj);
+  }
+  public void checkCollisionsWithUnit (final FacetedObject obj) {
+    final boolean     collides    = obj.collidesWith(unit);
+    if (collides==isColliding)    return;
+    isColliding                   = collides;
+    if (collides)                 obj.switchToCollisionMaterials();
+    else                          obj.switchToRegularMaterials();
   }
   public void resetRotation (final GameObject obj) {
     obj.targetRotation
