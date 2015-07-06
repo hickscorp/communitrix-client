@@ -1,6 +1,7 @@
 package fr.pierreqr.communitrix.screens.ui;
 
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -20,6 +21,7 @@ import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 import fr.pierreqr.communitrix.networking.shared.SHCombat;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
 import fr.pierreqr.communitrix.screens.SCLobby;
+import fr.pierreqr.communitrix.screens.SCLobby.State;
 
 public class UILobby extends InputAdapter implements ErrorResponder {
   public interface UILobbyDelegate {
@@ -41,6 +43,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   private final Table           tblMain, tblCombats;
   private final Label           lblTitle, lblStatus;
   private final TextField       txtUsername;
+  private       int             currentBinding  = -1;
 
   public UILobby (final UILobbyDelegate delegate) {
     // Save delegate.
@@ -73,6 +76,23 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     // Prepare the username input text field.
     txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
+  
+  public void nextBinding () {
+    flash             (String.format("Press any key for action %s...", Communitrix.KeyInstructions[currentBinding]));
+  }
+  public boolean keyUp (int keycode) {
+    if (state!=State.Settings || keycode==Keys.ESCAPE)
+      return false;
+    
+    Communitrix
+      .Keys[currentBinding] = keycode;
+    currentBinding          ++;
+    if (currentBinding<Communitrix.Keys.length)
+      nextBinding           ();
+    else
+      flash                 ("All done! Press ESC to exit settings.");
+    return                  true;
+  }
 
   // ErrorResponder implementation.
   public void setLastError (final int code, final String reason) {
@@ -82,7 +102,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     lblStatus.setText (message);
     if (lastTask!=null && lastTask.isScheduled())
       lastTask.cancel ();
-    timer.scheduleTask(lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 3.0f);
+    timer.scheduleTask(lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 2.0f);
   }
   
   // Getters
@@ -114,6 +134,11 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     tblMain.row       ();
 
     switch (state) {
+      case Settings:
+        lblTitle.setText  ("Settings State");
+        currentBinding    = 0;
+        nextBinding       ();
+        break;
       case Global:
         // Title row.
         lblTitle.setText  ("Global State.");
@@ -183,6 +208,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
 
   public UILobby loadCombatList () {
     flash             ("Loading combats list...");
+    tblCombats.clear  ();
     ctx
       .networkingManager
       .send           (new TXCombatList());

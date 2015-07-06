@@ -112,13 +112,12 @@ public class ICLobby extends InputAdapter {
   }
   
   public void update () {
-    if (delegate.getState()==State.Global)
-      return;
-    
     // Cache some variables.
     camState        = delegate.getCameraState();
     // Check for camera toggling.
     handleNavigation();
+    if (delegate.getState()==State.Global)
+      return;
     
     boolean altMode = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT);
     // We just switched to ALT mode.
@@ -144,10 +143,10 @@ public class ICLobby extends InputAdapter {
     // There is no selection made.
     if (camState==CameraState.Pieces) {
       // Cycle pieces left.
-      if (Gdx.input.isKeyJustPressed(Keys.A))
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveLeft]))
         delegate.cyclePieces  (-1);
       // Cycle pieces right.
-      else if (Gdx.input.isKeyJustPressed(Keys.D))
+      else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveRight]))
         delegate.cyclePieces  (1);
     }
 
@@ -168,42 +167,59 @@ public class ICLobby extends InputAdapter {
   
   // Checks whether the user has pushed the view toggling button.
   private void handleNavigation () {
+    final State state = delegate.getState();
     // Toggle between unit view and target view.
-    if (Gdx.input.isKeyJustPressed(Keys.SPACE))
-      delegate.setCameraState(camState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
-    // Player is asking to reset target and unit.
-    if (Gdx.input.isKeyJustPressed(Keys.R)) {
-      delegate.resetRotation (delegate.getTarget());
-      delegate.resetRotation (delegate.getUnit());
-      for (final Piece piece : delegate.getAvailablePieces())
-        delegate.resetRotation (piece);
+    if ((state==State.NewTurn || state==State.EndGame)) {
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.CycleView]))
+        delegate.setCameraState(camState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
+      // Player is asking to reset target and unit.
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.Reset])) {
+        delegate.resetRotation (delegate.getTarget());
+        delegate.resetRotation (delegate.getUnit());
+        for (final Piece piece : delegate.getAvailablePieces())
+          delegate.resetRotation (piece);
+      }
     }
     // Player is willing to go back.
     if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
-      if (camState!=CameraState.Pieces) {
+      if (state==State.Global)
+        delegate.setState         (State.Settings);
+      else if (state==State.Settings)
+        delegate.setState         (State.Global);
+      else if (state==State.EndGame)
+        delegate.setState         (State.Global);
+      else {
         delegate.setCameraState   (CameraState.Pieces);
         if (selection!=null)
           delegate.selectPiece    (selection = null);
       }
-      else if (delegate.getState()==State.EndGame)
-        delegate.setState         (State.Global);
     }
   }
   // Checks whether the user is to translating / rotating.
   private void handleMovement (final Piece moveable, final boolean rotate, final boolean translate, final boolean checkCollisions) {
     if (translate) {
-      if (Gdx.input.isKeyJustPressed(Keys.W))         delegate.translateWithinView (moveable, Communitrix.PositiveZ, checkCollisions);
-      else if(Gdx.input.isKeyJustPressed(Keys.S))     delegate.translateWithinView (moveable, Communitrix.NegativeZ, checkCollisions);
-      if (Gdx.input.isKeyJustPressed(Keys.A))         delegate.translateWithinView (moveable, Communitrix.PositiveX, checkCollisions);
-      else if (Gdx.input.isKeyJustPressed(Keys.D))    delegate.translateWithinView (moveable, Communitrix.NegativeX, checkCollisions);
-      if (Gdx.input.isKeyJustPressed(Keys.O))         delegate.translateWithinView (moveable, Communitrix.PositiveY, checkCollisions);
-      else if (Gdx.input.isKeyJustPressed(Keys.L))    delegate.translateWithinView (moveable, Communitrix.NegativeY, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveForward]))
+        delegate.translateWithinView (moveable, Communitrix.PositiveZ, checkCollisions);
+      else if(Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveBackward]))
+        delegate.translateWithinView (moveable, Communitrix.NegativeZ, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveLeft]))
+        delegate.translateWithinView (moveable, Communitrix.PositiveX, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveRight]))
+        delegate.translateWithinView (moveable, Communitrix.NegativeX, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveUp]))
+        delegate.translateWithinView (moveable, Communitrix.PositiveY, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.MoveDown]))
+        delegate.translateWithinView (moveable, Communitrix.NegativeY, checkCollisions);
     }
     if (rotate) {
-      if (Gdx.input.isKeyJustPressed(Keys.UP))        delegate.rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
-      else if (Gdx.input.isKeyJustPressed(Keys.DOWN)) delegate.rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
-      if (Gdx.input.isKeyJustPressed(Keys.RIGHT))     delegate.rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
-      else if (Gdx.input.isKeyJustPressed(Keys.LEFT)) delegate.rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateUp]))
+        delegate.rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateDown]))
+        delegate.rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
+      if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateRight]))
+        delegate.rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
+      else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateLeft]))
+        delegate.rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
     }
   }
 }

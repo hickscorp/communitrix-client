@@ -5,6 +5,7 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -48,6 +49,22 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public final static   int         TopCollides           = BottomCollides    + 1;
   public final static   int         BackwardCollides      = TopCollides       + 1;
   public final static   int         ForwardCollides       = BackwardCollides  + 1;
+  // Key binding constants.
+  public final static   int         MoveForward           = 0;
+  public final static   int         MoveBackward          = 1;
+  public final static   int         MoveLeft              = 2;
+  public final static   int         MoveRight             = 3;
+  public final static   int         MoveUp                = 4;
+  public final static   int         MoveDown              = 5;
+  public final static   int         RotateUp              = 6;
+  public final static   int         RotateDown            = 7;
+  public final static   int         RotateLeft            = 8;
+  public final static   int         RotateRight           = 9;
+  public final static   int         CycleView             = 10;
+  public final static   int         Reset                 = 11;
+
+  public final static   int[]       Keys                  = new int[12];
+  public final static   String[]    KeyInstructions       = new String[12];
   // Some rotation constants.
   public final static   Vector3     PositiveX             = new Vector3( 1,  0,  0);
   public final static   Vector3     NegativeX             = new Vector3(-1,  0,  0);
@@ -99,6 +116,34 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     Tween.registerAccessor  (GameObject.class,        new GameObjectAccessor());
     Tween.registerAccessor  (PointLight.class,        new PointLightAccessor());
     Tween.registerAccessor  (PerspectiveCamera.class, new CameraAccessor());
+
+    // Bindings configuration.
+    Keys[MoveForward]             = Input.Keys.W;
+    Keys[MoveBackward]            = Input.Keys.S;
+    Keys[MoveLeft]                = Input.Keys.A;
+    Keys[MoveRight]               = Input.Keys.D;
+    Keys[MoveUp]                  = Input.Keys.O;
+    Keys[MoveDown]                = Input.Keys.L;
+    Keys[RotateUp]                = Input.Keys.UP;
+    Keys[RotateDown]              = Input.Keys.DOWN;
+    Keys[RotateLeft]              = Input.Keys.LEFT;
+    Keys[RotateRight]             = Input.Keys.RIGHT;
+    Keys[CycleView]               = Input.Keys.SPACE;
+    Keys[Reset]                   = Input.Keys.R;
+    // Keys instructions.
+    KeyInstructions[MoveForward]  = "Move Forward";
+    KeyInstructions[MoveBackward] = "Move Backward";
+    KeyInstructions[MoveLeft]     = "Move Left";
+    KeyInstructions[MoveRight]    = "Move Right";
+    KeyInstructions[MoveUp]       = "Move Up";
+    KeyInstructions[MoveDown]     = "Move Down";
+    KeyInstructions[RotateUp]     = "Rotate Up";
+    KeyInstructions[RotateDown]   = "Rotate Down";
+    KeyInstructions[RotateLeft]   = "Rotate Left";
+    KeyInstructions[RotateRight]  = "Rotate Right";
+    KeyInstructions[CycleView]    = "Cycle Camera";
+    KeyInstructions[Reset]        = "Reset";
+
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder newErrorResponder) {
@@ -141,10 +186,10 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     modelBatch              = new ModelBatch();
     dummyModel              = new Model();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
-
+    
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("localhost", 9003, this);
+    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
     networkingManager.start ();
     
     // Set up our default error responder.

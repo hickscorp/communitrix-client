@@ -44,7 +44,7 @@ import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
 public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Global, Joined, NewTurn, EndGame }
+  public                enum          State         { Unknown, Settings, Global, Joined, NewTurn, EndGame }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
@@ -72,7 +72,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   private final TweenManager          tweener;
   private final Environment           envMain;
   private final Camera                camMain, camTarget;
-  private final ICLobby               combCtrlMain;
+  private final ICLobby               lobbyInputCtrl;
   private final PostProcessor         postProMain;
   
   // State related members.
@@ -183,15 +183,21 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     instances.add         (piecesDock);
     
     // Instantiate our interaction controller.
-    combCtrlMain          = new ICLobby(this);
+    lobbyInputCtrl        = new ICLobby(this);
   }
   // Setter on state, handles transitions.
   public void setState (final State state) {
     if (this.state!=state) {
       switch (state) {
+        case Settings:
+          Gdx.input
+            .setInputProcessor  (ui);
+          break;
         case Global:
           target.clear          ();
+          resetRotation         (target);
           unit.clear            ();
+          resetRotation         (unit);
           units.clear           ();
           Gdx.input
             .setInputProcessor  (ui.getStage());
@@ -199,7 +205,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         case Joined:
           setPlayers            (null);
           Gdx.input
-            .setInputProcessor  (combCtrlMain);
+            .setInputProcessor  (lobbyInputCtrl);
           setCameraState        (CameraState.Lobby);
           break;
         case NewTurn:
@@ -520,7 +526,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Update any pending animation.
     tweener.update        (delta);
     // Update camera controller.
-    combCtrlMain.update   ();
+    lobbyInputCtrl.update   ();
 
     // Capture FBO for post-processing.
     postProMain.capture   ();

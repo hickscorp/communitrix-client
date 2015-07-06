@@ -2,8 +2,8 @@ package fr.pierreqr.communitrix.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
-import com.badlogic.gdx.tools.texturepacker.TexturePacker;
-import com.badlogic.gdx.tools.texturepacker.TexturePacker.Settings;
+//import com.badlogic.gdx.tools.texturepacker.TexturePacker;
+//import com.badlogic.gdx.tools.texturepacker.TexturePacker.Settings;
 import fr.pierreqr.communitrix.Communitrix;
 
 public class DesktopLauncher {
