@@ -41,49 +41,49 @@ forward
   index: -1
 forwardColliding
   rotate: false
-  xy: 376, 2
-  size: 31, 32
-  orig: 31, 32
-  offset: 0, 0
-  index: -1
-left
-  rotate: false
   xy: 172, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-leftColliding
+left
   rotate: false
   xy: 206, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-right
+leftColliding
   rotate: false
   xy: 240, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-rightColliding
+right
   rotate: false
   xy: 274, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-top
+rightColliding
   rotate: false
   xy: 308, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
-topColliding
+top
   rotate: false
   xy: 342, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+topColliding
+  rotate: false
+  xy: 376, 2
   size: 32, 32
   orig: 32, 32
   offset: 0, 0

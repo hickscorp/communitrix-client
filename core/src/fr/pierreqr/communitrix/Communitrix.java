@@ -110,14 +110,15 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    boolean fullScreen = false;
+    boolean fullScreen = true;
     if (fullScreen && applicationType==ApplicationType.Desktop)
       Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
       TextureAtlas  atlas             = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
-      Attribute     blend             = new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+      //Attribute     blend             = new BlendingAttribute(0.90f);
+      Attribute     blend             = new BlendingAttribute(true, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, 0.95f);
       faceMaterials[Left]             = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),              blend);
       faceMaterials[Right]            = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),             blend);
       faceMaterials[Bottom]           = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),            blend);

@@ -136,6 +136,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         break;
       case NewTurn:
         lblTitle.setText  (String.format("In turn %d.", delegate.getTurn()));
+        break;
       case EndGame:
         lblTitle.setText  (String.format("Game Over"));
         flash             ("Press ESC to go back to the Global state.");

@@ -24,18 +24,18 @@ public class PiecesDock extends GameObject {
     if (path==null)
       path          = new CatmullRomSpline<Vector3>(
         new Vector3[]{
-            new Vector3( 0, 0, 0),
-            new Vector3( 5, 0, 2),
-            new Vector3( 4, 0, 2),
-            new Vector3( 3, 0, 2),
-            new Vector3( 2, 0, 2),
-            new Vector3( 1, 0, 2),
-            new Vector3( 0, 0, 2),
-            new Vector3(-1, 0, 2),
-            new Vector3(-2, 0, 2),
-            new Vector3(-3, 0, 2),
-            new Vector3(-4, 0, 2),
-            new Vector3(-5, 0, 2),
+            new Vector3( 0, 0, 1),
+            new Vector3( 5, 0, 3),
+            new Vector3( 4, 0, 3),
+            new Vector3( 3, 0, 3),
+            new Vector3( 2, 0, 3),
+            new Vector3( 1, 0, 3),
+            new Vector3( 0, 0, 3),
+            new Vector3(-1, 0, 3),
+            new Vector3(-2, 0, 3),
+            new Vector3(-3, 0, 3),
+            new Vector3(-4, 0, 3),
+            new Vector3(-5, 0, 3),
         }, true);
   }
   
@@ -72,7 +72,7 @@ public class PiecesDock extends GameObject {
       path
         .valueAt          (shift, factor * i)
         .scl              (2)
-        .add              (0, -3, -3);
+        .add              (0, -3, -5);
       shift.sub           (tmpVec3);
       delegate
         .translateWithinView(piece, shift, false);

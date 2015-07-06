@@ -51,7 +51,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   public final static HashMap<CameraState, float[]> CameraPOVs  = new HashMap<CameraState, float[]>();
   static {
     CameraPOVs.put(CameraState.Lobby,   new float[]{});
-    CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 5,-10,  0, 0, 0 });
+    CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 4,-10,  0, 0, 0 });
     CameraPOVs.put(CameraState.Unit,    new float[]{ 0, 5, -6,  0, 3, 0 });
     CameraPOVs.put(CameraState.Observe, new float[]{ 0, 5, -6,  0, 3, 0 });
   }
@@ -146,7 +146,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     }
 
     // Set up our target camera.
-    camTarget             = new Camera(60, ctx.viewWidth/2.5f, ctx.viewHeight/2.5f);
+    camTarget             = new Camera(55, ctx.viewWidth/2.5f, ctx.viewHeight/2.5f);
     camTarget.position.set(0, 2, -6);
     camTarget.lookAt      (0, 0, 0);
     camTarget.near        = 1f;
@@ -157,9 +157,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     target                = new Piece();
 
     // Set up our scene.
-    camMain               = new Camera(60, ctx.viewWidth, ctx.viewHeight);
-    camMain.position.set  (0f, 5f, -10f);
-    camMain.lookAt        (0, 0, 0);
+    camMain               = new Camera(70, ctx.viewWidth, ctx.viewHeight);
     camMain.near          = 1f;
     camMain.far           = 64f;
     camMain.update        ();
@@ -341,24 +339,33 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     if (selectedPiece!=piece) {
       // De-select old selection.
       if (selectedPiece!=null) {
+        // Scale back up.
+        selectedPiece.targetScale
+          .set        (1, 1, 1);
         // Re-parent the piece to the pieces dock.
         selectedPiece
           .setParent  (piecesDock);
         // As the pieces dock itself isn't rotating, pre-rotate the piece.
         selectedPiece.targetRotation
           .set        (unit.targetRotation);
+        selectedPiece
+          .switchToRegularMaterials();
         piecesDock
           .refresh      ();
       }
       
       // This is a selection.
       if ((selectedPiece = piece)!=null) {
+        // To prevent face clipping, let's scale down a little bit.
+        selectedPiece.targetScale
+          .set        (0.97f, 0.97f, 0.97f);
         // Re-parent the piece inside the unit.
         selectedPiece
           .setParent  (unit);
         // The piece needs to be at the unit's origin.
         selectedPiece.targetPosition
           .set        (0, 0, 0);
+        checkCollisionsWithUnit(selectedPiece);
         selectedPiece
           .start      (tweener, 0.3f, Quad.INOUT);
       }

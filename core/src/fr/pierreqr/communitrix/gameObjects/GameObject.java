@@ -27,12 +27,15 @@ public class GameObject extends ModelInstance implements RenderableProvider {
   // For animating purposes, we store starting position / rotation.
   public  final     Vector3       startPosition   = new Vector3();
   public  final     Quaternion    startRotation   = new Quaternion();
+  public  final     Vector3       startScale      = new Vector3(1, 1, 1);
   // The current properties represent where the object is right now.
   public  final     Vector3       currentPosition = new Vector3();
   public  final     Quaternion    currentRotation = new Quaternion();
+  public  final     Vector3       currentScale    = new Vector3(1, 1, 1);
   // The target properties represent where the object will end up being.
   public  final     Vector3       targetPosition  = new Vector3();
   public  final     Quaternion    targetRotation  = new Quaternion();
+  public  final     Vector3       targetScale     = new Vector3(1, 1, 1);
   // Whenever an object is animated, its bounds will be recomputed into fakeBounds.
   public  final     BoundingBox   fakeBounds      = new BoundingBox();
   
@@ -114,13 +117,17 @@ public class GameObject extends ModelInstance implements RenderableProvider {
   }
   public void reset () {
     // Reset position.
-    Communitrix.round         (transform.getTranslation (currentPosition), 1.0f);
+    Communitrix.round         (transform.getTranslation (currentPosition), 1);
     startPosition.set         (currentPosition);
     targetPosition.set        (currentPosition);
     // Reset rotation.
-    Communitrix.round         (transform.getRotation    (currentRotation), 100.0f);
+    Communitrix.round         (transform.getRotation    (currentRotation), 100);
     startRotation.set         (currentRotation);
     targetRotation.set        (currentRotation);
+    // Reset scale.
+    Communitrix.round         (transform.getScale       (currentScale), 10);
+    startScale.set            (currentScale);
+    targetScale.set           (currentScale);
   }
   
   public BaseTween<?> start (final TweenManager tweener, final float duration, final TweenEquation ease) {
@@ -137,14 +144,16 @@ public class GameObject extends ModelInstance implements RenderableProvider {
   }
   private void prepare (final TweenManager tweener) {
     // Round targets.
-    Communitrix.round   (targetPosition, 1.0f);
-    Communitrix.round   (targetRotation, 100.0f);
+    Communitrix.round   (targetPosition, 1);
+    Communitrix.round   (targetRotation, 100);
+    Communitrix.round   (targetScale,    10);
     // Kill any pending animation involving this object.
     if (tweener!=null)
       tweener.killTarget(this);
     // Store current values into current markers.
     startPosition.set   (currentPosition);
     startRotation.set   (currentRotation);
+    startScale.set      (currentScale);
     recomputeFakeBounds ();
   }
   private void recomputeFakeBounds () {
@@ -152,8 +161,13 @@ public class GameObject extends ModelInstance implements RenderableProvider {
     Communitrix.round(
       fakeBounds
         .set              (bounds)
-        .mul              (tmpMat.idt().rotate(targetRotation))
-    , 100.0f);
+        .mul              (
+          tmpMat
+            .idt          ()
+            .rotate       (targetRotation)
+            .scale        (targetScale.x, targetScale.y, targetScale.z)
+          )
+    , 100);
   }
   public void morph (final float alpha) {
     currentPosition
@@ -162,8 +176,11 @@ public class GameObject extends ModelInstance implements RenderableProvider {
     currentRotation
       .set        (startRotation)
       .slerp      (targetRotation, alpha);
+    currentScale
+      .set        (startScale)
+      .lerp       (targetScale, alpha);
     tmpMat
-      .set      (currentPosition, currentRotation);
+      .set        (currentPosition, currentRotation, currentScale);
     // No parent, our result is final.
     if (parent==null)
       transform

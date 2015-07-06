@@ -1,6 +1,5 @@
 package fr.pierreqr.communitrix.gameObjects;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.model.NodePart;
@@ -114,7 +113,9 @@ public abstract class FacetedObject extends GameObject {
   private static final Vector3  tmpVec    = new Vector3();
   private static final Matrix4  tmpMat    = new Matrix4();
   public boolean collidesWith (final FacetedObject other) {
-    tmpMat.set(targetPosition, targetRotation);
+    if (sharedPiece==null || other.sharedPiece==null)
+      return false;
+    tmpMat.set          (targetPosition, targetRotation);
     for (final SHCell v : sharedPiece.content) {
       tmpVec
         .set            (v.x, v.y, v.z)
@@ -126,7 +127,6 @@ public abstract class FacetedObject extends GameObject {
     return false;
   }
   public void switchToRegularMaterials () {
-    Gdx.app.log("FacetedObject", "BACK!!!");
     for (final Node node : nodes) {
       int i = 0;
       for (final NodePart part : node.parts) {
