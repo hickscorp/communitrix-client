@@ -105,7 +105,7 @@ public class ICLobby extends InputAdapter {
   }
   
   @Override public boolean scrolled (int amount) {
-    if (delegate.getState()!=State.Joined || delegate.getCameraState()!=CameraState.Pieces)
+    if (delegate.getState()!=State.NewTurn && delegate.getState()!=State.EndGame)
       return false;
     delegate.zoom   (amount);
     return true;

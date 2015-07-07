@@ -537,7 +537,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Render all instances in our batch array.
     GameObject.renderCam  = camMain;
     for (final GameObject instance : instances)
-      //if (instance.isVisible(camMain))
       ctx.modelBatch.render(instance, envMain);
     // Rendering is over.
     ctx.modelBatch.end    ();
