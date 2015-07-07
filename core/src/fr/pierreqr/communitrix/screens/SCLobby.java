@@ -443,13 +443,13 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     ctx.networkingManager
       .send               (new TXCombatPlayTurn(idx, piece.targetPosition, piece.targetRotation));
   }
-  public void handleAcknowledgment (final String serial, final boolean valid) {
+  public void handleAcknowledgment (final String serial, final boolean valid, final String errorMessage) {
     if (serial.equals("PlayTurn")) {
       if (valid)
         availablePieces
           .removeValue    (playedPiece, true);
       else {
-        ctx.setLastError  (0, "This piece cannot be played there at this time.");
+        ctx.setLastError  (0, errorMessage);
         selectedPiece     = playedPiece;
         playedPiece       = null;
         selectPiece       (null);

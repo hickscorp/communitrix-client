@@ -105,7 +105,7 @@ public class ICLobby extends InputAdapter {
   }
   
   @Override public boolean scrolled (int amount) {
-    if (delegate.getState()!=State.Joined || delegate.getCameraState()!=CameraState.Pieces)
+    if (delegate.getState()!=State.NewTurn && delegate.getState()!=State.EndGame)
       return false;
     delegate.zoom   (amount);
     return true;
@@ -213,13 +213,13 @@ public class ICLobby extends InputAdapter {
     }
     if (rotate) {
       if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateUp]))
-        delegate.rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.X,  45, checkCollisions);
       else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateDown]))
-        delegate.rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.X, -45, checkCollisions);
       if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateRight]))
-        delegate.rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.Y,  45, checkCollisions);
       else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateLeft]))
-        delegate.rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.Y, -45, checkCollisions);
     }
   }
 }

@@ -76,6 +76,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
   private static final  String      LogTag                = "Communitrix";
+  private static final  String      host                  = "localhost";
 
   // Shared members.
   public          ApplicationType   applicationType;
@@ -155,9 +156,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    boolean fullScreen = true;
-    if (fullScreen && applicationType==ApplicationType.Desktop)
-      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+//    boolean fullScreen = true;
+//    if (fullScreen && applicationType==ApplicationType.Desktop)
+//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
@@ -189,7 +190,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     
     // Instantiate networking manager.
     networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager("www.PierreQR.fr", 9003, this);
+    networkingManager       = new NetworkingManager(host, 9003, this);
     networkingManager.start ();
     
     // Set up our default error responder.
@@ -251,7 +252,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       case Acknowledgment: {
         final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
         getLazyLobbyScreen()
-          .handleAcknowledgment(cmd.serial, cmd.valid);
+          .handleAcknowledgment(cmd.serial, cmd.valid, cmd.errorMessage);
         break;
       }
       case Welcome: {
