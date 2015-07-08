@@ -72,13 +72,12 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     lblTitle                = new Label("", skin);
     // Prepare the status field.
     lblStatus               = new Label("", skin);
-    lblStatus.setColor      (Color.RED);
     // Prepare the username input text field.
     txtUsername             = new TextField("Doodloo", ctx.uiSkin);
   }
   
   public void nextBinding () {
-    flash             (String.format("Press any key for action %s...", Communitrix.KeyInstructions[currentBinding]));
+    flash             (String.format("Press any key for action %s...", Communitrix.KeyInstructions[currentBinding]), Color.GREEN);
   }
   public boolean keyUp (int keycode) {
     if (state!=State.Settings || keycode==Keys.ESCAPE)
@@ -90,19 +89,23 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     if (currentBinding<Communitrix.Keys.length)
       nextBinding           ();
     else
-      flash                 ("All done! Press ESC to exit settings.");
+      flash                 ("All done! Press ESC to exit settings.", Color.GREEN);
     return                  true;
   }
 
   // ErrorResponder implementation.
   public void setLastError (final int code, final String reason) {
-    flash (code==0 ? reason : String.format("Error #%d: %s", code, reason));
+    if (code==0)
+      flash     (reason, Color.GREEN);
+    else
+      flash     (String.format("Error #%d: %s", code, reason), Color.RED);
   }
-  private void flash (final String message) {
-    lblStatus.setText (message);
+  private void flash (final String message, final Color color) {
+    lblStatus.setText       (message);
+    lblStatus.setColor      (color);
     if (lastTask!=null && lastTask.isScheduled())
-      lastTask.cancel ();
-    timer.scheduleTask(lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 2.0f);
+      lastTask.cancel       ();
+    timer.scheduleTask      (lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 2.0f);
   }
   
   // Getters
@@ -164,7 +167,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         break;
       case EndGame:
         lblTitle.setText  (String.format("Game Over"));
-        flash             ("Press ESC to go back to the Global state.");
+        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
       default :
         break;
     }
@@ -177,7 +180,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     // Add the combats list.
     final Array<SHCombat> combats = delegate.getCombats();
     if (combats!=null) {
-      flash                   (String.format("Loaded %d combat(s).", combats.size));
+      flash                   (String.format("Loaded %d combat(s).", combats.size), Color.GREEN);
       for (final SHCombat combat : combats) {
         // Button row.
         final TextButton btnJoin = new TextButton("Join", skin);
@@ -207,7 +210,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   }
 
   public UILobby loadCombatList () {
-    flash             ("Loading combats list...");
+    flash             ("Loading combats list...", Color.GREEN);
     tblCombats.clear  ();
     ctx
       .networkingManager

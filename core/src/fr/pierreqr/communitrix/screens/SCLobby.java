@@ -35,6 +35,7 @@ import fr.pierreqr.communitrix.networking.commands.tx.TXCombatPlayTurn;
 import fr.pierreqr.communitrix.networking.shared.SHCombat;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 import fr.pierreqr.communitrix.networking.shared.SHPlayer;
+import fr.pierreqr.communitrix.networking.shared.SHUnit;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
@@ -96,7 +97,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
   private final Piece                 target;
-  private final Array<SHPiece>        units;
+  private final Array<SHUnit>         units;
   private final Piece                 unit;
   private final Array<Piece>          pieces;
   private final Array<Piece>          availablePieces;
@@ -166,7 +167,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
     
     // Prepare units list.
-    units                 = new Array<SHPiece>();
+    units                 = new Array<SHUnit>();
 
     // Create unit piece.
     unit                  = new Piece();
@@ -341,6 +342,23 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   public void cyclePieces (final int increment) {
     piecesDock.cycle  (increment);
   }
+  public void hoverPiece (final Piece piece) {
+    final SHUnit  sharedUnit  = (SHUnit)unit.sharedPiece;
+    if (piece==null)        return;
+    final int     pieceId   = pieces.indexOf(piece, true);
+    
+    int           count     = 0;
+    if (sharedUnit!=null && sharedUnit.moves!=null) {
+      for (final int[] ids : sharedUnit.moves.values())
+        for (final int id : ids)
+          if (pieceId==id)
+            count++;
+    }
+    if (count==0)
+      ctx.setLastError      (0, "This piece has not been played in this unit yet.");
+    else
+      ctx.setLastError      (-1, String.format("This piece has been played %d times in the current unit.", count));
+  }
   public void selectPiece (final Piece piece) {
     if (selectedPiece!=piece) {
       // De-select old selection.
@@ -458,7 +476,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     }
   }
   
-  public SCLobby prepare (final SHPiece target, final SHPiece[] newUnits, final SHPiece[] newPieces) {
+  public SCLobby prepare (final SHPiece target, final SHUnit[] newUnits, final SHPiece[] newPieces) {
     this.target
       .setFromSharedPiece       (target);
     // Place all my pieces.
@@ -489,18 +507,19 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       instances.removeValue     (playedPiece, true);
       playedPiece               = null;
     }
-    final SHPiece currentUnit = units.get(unitId);
+    final SHUnit currentUnit = units.get(unitId);
     if (currentUnit.size.volume()!=0)
       unit.setFromSharedPiece (currentUnit);
     return this;
   }
 
-  public void registerPlayerTurn (final String playerUUID, final int unitId, final SHPiece unit) {
-    final SHPiece oldUnit  = units.get(unitId);
-    oldUnit.size    = unit.size;
-    oldUnit.min     = unit.min;
-    oldUnit.max     = unit.max;
-    oldUnit.content = unit.content;
+  public void registerPlayerTurn (final String playerUUID, final int unitId, final SHUnit newUnit) {
+    final SHUnit  oldUnit = units.get(unitId);
+    oldUnit.size          = newUnit.size;
+    oldUnit.min           = newUnit.min;
+    oldUnit.max           = newUnit.max;
+    oldUnit.content       = newUnit.content;
+    oldUnit.moves         = newUnit.moves;
   }
   
   @Override public void show ()   {}

@@ -32,6 +32,7 @@ public class ICLobby extends InputAdapter {
     Array<Piece>  getPieces             ();
     Array<Piece>  getAvailablePieces    ();
     void          cyclePieces           (final int increment);
+    void          hoverPiece            (final Piece piece);
     void          selectPiece           (final Piece piece);
     void          translateWithinView   (final GameObject obj, final Vector3 axis, final boolean checkCollisions);
     void          rotateWithinView      (final GameObject obj, final Vector3 axis, final int angle, final boolean checkCollisions);
@@ -40,7 +41,8 @@ public class ICLobby extends InputAdapter {
   };
   
   private final         ICLobbyDelegate     delegate;
-  private               Piece               selection         = null;
+  private               Piece               selectedPiece     = null;
+  private               Piece               hoveredPiece      = null;
   private               boolean             inAltMode         = false;
   
   private final static  Vector3             tmpVec3           = new Vector3();
@@ -48,6 +50,22 @@ public class ICLobby extends InputAdapter {
   
   public ICLobby (final ICLobbyDelegate delegate) {
     this.delegate   = delegate;
+  }
+  
+  @Override public boolean mouseMoved(int screenX, int screenY) {
+    if (delegate.getCameraState()!=CameraState.Pieces)
+      return false;
+    final Piece hovered     = rayPickTest(screenX, screenY);
+    if (hoveredPiece!=hovered) {
+      if (hoveredPiece!=null)
+        delegate.hoverPiece (hovered);
+      hoveredPiece          = hovered;
+      if (hoveredPiece!=null) {
+        delegate.hoverPiece (hoveredPiece);
+        return true;
+      }
+    }
+    return false;
   }
   
   @Override public boolean touchDown (int screenX, int screenY, int pointer, int button) {
@@ -58,11 +76,35 @@ public class ICLobby extends InputAdapter {
     }
     else if (delegate.getState()!=State.NewTurn || delegate.getCameraState()!=CameraState.Pieces)
       return false;
-
+    final Piece clicked   = rayPickTest(screenX, screenY);
+    // We have a new selection.
+    if (clicked!=null) {
+      // Player clicked the unit.
+      if (clicked==delegate.getUnit())
+        delegate.setCameraState(CameraState.Unit);
+      // Player clicked on the working unit block, or on a piece.
+      else {
+        // User clicked something different.
+        if (selectedPiece!=clicked) {
+          // We had a previous selection.
+          if (selectedPiece!=null)
+            delegate.selectPiece    (null);
+          delegate.selectPiece      (selectedPiece = clicked);
+          delegate.setCameraState   (CameraState.Unit);
+        }
+      }
+    }
+    // No selection.
+    else
+      return false;
+    // Something has happened, propagate the event.
+    return true;
+  }
+  private Piece rayPickTest (final int screenX, final int screenY) {
     // Reset selection.
-    Piece       clicked     = null;
+    Piece       result     = null;
     // Pick a ray from the cam.
-    final Ray   ray         = delegate.getCamera().getPickRay(screenX, screenY);
+    final Ray   ray        = delegate.getCamera().getPickRay(screenX, screenY);
     // Variable dist will be a temp, while sDist will be the shortest found distance.
     float       dist, sDist = Float.MAX_VALUE;
     BoundingBox bounds      = null;
@@ -76,32 +118,11 @@ public class ICLobby extends InputAdapter {
         bounds.max.add  (tmpVec3);
         if (Intersector.intersectRayBounds(ray, bounds, null)) {
           sDist         = dist;
-          clicked       = obj;
+          result       = obj;
         }
       }
     }
-    // We have a new selection.
-    if (clicked!=null) {
-      // Player clicked the unit.
-      if (clicked==delegate.getUnit())
-        delegate.setCameraState(CameraState.Unit);
-      // Player clicked on the working unit block, or on a piece.
-      else {
-        // User clicked something different.
-        if (selection!=clicked) {
-          // We had a previous selection.
-          if (selection!=null)
-            delegate.selectPiece    (null);
-          delegate.selectPiece      (selection = clicked);
-          delegate.setCameraState   (CameraState.Unit);
-        }
-      }
-    }
-    // No selection.
-    else
-      return false;
-    // Something has happened, propagate the event.
-    return true;
+    return result;
   }
   
   @Override public boolean scrolled (int amount) {
@@ -152,13 +173,13 @@ public class ICLobby extends InputAdapter {
 
     else if (camState==CameraState.Unit) {
       // We are not in alt mode, and there is a selection.
-      if (selection!=null) {
+      if (selectedPiece!=null) {
         // Only allow piece translation if not within first turn.
-        handleMovement    (selection, true, delegate.getTurn()!=1, true);
+        handleMovement    (selectedPiece, true, delegate.getTurn()!=1, true);
         // Send turn to server.
         if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
-          delegate.playPiece      (selection);
-          selection               = null;
+          delegate.playPiece      (selectedPiece);
+          selectedPiece               = null;
           delegate.setCameraState (CameraState.Pieces);
         }
       }
@@ -190,8 +211,8 @@ public class ICLobby extends InputAdapter {
         delegate.setState         (State.Global);
       else {
         delegate.setCameraState   (CameraState.Pieces);
-        if (selection!=null)
-          delegate.selectPiece    (selection = null);
+        if (selectedPiece!=null)
+          delegate.selectPiece    (selectedPiece = null);
       }
     }
   }
@@ -213,13 +234,13 @@ public class ICLobby extends InputAdapter {
     }
     if (rotate) {
       if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateUp]))
-        delegate.rotateWithinView    (moveable, Vector3.X,  45, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
       else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateDown]))
-        delegate.rotateWithinView    (moveable, Vector3.X, -45, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
       if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateRight]))
-        delegate.rotateWithinView    (moveable, Vector3.Y,  45, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
       else if (Gdx.input.isKeyJustPressed(Communitrix.Keys[Communitrix.RotateLeft]))
-        delegate.rotateWithinView    (moveable, Vector3.Y, -45, checkCollisions);
+        delegate.rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
     }
   }
 }
