@@ -437,7 +437,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         availablePieces
           .removeValue    (playedPiece, true);
       else {
-        ctx.setLastError  (0, errorMessage);
+        ctx.setLastError  (600, errorMessage);
         selectedPiece     = playedPiece;
         playedPiece       = null;
         selectPiece       (null);
@@ -677,12 +677,12 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   // Checks whether the user is to translating / rotating.
   public void handleMovement (final Piece moveable, final boolean[] keys, final boolean rotate, final boolean translate, final boolean checkCollisions) {
     if (translate) {
-      if (keys[Key.MoveForward.ordinal()])        translateWithinView (moveable, Constants.PositiveZ, checkCollisions);
-      else if (keys[Key.MoveBackward.ordinal()])  translateWithinView (moveable, Constants.NegativeZ, checkCollisions);
-      if (keys[Key.MoveLeft.ordinal()])           translateWithinView (moveable, Constants.PositiveX, checkCollisions);
-      else if (keys[Key.MoveRight.ordinal()])     translateWithinView (moveable, Constants.NegativeX, checkCollisions);
-      if (keys[Key.MoveUp.ordinal()])             translateWithinView (moveable, Constants.PositiveY, checkCollisions);
-      else if (keys[Key.MoveDown.ordinal()])      translateWithinView (moveable, Constants.NegativeY, checkCollisions);
+      if (keys[Key.MoveForward.ordinal()])        translateWithinView (moveable, Constants.Directions.get(Key.MoveForward),   checkCollisions);
+      else if (keys[Key.MoveBackward.ordinal()])  translateWithinView (moveable, Constants.Directions.get(Key.MoveBackward),  checkCollisions);
+      if (keys[Key.MoveLeft.ordinal()])           translateWithinView (moveable, Constants.Directions.get(Key.MoveLeft),      checkCollisions);
+      else if (keys[Key.MoveRight.ordinal()])     translateWithinView (moveable, Constants.Directions.get(Key.MoveRight),     checkCollisions);
+      if (keys[Key.MoveUp.ordinal()])             translateWithinView (moveable, Constants.Directions.get(Key.MoveUp),        checkCollisions);
+      else if (keys[Key.MoveDown.ordinal()])      translateWithinView (moveable, Constants.Directions.get(Key.MoveDown),      checkCollisions);
     }
     if (rotate) {
       if (keys[Key.RotateUp.ordinal()])           rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);

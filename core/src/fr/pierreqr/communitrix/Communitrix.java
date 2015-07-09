@@ -157,7 +157,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   }
 
   @Override public void onServerConnected () {
-    Gdx.app.log             (LogTag, "Connected to the server.");
   }
   @Override public void onServerDisconnected () {
     networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 1.0f);
@@ -216,11 +215,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case CombatStart: {
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
-        Gdx.app.log(LogTag, "Server is sending us into combat (" +
-                              "UUID: " + cmd.uuid + ", " +
-                              "Target blocks: " + cmd.target.content.length + ", " +
-                              "Cells: " + cmd.units.length + ", " +
-                              "Pieces: " + cmd.pieces.length + ").");
         getLazyLobbyScreen()
           .prepare        (cmd.target, cmd.units, cmd.pieces)
           .setState       (SCLobby.State.Gaming);
@@ -228,7 +222,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case CombatNewTurn: {
         RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
-        Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
         getLazyLobbyScreen()
           .setTurn        (cmd.turnId, cmd.unitId)
           .setState       (SCLobby.State.Gaming);
@@ -245,7 +238,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         break;
       }
       default:
-        Gdx.app.log         (LogTag, "Unhandled command type: " + baseCmd.type + ".");
+        setLastError        (-1, String.format("Unhandled command of type %s.", baseCmd.type.toString()));
     }
   }
 
