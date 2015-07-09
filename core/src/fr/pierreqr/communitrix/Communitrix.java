@@ -5,7 +5,6 @@ import aurelienribon.tweenengine.Tween;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -27,6 +26,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
+import fr.pierreqr.communitrix.Constants.CubeFace;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
@@ -36,42 +36,6 @@ import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
 
 public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
-  // Possible directions around a cube to check for.
-  public final static   int         Left                  = 0;
-  public final static   int         Right                 = Left              + 1;
-  public final static   int         Bottom                = Right             + 1;
-  public final static   int         Top                   = Bottom            + 1;
-  public final static   int         Backward              = Top               + 1;
-  public final static   int         Forward               = Backward          + 1;
-  public final static   int         LeftCollides          = Forward           + 1;
-  public final static   int         RightCollides         = LeftCollides      + 1;
-  public final static   int         BottomCollides        = RightCollides     + 1;
-  public final static   int         TopCollides           = BottomCollides    + 1;
-  public final static   int         BackwardCollides      = TopCollides       + 1;
-  public final static   int         ForwardCollides       = BackwardCollides  + 1;
-  // Key binding constants.
-  public final static   int         MoveForward           = 0;
-  public final static   int         MoveBackward          = 1;
-  public final static   int         MoveLeft              = 2;
-  public final static   int         MoveRight             = 3;
-  public final static   int         MoveUp                = 4;
-  public final static   int         MoveDown              = 5;
-  public final static   int         RotateUp              = 6;
-  public final static   int         RotateDown            = 7;
-  public final static   int         RotateLeft            = 8;
-  public final static   int         RotateRight           = 9;
-  public final static   int         CycleView             = 10;
-  public final static   int         Reset                 = 11;
-
-  public final static   int[]       Keys                  = new int[12];
-  public final static   String[]    KeyInstructions       = new String[12];
-  // Some rotation constants.
-  public final static   Vector3     PositiveX             = new Vector3( 1,  0,  0);
-  public final static   Vector3     NegativeX             = new Vector3(-1,  0,  0);
-  public final static   Vector3     PositiveY             = new Vector3( 0,  1,  0);
-  public final static   Vector3     NegativeY             = new Vector3( 0, -1,  0);
-  public final static   Vector3     PositiveZ             = new Vector3( 0,  0,  1);
-  public final static   Vector3     NegativeZ             = new Vector3( 0,  0, -1);
   // Common materials.
   public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
@@ -117,34 +81,6 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     Tween.registerAccessor  (GameObject.class,        new GameObjectAccessor());
     Tween.registerAccessor  (PointLight.class,        new PointLightAccessor());
     Tween.registerAccessor  (PerspectiveCamera.class, new CameraAccessor());
-
-    // Bindings configuration.
-    Keys[MoveForward]             = Input.Keys.W;
-    Keys[MoveBackward]            = Input.Keys.S;
-    Keys[MoveLeft]                = Input.Keys.A;
-    Keys[MoveRight]               = Input.Keys.D;
-    Keys[MoveUp]                  = Input.Keys.O;
-    Keys[MoveDown]                = Input.Keys.L;
-    Keys[RotateUp]                = Input.Keys.UP;
-    Keys[RotateDown]              = Input.Keys.DOWN;
-    Keys[RotateLeft]              = Input.Keys.LEFT;
-    Keys[RotateRight]             = Input.Keys.RIGHT;
-    Keys[CycleView]               = Input.Keys.SPACE;
-    Keys[Reset]                   = Input.Keys.R;
-    // Keys instructions.
-    KeyInstructions[MoveForward]  = "Move Forward";
-    KeyInstructions[MoveBackward] = "Move Backward";
-    KeyInstructions[MoveLeft]     = "Move Left";
-    KeyInstructions[MoveRight]    = "Move Right";
-    KeyInstructions[MoveUp]       = "Move Up";
-    KeyInstructions[MoveDown]     = "Move Down";
-    KeyInstructions[RotateUp]     = "Rotate Up";
-    KeyInstructions[RotateDown]   = "Rotate Down";
-    KeyInstructions[RotateLeft]   = "Rotate Left";
-    KeyInstructions[RotateRight]  = "Rotate Right";
-    KeyInstructions[CycleView]    = "Cycle Camera";
-    KeyInstructions[Reset]        = "Reset";
-
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder newErrorResponder) {
@@ -156,27 +92,16 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-//    boolean fullScreen = true;
-//    if (fullScreen && applicationType==ApplicationType.Desktop)
-//      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
+    boolean fullScreen = true;
+    if (fullScreen && applicationType==ApplicationType.Desktop)
+      Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
-      TextureAtlas  atlas             = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
-      //Attribute     blend             = new BlendingAttribute(0.90f);
-      Attribute     blend             = new BlendingAttribute(true, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, 0.95f);
-      faceMaterials[Left]             = new Material(TextureAttribute.createDiffuse(atlas.findRegion("left")),              blend);
-      faceMaterials[Right]            = new Material(TextureAttribute.createDiffuse(atlas.findRegion("right")),             blend);
-      faceMaterials[Bottom]           = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottom")),            blend);
-      faceMaterials[Top]              = new Material(TextureAttribute.createDiffuse(atlas.findRegion("top")),               blend);
-      faceMaterials[Backward]         = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backward")),          blend);
-      faceMaterials[Forward]          = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forward")),           blend);
-      faceMaterials[LeftCollides]     = new Material(TextureAttribute.createDiffuse(atlas.findRegion("leftColliding")),     blend);
-      faceMaterials[RightCollides]    = new Material(TextureAttribute.createDiffuse(atlas.findRegion("rightColliding")),    blend);
-      faceMaterials[BottomCollides]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion("bottomColliding")),   blend);
-      faceMaterials[TopCollides]      = new Material(TextureAttribute.createDiffuse(atlas.findRegion("topColliding")),      blend);
-      faceMaterials[BackwardCollides] = new Material(TextureAttribute.createDiffuse(atlas.findRegion("backwardColliding")), blend);
-      faceMaterials[ForwardCollides]  = new Material(TextureAttribute.createDiffuse(atlas.findRegion("forwardColliding")),  blend);
+      final TextureAtlas  atlas       = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
+      final Attribute     blend       = new BlendingAttribute(true, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, 0.95f);
+      for (final CubeFace face : Constants.CubeFace.values())
+        faceMaterials[face.ordinal()]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion(face.toString())), blend);
     }
 
     // Force cache viewport size.
@@ -298,7 +223,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
                               "Pieces: " + cmd.pieces.length + ").");
         getLazyLobbyScreen()
           .prepare        (cmd.target, cmd.units, cmd.pieces)
-          .setState       (SCLobby.State.NewTurn);
+          .setState       (SCLobby.State.Gaming);
         break;
       }
       case CombatNewTurn: {
@@ -306,7 +231,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
         Gdx.app.log         (LogTag, "Server is telling us to move to new turn " + cmd.turnId + ".");
         getLazyLobbyScreen()
           .setTurn        (cmd.turnId, cmd.unitId)
-          .setState       (SCLobby.State.NewTurn);
+          .setState       (SCLobby.State.Gaming);
         break;
       }
       case CombatPlayerTurn: {
@@ -316,8 +241,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
          break;
       }
       case CombatEnd: {
-        getLazyLobbyScreen()
-          .setState             (SCLobby.State.EndGame);
+        // TODO: Display results in current screen.
         break;
       }
       default:

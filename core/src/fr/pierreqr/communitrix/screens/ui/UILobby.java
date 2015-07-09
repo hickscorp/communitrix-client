@@ -14,6 +14,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.Constants;
+import fr.pierreqr.communitrix.Constants.Key;
 import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
@@ -43,7 +45,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   private final Table           tblMain, tblCombats;
   private final Label           lblTitle, lblStatus;
   private final TextField       txtUsername;
-  private       int             currentBinding  = -1;
+  private       Key             currentBinding  = null;
 
   public UILobby (final UILobbyDelegate delegate) {
     // Save delegate.
@@ -77,19 +79,22 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   }
   
   public void nextBinding () {
-    flash             (String.format("Press any key for action %s...", Communitrix.KeyInstructions[currentBinding]), Color.GREEN);
+    flash             (String.format("Press any key for action %s...", Constants.KeyText.get(currentBinding)), Color.GREEN);
   }
   public boolean keyUp (int keycode) {
     if (state!=State.Settings || keycode==Keys.ESCAPE)
       return false;
     
-    Communitrix
-      .Keys[currentBinding] = keycode;
-    currentBinding          ++;
-    if (currentBinding<Communitrix.Keys.length)
+    Constants.Keys.put      (currentBinding, keycode);
+    final int ordinal       = currentBinding.ordinal() + 1;
+    if (ordinal<Key.values().length) {
+      currentBinding        = Key.values()[ordinal];
       nextBinding           ();
-    else
+    }
+    else {
+      currentBinding        = null;
       flash                 ("All done! Press ESC to exit settings.", Color.GREEN);
+    }
     return                  true;
   }
 
@@ -139,7 +144,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     switch (state) {
       case Settings:
         lblTitle.setText  ("Settings State");
-        currentBinding    = 0;
+        currentBinding    = Key.values()[0];
         nextBinding       ();
         break;
       case Global:
@@ -162,12 +167,12 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         else
           lblTitle.setText  ("Starting combat...");
         break;
-      case NewTurn:
+      case Gaming:
+        // TODO: Make endgame test.
+//        lblTitle.setText  (String.format("Game Over"));
+//        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
         lblTitle.setText  (String.format("In turn %d.", delegate.getTurn()));
         break;
-      case EndGame:
-        lblTitle.setText  (String.format("Game Over"));
-        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
       default :
         break;
     }

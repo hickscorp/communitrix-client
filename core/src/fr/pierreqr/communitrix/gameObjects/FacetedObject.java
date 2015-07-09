@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.Constants.CubeFace;
 import fr.pierreqr.communitrix.networking.shared.SHCell;
 import fr.pierreqr.communitrix.networking.shared.SHPiece;
 
@@ -49,7 +50,7 @@ public abstract class FacetedObject extends GameObject {
           if (index==0) continue;
           // Nothing on the left.
           if (iX==0 || contents[iX-1][iY][iZ]==0) {
-            builderFor(iX, iY, iZ, index, Communitrix.Left)
+            builderFor(iX, iY, iZ, index, CubeFace.Left.ordinal())
               .rect(  x-r, y-r, z+r,
                       x-r, y+r, z+r,
                       x-r, y+r, z-r,
@@ -58,7 +59,7 @@ public abstract class FacetedObject extends GameObject {
           }
           // Nothing on the right.
           if (iX==p.size.x-1 || contents[iX+1][iY][iZ]==0) {
-            builderFor(iX, iY, iZ, index, Communitrix.Right)
+            builderFor(iX, iY, iZ, index, CubeFace.Right.ordinal())
               .rect(  x+r, y-r, z-r,
                       x+r, y+r, z-r,
                       x+r, y+r, z+r,
@@ -67,7 +68,7 @@ public abstract class FacetedObject extends GameObject {
           }
           // Nothing on the top.
           if (iY==0 || contents[iX][iY-1][iZ]==0 ) {
-            builderFor(iX, iY, iZ, index, Communitrix.Bottom)
+            builderFor(iX, iY, iZ, index, CubeFace.Bottom.ordinal())
               .rect(  x+r, y-r, z+r,
                       x-r, y-r, z+r,
                       x-r, y-r, z-r,
@@ -76,7 +77,7 @@ public abstract class FacetedObject extends GameObject {
           }
           // Nothing on the bottom.
           if (iY==p.size.y-1 || contents[iX][iY+1][iZ]==0) {
-            builderFor(iX, iY, iZ, index, Communitrix.Top)
+            builderFor(iX, iY, iZ, index, CubeFace.Top.ordinal())
               .rect(  x+r, y+r, z-r,
                       x-r, y+r, z-r,
                       x-r, y+r, z+r,
@@ -85,7 +86,7 @@ public abstract class FacetedObject extends GameObject {
           }
           // Nothing in front.
           if (iZ==0 || contents[iX][iY][iZ-1]==0) {
-            builderFor(iX, iY, iZ, index, Communitrix.Backward)
+            builderFor(iX, iY, iZ, index, CubeFace.Backward.ordinal())
               .rect(  x+r, y-r, z-r,
                       x-r, y-r, z-r,
                       x-r, y+r, z-r,
@@ -94,7 +95,7 @@ public abstract class FacetedObject extends GameObject {
           }
           // Nothing behind it.
           if (iZ==p.size.z-1 || contents[iX][iY][iZ+1]==0) {
-            builderFor(iX, iY, iZ, index, Communitrix.Forward)
+            builderFor(iX, iY, iZ, index, CubeFace.Forward.ordinal())
               .rect(  x+r, y+r, z+r,
                       x-r, y+r, z+r,
                       x-r, y-r, z+r,
@@ -130,7 +131,7 @@ public abstract class FacetedObject extends GameObject {
     for (final Node node : nodes) {
       int i = 0;
       for (final NodePart part : node.parts) {
-        part.material   = Communitrix.faceMaterials[i+Communitrix.Left];
+        part.material   = Communitrix.faceMaterials[i];
         i++;
       }
     }
@@ -139,7 +140,7 @@ public abstract class FacetedObject extends GameObject {
     for (final Node node : nodes) {
       int i = 0;
       for (final NodePart part : node.parts) {
-        part.material   = Communitrix.faceMaterials[i+Communitrix.LeftCollides];
+        part.material   = Communitrix.faceMaterials[i+6];
         i++;
       }
     }

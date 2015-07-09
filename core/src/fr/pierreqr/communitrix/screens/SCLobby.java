@@ -19,14 +19,19 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.BoundingBox;
+import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
 import fr.pierreqr.communitrix.Communitrix;
+import fr.pierreqr.communitrix.Constants;
+import fr.pierreqr.communitrix.Constants.Key;
 import fr.pierreqr.communitrix.gameObjects.Camera;
 import fr.pierreqr.communitrix.gameObjects.FacetedObject;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
@@ -45,7 +50,7 @@ import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
 public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Settings, Global, Joined, NewTurn, EndGame }
+  public                enum          State         { Unknown, Settings, Global, Joined, Gaming }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
@@ -70,7 +75,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   // Flat UI.
   private       UILobby               ui;
   // Scene setup related objects.
-  private final TweenManager          tweener;
+  private final TweenManager          tweener       = new TweenManager();
   private final Environment           envMain;
   private final Camera                camMain, camTarget;
   private final ICLobby               lobbyInputCtrl;
@@ -104,6 +109,11 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   private final PiecesDock            piecesDock;
 
   private static        Vector3       relXAxis, relYAxis, relZAxis;
+  static {
+    relZAxis  = new Vector3(Vector3.Z).scl(-1);
+    relXAxis  = new Vector3(relZAxis).crs(Vector3.Y);
+    relYAxis  = new Vector3(relXAxis).crs(relZAxis);
+  };
 
   public SCLobby (final Communitrix communitrix) {
     Gdx.app.log           (LogTag, "Constructing.");
@@ -112,16 +122,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Initialize our UI manager.
     ui                    = new UILobby(this);
     ctx.setErrorResponder (ui);
-    // Initialize animation engine.
-    tweener               = new TweenManager();
-    
-    // Prepare our relative axis if needed.
-    if (relXAxis==null) {
-      relZAxis  = new Vector3(Vector3.Z).scl(-1);
-      relXAxis  = new Vector3(relZAxis).crs(Vector3.Y);
-      relYAxis  = new Vector3(relXAxis).crs(relZAxis);
-    }
-    
+
     // Set up the scene environment.
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1.0f));
@@ -209,15 +210,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
             .setInputProcessor  (lobbyInputCtrl);
           setCameraState        (CameraState.Lobby);
           break;
-        case NewTurn:
+        case Gaming:
           setCameraState        (CameraState.Pieces);
-          break;
-        case EndGame:
-          pieces.clear          ();
-          availablePieces.clear ();
-          piecesDock.refresh    ();
-          playedPiece           = null;
-          selectedPiece         = null;
           break;
         default :
           break;
@@ -243,11 +237,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     }
     return      this;
   }
-  public SHCombat getCombat () { return combat; }
-  // Setter on players, handles list population.
-  public Array<SHPlayer> getPlayers () {
-    return players;
-  }
+
+  public Array<SHPlayer> getPlayers () { return players; }
   public SCLobby setPlayers (final ArrayList<SHPlayer> players) {
     // Remove all character instances.
     for (final SHPlayer player : this.players)
@@ -310,11 +301,8 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     return this;
   }
   
-  public State        getState        ()  { return state; }
   public int          getTurn         ()  { return combat.currentTurn; }
-  public boolean      canPlayThisTurn ()  { return playedPiece==null; }
-  public Camera       getCamera       ()  { return camMain; }
-  public CameraState  getCameraState  ()  { return cameraState; }
+  public boolean      isLastTurn      ()  { return combat.currentTurn>pieces.size; }
   public void setCameraState (final CameraState cameraState) {
     final float[] pov = CameraPOVs.get(cameraState);
     this.cameraState  = cameraState;
@@ -324,29 +312,35 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .ease           (Quad.INOUT)
       .start          (tweener);
   }
-  public void zoom (final int amount) {
-    camMain
-      .translate(
-        tmpVec
-          .set(camMain.direction)
-          .scl(amount)
-      );
-    camMain.update();
-  }
-  public Piece        getUnit           () { return unit; }
-  public Piece        getTarget         () { return target; }
-  public PiecesDock   getPiecesDock     () { return piecesDock; }
-  public Piece        getPlayedPiece    () { return playedPiece; }
-  public Array<Piece> getPieces         () { return pieces; }
   public Array<Piece> getAvailablePieces() { return availablePieces; }
-  public void cyclePieces (final int increment) {
-    piecesDock.cycle  (increment);
-  }
-  public void hoverPiece (final Piece piece) {
+  public void selectPiece (final Piece piece) {
+    if (selectedPiece==piece)
+      return;
+      // De-select old selection.
+    else if (selectedPiece!=null) {
+      // Scale back up.
+      selectedPiece.targetScale
+        .set        (1, 1, 1);
+      // Re-parent the piece to the pieces dock.
+      selectedPiece
+        .setParent  (piecesDock);
+      // As the pieces dock itself isn't rotating, pre-rotate the piece.
+      selectedPiece.targetRotation
+        .set        (unit.targetRotation);
+      selectedPiece
+        .switchToRegularMaterials();
+      piecesDock
+        .refresh      ();
+    }
+    
+    // Nothing selected, just return.
+    if ((selectedPiece = piece)==null)
+      return;
+    
+    // Compute status of selected piece.
     final SHUnit  sharedUnit  = (SHUnit)unit.sharedPiece;
     if (piece==null)        return;
     final int     pieceId   = pieces.indexOf(piece, true);
-    
     int           count     = 0;
     if (sharedUnit!=null && sharedUnit.moves!=null) {
       for (final int[] ids : sharedUnit.moves.values())
@@ -354,46 +348,22 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
           if (pieceId==id)
             count++;
     }
-    if (count==0)
-      ctx.setLastError      (0, "This piece has not been played in this unit yet.");
-    else
-      ctx.setLastError      (-1, String.format("This piece has been played %d times in the current unit.", count));
-  }
-  public void selectPiece (final Piece piece) {
-    if (selectedPiece!=piece) {
-      // De-select old selection.
-      if (selectedPiece!=null) {
-        // Scale back up.
-        selectedPiece.targetScale
-          .set        (1, 1, 1);
-        // Re-parent the piece to the pieces dock.
-        selectedPiece
-          .setParent  (piecesDock);
-        // As the pieces dock itself isn't rotating, pre-rotate the piece.
-        selectedPiece.targetRotation
-          .set        (unit.targetRotation);
-        selectedPiece
-          .switchToRegularMaterials();
-        piecesDock
-          .refresh      ();
-      }
-      
-      // This is a selection.
-      if ((selectedPiece = piece)!=null) {
-        // To prevent face clipping, let's scale down a little bit.
-        selectedPiece.targetScale
-          .set        (0.97f, 0.97f, 0.97f);
-        // Re-parent the piece inside the unit.
-        selectedPiece
-          .setParent  (unit);
-        // The piece needs to be at the unit's origin.
-        selectedPiece.targetPosition
-          .set        (0, 0, 0);
-        checkCollisionsWithUnit(selectedPiece);
-        selectedPiece
-          .start      (tweener, 0.3f, Quad.INOUT);
-      }
-    }
+    // Build message.
+    if (count==0)     ctx.setLastError(0, "This piece has not been played in this unit yet.");
+    else              ctx.setLastError(-1, String.format("This piece has been played %d times in the current unit.", count));
+
+    // To prevent face clipping, let's scale down a little bit.
+    selectedPiece.targetScale
+      .set        (0.97f, 0.97f, 0.97f);
+    // Re-parent the piece inside the unit.
+    selectedPiece
+      .setParent  (unit);
+    // The piece needs to be at the unit's origin.
+    selectedPiece.targetPosition
+      .set        (0, 0, 0);
+    checkCollisionsWithUnit(selectedPiece);
+    selectedPiece
+      .start      (tweener, 0.3f, Quad.INOUT);
   }
   public void translateWithinView (final GameObject obj, final Vector3 translation, final boolean checkCollisions) {
     tmpVec
@@ -510,6 +480,14 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     final SHUnit currentUnit = units.get(unitId);
     if (currentUnit.size.volume()!=0)
       unit.setFromSharedPiece (currentUnit);
+    // End game condition.
+    if (isLastTurn()) {
+      pieces.clear          ();
+      availablePieces.clear ();
+      piecesDock.refresh    ();
+      playedPiece           = null;
+      selectedPiece         = null;
+    }
     return this;
   }
 
@@ -520,6 +498,71 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     oldUnit.max           = newUnit.max;
     oldUnit.content       = newUnit.content;
     oldUnit.moves         = newUnit.moves;
+  }
+  
+  public Piece getClickableAt (final int screenX, final int screenY) {
+    if (playedPiece!=null) {
+      ctx
+        .setLastError       (0, "Please wait for all players to complete this turn.");
+      return                null;
+    }
+    else if (state!=State.Gaming || cameraState!=CameraState.Pieces)
+      return                null;
+    else
+      return                rayPickTest(screenX, screenY, availablePieces);
+  }
+  public boolean handleSelection (final Piece clicked) {
+    if (playedPiece!=null) {
+      Communitrix.getInstance()
+        .setLastError (0, "Please wait for all players to complete this turn.");
+      return false;
+    }
+    else if (state!=State.Gaming || cameraState!=CameraState.Pieces)
+      return          false;
+    else if (selectedPiece==clicked)
+      return          false;
+    // We had a previous selection.
+    selectPiece       (clicked);
+    setCameraState    (CameraState.Unit);
+    return            true;
+  }
+  
+  private <T extends GameObject> T rayPickTest (final int screenX, final int screenY, final Array<T> list) {
+    // Reset selection.
+    T           result     = null;
+    // Pick a ray from the cam.
+    final Ray   ray        = camMain.getPickRay(screenX, screenY);
+    // Variable dist will be a temp, while sDist will be the shortest found distance.
+    float       dist, sDist = Float.MAX_VALUE;
+    BoundingBox bounds      = null;
+    // Iterate through all instances.
+    for (T obj : list) {
+      tmpVec.set        (obj.targetPosition);
+      if (( dist = ray.origin.dst2(tmpVec) )<sDist) {
+        bounds          = new BoundingBox(obj.fakeBounds);
+        bounds.min.add  (tmpVec);
+        bounds.max.add  (tmpVec);
+        if (Intersector.intersectRayBounds(ray, bounds, null)) {
+          sDist         = dist;
+          result       = obj;
+        }
+      }
+    }
+    return result;
+  }
+
+  
+  public boolean handleZoom (final int amount) {
+    if (state!=State.Gaming)
+      return false;
+    camMain
+    .translate(
+      tmpVec
+        .set(camMain.direction)
+        .scl(amount)
+    );
+    camMain.update();
+    return true;
   }
   
   @Override public void show ()   {}
@@ -540,13 +583,70 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     Gdx.gl.glBlendFunc    (GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     // Enable back-face culling.
     Gdx.gl.glEnable       (GL20.GL_CULL_FACE);
-    Gdx.gl.glCullFace     (GL20.GL_BACK);
+    Gdx.gl.glCullFace     (GL20.GL_FRONT);
     
     // Update any pending animation.
-    tweener.update        (delta);
-    // Update camera controller.
-    lobbyInputCtrl.update   ();
-
+    tweener.update            (delta);
+    lobbyInputCtrl.updateKeys ();
+    // We're in ALT mode.
+    if (lobbyInputCtrl.alt) {
+      if (state==State.Gaming) {
+        handleMovement (target, lobbyInputCtrl.keys, true, false, false);
+        handleMovement (unit, lobbyInputCtrl.keys, true, false, false);
+        for (final Piece piece : availablePieces)
+          if (piece.parent!=unit)
+            handleMovement  (piece, lobbyInputCtrl.keys, true, false, false);
+      }
+    }
+    // We're NOT in alt mode.
+    else {
+      // Player is willing to go back.
+      if (lobbyInputCtrl.keys[Key.Cancel.ordinal()]) {
+        if (state==State.Global)
+          setState        (State.Settings);
+        else if (state==State.Settings)
+          setState        (State.Global);
+        else if (state==State.Gaming && isLastTurn())
+          setState        (State.Global);
+        else {
+          setCameraState  (CameraState.Pieces);
+          selectPiece     (null);
+        }
+      }
+      // We're in game mode.
+      if (state==State.Gaming) {
+        // Player is asking to reset target and unit.
+        if (lobbyInputCtrl.keys[Key.Reset.ordinal()]) {
+          resetRotation       (target);
+          resetRotation       (unit);
+          for (final Piece piece : availablePieces)
+            resetRotation     (piece);
+        }
+        // We're in unit mode...
+        if (cameraState==CameraState.Unit) {
+          // There is a selection.
+          if (selectedPiece!=null) {
+            // Only allow piece translation if not within first turn.
+            handleMovement                      (selectedPiece, lobbyInputCtrl.keys, true, combat.currentTurn!=1, true);
+            // Send turn to server.
+            if (lobbyInputCtrl.keys[Key.Validate.ordinal()]) {
+              playPiece                         (selectedPiece);
+              setCameraState                    (CameraState.Pieces);
+            }
+          }
+        }
+        // There is no selection made.
+        else if (cameraState==CameraState.Pieces) {
+          if (lobbyInputCtrl.keys[Key.MoveLeft.ordinal()])        piecesDock.cycle  (-1);
+          else if (lobbyInputCtrl.keys[Key.MoveRight.ordinal()])  piecesDock.cycle  (1);
+        }
+        // Toggle between unit view and target view.
+        if (lobbyInputCtrl.keys[Key.CycleView.ordinal()])
+          if ((state==State.Gaming))
+            setCameraState(cameraState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
+      }
+    }
+    
     // Capture FBO for post-processing.
     postProMain.capture   ();
     
@@ -572,8 +672,27 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
 
     // Update flat UI.
     ui.actAndDraw         (delta);
-}
+  }
 
+  // Checks whether the user is to translating / rotating.
+  public void handleMovement (final Piece moveable, final boolean[] keys, final boolean rotate, final boolean translate, final boolean checkCollisions) {
+    if (translate) {
+      if (keys[Key.MoveForward.ordinal()])        translateWithinView (moveable, Constants.PositiveZ, checkCollisions);
+      else if (keys[Key.MoveBackward.ordinal()])  translateWithinView (moveable, Constants.NegativeZ, checkCollisions);
+      if (keys[Key.MoveLeft.ordinal()])           translateWithinView (moveable, Constants.PositiveX, checkCollisions);
+      else if (keys[Key.MoveRight.ordinal()])     translateWithinView (moveable, Constants.NegativeX, checkCollisions);
+      if (keys[Key.MoveUp.ordinal()])             translateWithinView (moveable, Constants.PositiveY, checkCollisions);
+      else if (keys[Key.MoveDown.ordinal()])      translateWithinView (moveable, Constants.NegativeY, checkCollisions);
+    }
+    if (rotate) {
+      if (keys[Key.RotateUp.ordinal()])           rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
+      else if (keys[Key.RotateDown.ordinal()])    rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
+      if (keys[Key.RotateLeft.ordinal()])         rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
+      else if (keys[Key.RotateRight.ordinal()])   rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
+    }
+  }
+
+  
   @Override public void resize (final int width, final int height) {
     // Update flat UI.
     ui.resize           (width, height);
