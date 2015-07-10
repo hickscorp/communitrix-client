@@ -1,0 +1,35 @@
+font.name=Oriya Sangam MN
+font.size=16
+font.bold=true
+font.italic=false
+
+font2.file=
+font2.use=false
+
+pad.top=0
+pad.right=0
+pad.bottom=0
+pad.left=0
+pad.advance.x=1
+pad.advance.y=0
+
+glyph.native.rendering=false
+glyph.page.width=512
+glyph.page.height=512
+glyph.text=ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890\n"!`?'.,;:()[]{}<>|/@\^$-%+=#_&~*
+
+effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.ShadowEffect
+effect.Color=cccccc
+effect.Opacity=0.4
+effect.X distance=1.0
+effect.Y distance=0.0
+effect.Blur kernel size=0
+effect.Blur passes=1
+
+effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.GradientEffect
+effect.Top color=ffffff
+effect.Bottom color=999999
+effect.Offset=-2
+effect.Scale=1.0
+effect.Cyclic=false
+

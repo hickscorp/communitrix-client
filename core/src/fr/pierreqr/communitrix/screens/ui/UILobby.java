@@ -1,7 +1,7 @@
 package fr.pierreqr.communitrix.screens.ui;
 
-import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -21,39 +21,33 @@ import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.commands.tx.TXRegister;
 import fr.pierreqr.communitrix.networking.shared.SHCombat;
-import fr.pierreqr.communitrix.networking.shared.SHPlayer;
+import fr.pierreqr.communitrix.screens.SCData;
 import fr.pierreqr.communitrix.screens.SCLobby;
 import fr.pierreqr.communitrix.screens.SCLobby.State;
 
 public class UILobby extends InputAdapter implements ErrorResponder {
-  public interface UILobbyDelegate {
-    Array<SHPlayer> getPlayers          ();
-    Array<SHCombat> getCombats          ();
-    int             getTurn             ();
-  };
-
   private       Communitrix     ctx;
   private       SCLobby.State   state;
   private final boolean         debug       = false;
   private final int             pad         = 5;
 
-  private final UILobbyDelegate delegate;
+  private final SCData          data;
   private final Timer           timer;
   private       Timer.Task      lastTask;
   private final Stage           stage;
-  private final Skin            skin;
+  private final Skin            skin, skinMini;
   private final Table           tblMain, tblCombats;
   private final Label           lblTitle, lblStatus;
   private final TextField       txtUsername;
   private       Key             currentBinding  = null;
 
-  public UILobby (final UILobbyDelegate delegate) {
-    // Save delegate.
-    this.delegate           = delegate;
-    
+  public UILobby (final SCData newData) {
+    data                    = newData;
+
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
     skin                    = ctx.uiSkin;
+    skinMini                = ctx.uiSkinMini;
     // Prepare UI timer.
     timer                   = new Timer();
     // Create our flat UI stage.
@@ -73,13 +67,13 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     // Prepare the title field.
     lblTitle                = new Label("", skin);
     // Prepare the status field.
-    lblStatus               = new Label("", skin);
+    lblStatus               = new Label("", skinMini);
     // Prepare the username input text field.
-    txtUsername             = new TextField("Doodloo", ctx.uiSkin);
+    txtUsername             = new TextField("Doodloo", skin);
   }
   
-  public void nextBinding () {
-    flash             (String.format("Press any key for action %s...", Constants.KeyText.get(currentBinding)), Color.GREEN);
+  public void nextBinding (final Key newBinding) {
+    flash             (String.format("Press any key for action %s...", Constants.KeyText.get( currentBinding = newBinding )), Color.GREEN);
   }
   public boolean keyUp (int keycode) {
     if (state!=State.Settings || keycode==Keys.ESCAPE)
@@ -87,10 +81,8 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     
     Constants.Keys.put      (currentBinding, keycode);
     final int ordinal       = currentBinding.ordinal() + 1;
-    if (ordinal<Key.values().length) {
-      currentBinding        = Key.values()[ordinal];
-      nextBinding           ();
-    }
+    if (ordinal<Key.values().length)
+      nextBinding           (Key.values()[ordinal]);
     else {
       currentBinding        = null;
       flash                 ("All done! Press ESC to exit settings.", Color.GREEN);
@@ -130,22 +122,22 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     stage.getViewport().update(width, height, true);
   }
 
-  public UILobby setState (final SCLobby.State state) {
-    this.state        = state;
-    // Remove everything from the UI.
-    tblMain.clear     ();
-    // Add title row.
-    tblMain.add       (lblTitle).colspan(2).center();
-    tblMain.row       ();
-    // Add status row.
-    tblMain.add       (lblStatus).colspan(2).center();
-    tblMain.row       ();
+  public UILobby setState (final SCLobby.State newState) {
+    if (state!=newState) {
+      // Remove everything from the UI.
+      tblMain.clear     ();
+      // Add title row.
+      tblMain.add       (lblTitle).colspan(2).center();
+      tblMain.row       ();
+      // Add status row.
+      tblMain.add       (lblStatus).colspan(2).center();
+      tblMain.row       ();
+    }
 
-    switch (state) {
+    switch (state = newState) {
       case Settings:
         lblTitle.setText  ("Settings State");
-        currentBinding    = Key.values()[0];
-        nextBinding       ();
+        nextBinding       (Key.values()[0]);
         break;
       case Global:
         // Title row.
@@ -162,16 +154,17 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         break;
       case Joined:
         // Title row.
-        if (delegate.getTurn()==0)
+        if (data.combat.currentTurn==0)
           lblTitle.setText  ("Waiting for other players...");
         else
           lblTitle.setText  ("Starting combat...");
         break;
       case Gaming:
-        // TODO: Make endgame test.
-//        lblTitle.setText  (String.format("Game Over"));
-//        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
-        lblTitle.setText  (String.format("In turn %d.", delegate.getTurn()));
+        lblTitle.setText  (String.format("In turn %d.", data.combat.currentTurn));
+        break;
+      case EndGame:
+        lblTitle.setText  (String.format("Game Over"));
+        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
         break;
       default :
         break;
@@ -183,7 +176,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
     // Remove combats list.
     tblCombats.clear  ();
     // Add the combats list.
-    final Array<SHCombat> combats = delegate.getCombats();
+    final Array<SHCombat> combats = data.combats;
     if (combats!=null) {
       flash                   (String.format("Loaded %d combat(s).", combats.size), Color.GREEN);
       for (final SHCombat combat : combats) {
@@ -202,7 +195,6 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         tblCombats.row        ();
       }
     }
-
     // Add the refresh button to the combat screen.
     final TextButton btnRefresh = new TextButton("Refresh", skin);
     btnRefresh.addListener(new ClickListener() {

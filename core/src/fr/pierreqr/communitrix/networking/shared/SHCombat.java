@@ -8,4 +8,14 @@ public class SHCombat {
   public    boolean             started;
   public    int                 currentTurn;
   public    ArrayList<SHPlayer> players;
+  
+  public SHCombat set (final SHCombat combat) {
+    uuid            = combat.uuid;
+    minPlayers      = combat.minPlayers;
+    maxPlayers      = combat.maxPlayers;
+    started         = combat.started;
+    players.clear   ();
+    players.addAll  (combat.players);
+    return          this;
+  }
 }

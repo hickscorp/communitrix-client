@@ -2,6 +2,7 @@ package fr.pierreqr.communitrix;
 
 import java.util.Random;
 import aurelienribon.tweenengine.Tween;
+import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -31,6 +32,7 @@ import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
 import fr.pierreqr.communitrix.screens.SCLobby;
+import fr.pierreqr.communitrix.screens.SCLobby.State;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
@@ -45,14 +47,15 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   // Shared members.
   public          ApplicationType   applicationType;
   public          int               viewWidth, viewHeight;
-  public          Skin              uiSkin;
+  public          Skin              uiSkin, uiSkinMini;
+  public          TweenManager      tweener               = new TweenManager();
   public          ModelBuilder      modelBuilder;
   public          ModelBatch        modelBatch;
   public          Material          defaultMaterial;
   public          G3dModelLoader    modelLoader;
   public          Model             dummyModel;
   // Random generator.
-  public          Random            rand;
+  public final    Random            rand                  = new Random();
   // Network-related objects.
   public          NetworkingManager networkingManager;
   public          Timer             networkTimer;
@@ -74,13 +77,11 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     setErrorResponder       (instance = this);
     // Configure assets etc.
     ShaderLoader.BasePath   = "shaders/";
-    // Prepare our random generator instance.
-    rand                    = new Random();
     // Register motion tweening accessors.
     Tween.setCombinedAttributesLimit  (6);
-    Tween.registerAccessor  (GameObject.class,        new GameObjectAccessor());
-    Tween.registerAccessor  (PointLight.class,        new PointLightAccessor());
-    Tween.registerAccessor  (PerspectiveCamera.class, new CameraAccessor());
+    Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
+    Tween.registerAccessor            (PointLight.class,        new PointLightAccessor());
+    Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder newErrorResponder) {
@@ -92,7 +93,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     applicationType     = Gdx.app.getType();
 
     // After starting the application, we can query for the desktop dimensions
-    boolean fullScreen = true;
+    boolean fullScreen = false;
     if (fullScreen && applicationType==ApplicationType.Desktop)
       Gdx.graphics.setDisplayMode (Gdx.graphics.getDesktopDisplayMode().width, Gdx.graphics.getDesktopDisplayMode().height, true);
     
@@ -108,6 +109,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     resize                  (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     // Instantiate shared members.
     uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
+    uiSkinMini              = new Skin(Gdx.files.internal("skins/uiskin_mini.json"));
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     dummyModel              = new Model();
@@ -196,8 +198,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       case CombatJoin: {
         final RXCombatJoin cmd = (RXCombatJoin)baseCmd;
         getLazyLobbyScreen()
-          .setCombat        (cmd.combat)
-          .setPlayers       (((RXCombatJoin)baseCmd).combat.players);
+          .setCombat        (cmd.combat);
         lobbyScreen
           .setState         (SCLobby.State.Joined);
         break;
@@ -234,7 +235,9 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
          break;
       }
       case CombatEnd: {
-        // TODO: Display results in current screen.
+        getLazyLobbyScreen()
+          .endGame              ()
+          .setState             (State.EndGame);
         break;
       }
       default:

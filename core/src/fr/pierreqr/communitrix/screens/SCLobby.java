@@ -1,22 +1,14 @@
 package fr.pierreqr.communitrix.screens;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import aurelienribon.tweenengine.BaseTween;
+import java.util.EnumMap;
 import aurelienribon.tweenengine.Tween;
-import aurelienribon.tweenengine.TweenCallback;
-import aurelienribon.tweenengine.TweenManager;
-import aurelienribon.tweenengine.equations.Bounce;
 import aurelienribon.tweenengine.equations.Quad;
 import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Intersector;
@@ -44,26 +36,22 @@ import fr.pierreqr.communitrix.networking.shared.SHUnit;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby;
 import fr.pierreqr.communitrix.screens.inputControllers.ICLobby.ICLobbyDelegate;
 import fr.pierreqr.communitrix.screens.ui.UILobby;
-import fr.pierreqr.communitrix.screens.ui.UILobby.UILobbyDelegate;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
-public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Settings, Global, Joined, Gaming }
+public class SCLobby implements Screen, ICLobbyDelegate, PiecesDockDelegate {
+  public                enum          State         { Unknown, Settings, Global, Joined, Gaming, EndGame }
   public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
-  public final static HashMap<CameraState, float[]> CameraPOVs  = new HashMap<CameraState, float[]>();
+  public final static EnumMap<CameraState, float[]> CameraPOVs  = new EnumMap<CameraState, float[]>(CameraState.class);
   static {
-    CameraPOVs.put(CameraState.Lobby,   new float[]{});
+    CameraPOVs.put(CameraState.Lobby,   new float[]{ 0, 2, -6,  0, 0, 0 });
     CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 4,-10,  0, 0, 0 });
     CameraPOVs.put(CameraState.Unit,    new float[]{ 0, 5, -6,  0, 3, 0 });
     CameraPOVs.put(CameraState.Observe, new float[]{ 0, 5, -6,  0, 3, 0 });
   }
-  // Various locations for objects.
-  public  final static  HashMap<String, float[]> Locations   = new HashMap<String, float[]>();
-
   private static final  Matrix4       tmpMat4       = new Matrix4();
   private static final  String        LogTag        = "LobbyScreen";
   
@@ -72,34 +60,22 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   
   // Game instance cache.
   private final Communitrix           ctx;
-  // Flat UI.
-  private       UILobby               ui;
-  // Scene setup related objects.
-  private final TweenManager          tweener       = new TweenManager();
-  private final Environment           envMain;
-  private final Camera                camMain, camTarget;
-  private final ICLobby               lobbyInputCtrl;
-  private final PostProcessor         postProMain;
-  
+
   // State related members.
   private       State                 state         = State.Unknown;
   private       CameraState           cameraState   = CameraState.Unknown;
-  // The last loaded list of combats.
-  private final Array<SHCombat>       combats       = new Array<SHCombat>();
-  // The current combat we've joined.
-  private       SHCombat              combat        = null;
-  // The list of players.
-  private final Array<SHPlayer>       players       = new Array<SHPlayer>();
-  // The currently selected piece.
-  private       Piece                 selectedPiece = null;
-  private       boolean               isColliding   = false;
-  // The piece being played / that was played this turn.
-  private       Piece                 playedPiece   = null;
+  // Shared screen data object.
+  private       SCData                data          = new SCData();
 
-  // Various object instances.
-  private final Model                 characterModel;
+  // Flat UI.
+  private       UILobby               ui            = new UILobby(data);
+  // Scene setup related objects.
+  private final Environment           envMain;
+  private final Camera                camMain, camTarget;
+  private final ICLobby               inputCtrl;
+  private final PostProcessor         postProMain;
+  // Object which need to be rendered with the camMain.
   private final Array<GameObject>     instances     = new Array<GameObject>();
-  private final Map<String,GameObject>characters    = new HashMap<String,GameObject>();
   // Model instances.
   private final Piece                 target;
   private final Array<SHUnit>         units;
@@ -119,8 +95,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     Gdx.app.log           (LogTag, "Constructing.");
     // Cache our game instance.
     ctx                   = communitrix;
-    // Initialize our UI manager.
-    ui                    = new UILobby(this);
     ctx.setErrorResponder (ui);
 
     // Set up the scene environment.
@@ -155,186 +129,145 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     camTarget.far         = 32f;
     camTarget.update      ();
     
-    // Create objective piece. It is not added to the instances list, as it is rendered on the side.
-    target                = new Piece();
-
     // Set up our scene.
     camMain               = new Camera(70, ctx.viewWidth, ctx.viewHeight);
     camMain.near          = 1f;
     camMain.far           = 64f;
-    camMain.update        ();
+    setCameraState        (CameraState.Lobby, false);
     
-    // Prepare character model.
-    characterModel        = ctx.modelBuilder.createBox(2, 2, 2, ctx.defaultMaterial, Usage.Position | Usage.Normal);
-    
-    // Prepare units list.
+    // Create various arrays..
     units                 = new Array<SHUnit>();
+    pieces                = new Array<Piece>();
+    availablePieces       = new Array<Piece>();
 
+    // Create objective piece. It is not added to the instances list, as it is rendered on the side.
+    target                = new Piece();
     // Create unit piece.
     unit                  = new Piece();
     unit.transform
       .translate          (0, 3, 0);
     unit.reset            ();
     instances.add         (unit);
-    
-    // Create various arrays..
-    pieces                = new Array<Piece>();
-    availablePieces       = new Array<Piece>();
-    
+    // Pieces dock.
     piecesDock            = new PiecesDock(this);
     instances.add         (piecesDock);
     
     // Instantiate our interaction controller.
-    lobbyInputCtrl        = new ICLobby(this);
+    inputCtrl        = new ICLobby(this);
   }
   // Setter on state, handles transitions.
-  public void setState (final State state) {
-    if (this.state!=state) {
-      switch (state) {
-        case Settings:
-          Gdx.input
-            .setInputProcessor  (ui);
-          break;
-        case Global:
-          target.clear          ();
-          resetRotation         (target);
-          unit.clear            ();
-          resetRotation         (unit);
-          units.clear           ();
-          Gdx.input
-            .setInputProcessor  (ui.getStage());
-          break;
-        case Joined:
-          setPlayers            (null);
-          Gdx.input
-            .setInputProcessor  (lobbyInputCtrl);
-          setCameraState        (CameraState.Lobby);
-          break;
-        case Gaming:
-          setCameraState        (CameraState.Pieces);
-          break;
-        default :
-          break;
-      }
+  public void setState (final State newState) {
+    switch (state = newState) {
+      case Settings:
+        Gdx.input
+          .setInputProcessor  (ui);
+        break;
+      case Global:
+        target.clear          ();
+        resetRotation         (target);
+        unit.clear            ();
+        resetRotation         (unit);
+        units.clear           ();
+        Gdx.input
+          .setInputProcessor  (ui.getStage());
+        break;
+      case Joined:
+        Gdx.input
+          .setInputProcessor  (inputCtrl);
+        setCameraState        (CameraState.Lobby, true);
+        break;
+      case Gaming:
+        setCameraState        (CameraState.Pieces, true);
+        break;
+      case EndGame:
+        pieces.clear          ();
+        availablePieces.clear ();
+        piecesDock.refresh    ();
+        data.playedPiece      = null;
+        data.selectedPiece    = null;
+        break;
+      default :
+        break;
     }
-    ui.setState         (this.state = state);
+    ui.setState  (state);
   }
   
-  public Array<SHCombat> getCombats () { return combats; }
   public SCLobby setCombats (final SHCombat[] newCombats) {
-    combats.clear     ();
-    combats.addAll    (newCombats);
-    ui.updateCombats  ();
-    return            this;
+    data.combats.clear  ();
+    data.combats.addAll (newCombats);
+    ui.updateCombats    ();
+    return              this;
   }
   public SCLobby setCombat (final SHCombat newCombat) {
-    combat      = newCombat;
-    for (final SHCombat c : combats) {
-      if (combat.uuid.equals(c.uuid)) {
-        combat    = c;
+    data.combat  = newCombat;
+    for (final SHCombat c : data.combats)
+      if (data.combat.uuid.equals(c.uuid)) {
+        data.combat   = c.set(newCombat);
         break;
       }
-    }
     return      this;
   }
 
-  public Array<SHPlayer> getPlayers () { return players; }
-  public SCLobby setPlayers (final ArrayList<SHPlayer> players) {
-    // Remove all character instances.
-    for (final SHPlayer player : this.players)
-      instances.removeValue(
-        characters.remove(player.uuid)
-      , true);
-    // Clear character list.
-    this.players.clear  ();
-    // Create our players.
-    if (players!=null)
-      for (final SHPlayer player : players)
-        addPlayer         (player);
-    return this;
-  }
   public SCLobby addPlayer (final SHPlayer player) {
-    Gdx.app.log           (LogTag, "Adding player (" + player.uuid + ").");
-    final GameObject obj  = new GameObject(characterModel);
-    obj.transform.setTranslation(players.size * 2.5f, 30, 10);
-    obj.reset             ();
-    characters.put        (player.uuid, obj);
-    instances.add         (obj);
-    players.add           (player);
-    // Schedule animation.
-    obj
-      .targetPosition.y   = 0;
-    obj
-      .start              (tweener, 1.2f, Bounce.OUT);
+    Gdx.app.log             (LogTag, "Adding player (" + player.uuid + ").");
+    data.combat.players.add (player);
     return this;
   }
   public SCLobby removePlayer (final String uuid) {
     Gdx.app.log       (LogTag, "Removing player (" + uuid + ").");
-    boolean shift     = false;
-    int     idx       = 0;
-    SHPlayer  remove    = null;
-    for (final SHPlayer player : players) {
-      if (shift) {
-        final GameObject obj  = characters.get(player.uuid);
-        obj
-          .targetPosition.x = (idx-1) * 2.5f;
-        obj
-          .start          (tweener, 0.5f, Bounce.OUT)
-          .delay          (0.3f);
+    for (final SHPlayer player : data.combat.players)
+      if (player.uuid.equals(uuid)) {
+        data.combat.players.remove(player);
+        break;
       }
-      else if (player.uuid.equals(uuid)) {
-        final GameObject obj  = characters.remove(player.uuid);
-        remove                = player;
-        shift                 = true;
-        final Matrix4     mat = new Matrix4(obj.targetRotation);
-        mat.rotate            (Vector3.Y, 180);
-        mat.getRotation       (obj.targetRotation);
-        obj
-          .targetPosition.y   = -30;
-        obj
-          .start              (tweener, 0.5f, aurelienribon.tweenengine.equations.Expo.IN)
-          .setCallback        (new TweenCallback() { @Override public void onEvent(int arg0, BaseTween<?> arg1) { instances.removeValue (obj, true); }});
-      }
-      ++idx;
-    }
-    players.removeValue   (remove, true);
     return this;
   }
   
-  public int          getTurn         ()  { return combat.currentTurn; }
-  public boolean      isLastTurn      ()  { return combat.currentTurn>pieces.size; }
-  public void setCameraState (final CameraState cameraState) {
-    final float[] pov = CameraPOVs.get(cameraState);
-    this.cameraState  = cameraState;
-    Tween
-      .to             (camMain, CameraAccessor.Trans, 0.3f)
-      .target         (pov)
-      .ease           (Quad.INOUT)
-      .start          (tweener);
+  public boolean isFirstTurn () {
+    return data.combat.currentTurn==1;
+  }
+  public boolean isLastTurn () {
+    return data.combat.currentTurn>pieces.size;
+  }
+  public void setCameraState (final CameraState cameraState, final boolean animate) {
+    final float[] pov     = CameraPOVs.get(cameraState);
+    this.cameraState      = cameraState;
+    if (animate) {
+      Tween
+        .to             (camMain, CameraAccessor.Trans, 0.3f)
+        .target         (pov)
+        .ease           (Quad.INOUT)
+        .start          (ctx.tweener);
+    }
+    else {
+      camMain.position.set  (pov[0], pov[1], pov[2]);
+      camMain.target.set    (pov[3], pov[4], pov[5]);
+      camMain.update        ();
+    }
   }
   public Array<Piece> getAvailablePieces() { return availablePieces; }
   public void selectPiece (final Piece piece) {
-    if (selectedPiece==piece)
+    if (data.selectedPiece==piece)
       return;
       // De-select old selection.
-    else if (selectedPiece!=null) {
+    else if (data.selectedPiece!=null) {
       // Scale back up.
-      selectedPiece.targetScale
+      data.selectedPiece.targetScale
         .set        (1, 1, 1);
       // Re-parent the piece to the pieces dock.
-      selectedPiece
+      data.selectedPiece
         .setParent  (piecesDock);
       // As the pieces dock itself isn't rotating, pre-rotate the piece.
-      selectedPiece.targetRotation
+      data.selectedPiece.targetRotation
         .set        (unit.targetRotation);
-      selectedPiece
+      data.selectedPiece
         .switchToRegularMaterials();
       piecesDock
         .refresh      ();
     }
     
     // Nothing selected, just return.
-    if ((selectedPiece = piece)==null)
+    if ((data.selectedPiece = piece)==null)
       return;
     
     // Compute status of selected piece.
@@ -353,17 +286,17 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     else              ctx.setLastError(-1, String.format("This piece has been played %d times in the current unit.", count));
 
     // To prevent face clipping, let's scale down a little bit.
-    selectedPiece.targetScale
+    data.selectedPiece.targetScale
       .set        (0.97f, 0.97f, 0.97f);
     // Re-parent the piece inside the unit.
-    selectedPiece
+    data.selectedPiece
       .setParent  (unit);
     // The piece needs to be at the unit's origin.
-    selectedPiece.targetPosition
+    data.selectedPiece.targetPosition
       .set        (0, 0, 0);
-    checkCollisionsWithUnit(selectedPiece);
-    selectedPiece
-      .start      (tweener, 0.3f, Quad.INOUT);
+    checkCollisionsWithUnit(data.selectedPiece);
+    data.selectedPiece
+      .start      (ctx.tweener, 0.3f, Quad.INOUT);
   }
   public void translateWithinView (final GameObject obj, final Vector3 translation, final boolean checkCollisions) {
     tmpVec
@@ -377,7 +310,7 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     obj.targetPosition
       .add            (tmpVec);
     obj
-      .start          (tweener, 0.3f, Quad.INOUT);
+      .start          (ctx.tweener, 0.3f, Quad.INOUT);
 
     if (checkCollisions)
       checkCollisionsWithUnit((FacetedObject)obj);
@@ -396,27 +329,28 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       .rotate         (obj.targetRotation)
       .getRotation    (obj.targetRotation);
     obj
-      .start          (tweener, 0.3f, Quad.INOUT);
+      .start          (ctx.tweener, 0.3f, Quad.INOUT);
     
     if (checkCollisions)
       checkCollisionsWithUnit((FacetedObject)obj);
   }
   public void checkCollisionsWithUnit (final FacetedObject obj) {
     final boolean     collides    = obj.collidesWith(unit);
-    if (collides==isColliding)    return;
-    isColliding                   = collides;
-    if (collides)                 obj.switchToCollisionMaterials();
-    else                          obj.switchToRegularMaterials();
+    if (collides==data.isColliding)
+      return;
+    data.isColliding    = collides;
+    if (collides)       obj.switchToCollisionMaterials();
+    else                obj.switchToRegularMaterials();
   }
   public void resetRotation (final GameObject obj) {
     obj.targetRotation
       .idt            ();
     obj
-      .start          (tweener, 0.3f, Quad.INOUT);
+      .start          (ctx.tweener, 0.3f, Quad.INOUT);
   }
   public void playPiece (final Piece piece) {
     // There already is a played piece for this turn...
-    if (playedPiece!=null) {
+    if (data.playedPiece!=null) {
       selectPiece         (null);
       ctx.setLastError    (0, "You already have played this turn, please wait.");
       return;
@@ -424,9 +358,9 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     // Get the index of the piece to be played.
     final int idx         = pieces.indexOf(piece, true);
     // Store the piece that is being played so we can rollback / validate upon server ack.
-    playedPiece           = piece;
+    data.playedPiece      = piece;
     // Make an empty selection, but don't reset / animate the piece.
-    selectedPiece         = null;
+    data.selectedPiece    = null;
     // Give the order!
     ctx.networkingManager
       .send               (new TXCombatPlayTurn(idx, piece.targetPosition, piece.targetRotation));
@@ -435,12 +369,12 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     if (serial.equals("PlayTurn")) {
       if (valid)
         availablePieces
-          .removeValue    (playedPiece, true);
+          .removeValue    (data.playedPiece, true);
       else {
         ctx.setLastError  (600, errorMessage);
-        selectedPiece     = playedPiece;
-        playedPiece       = null;
-        selectPiece       (null);
+        data.selectedPiece  = data.playedPiece;
+        data.playedPiece    = null;
+        selectPiece         (null);
       }
       piecesDock.refresh  ();
     }
@@ -468,40 +402,32 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   }
   public SCLobby setTurn (final int turn, final int unitId) {
     // Update our combat object.
-    combat.currentTurn        = turn;
+    data.combat.currentTurn     = turn;
     // If a piece was played this turn, remove it from the scene.
-    if (playedPiece!=null) {
+    if (data.playedPiece!=null) {
       // Unparent the played piece from the unit.
-      playedPiece.unparent      ();
+      data.playedPiece.unparent      ();
       // The played unit should not be visible anymore.
-      instances.removeValue     (playedPiece, true);
-      playedPiece               = null;
+      instances.removeValue     (data.playedPiece, true);
+      data.playedPiece          = null;
     }
     final SHUnit currentUnit = units.get(unitId);
     if (currentUnit.size.volume()!=0)
       unit.setFromSharedPiece (currentUnit);
-    // End game condition.
-    if (isLastTurn()) {
-      pieces.clear          ();
-      availablePieces.clear ();
-      piecesDock.refresh    ();
-      playedPiece           = null;
-      selectedPiece         = null;
-    }
     return this;
   }
-
   public void registerPlayerTurn (final String playerUUID, final int unitId, final SHUnit newUnit) {
-    final SHUnit  oldUnit = units.get(unitId);
-    oldUnit.size          = newUnit.size;
-    oldUnit.min           = newUnit.min;
-    oldUnit.max           = newUnit.max;
-    oldUnit.content       = newUnit.content;
-    oldUnit.moves         = newUnit.moves;
+    units
+      .get(unitId)
+      .set(newUnit);
+  }
+  public SCLobby endGame () {
+    // TODO: Get endgame data as parameters and display them.
+    return this;
   }
   
   public Piece getClickableAt (final int screenX, final int screenY) {
-    if (playedPiece!=null) {
+    if (data.playedPiece!=null) {
       ctx
         .setLastError       (0, "Please wait for all players to complete this turn.");
       return                null;
@@ -512,18 +438,18 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
       return                rayPickTest(screenX, screenY, availablePieces);
   }
   public boolean handleSelection (final Piece clicked) {
-    if (playedPiece!=null) {
+    if (data.playedPiece!=null) {
       Communitrix.getInstance()
         .setLastError (0, "Please wait for all players to complete this turn.");
       return false;
     }
     else if (state!=State.Gaming || cameraState!=CameraState.Pieces)
       return          false;
-    else if (selectedPiece==clicked)
+    else if (data.selectedPiece==clicked)
       return          false;
     // We had a previous selection.
     selectPiece       (clicked);
-    setCameraState    (CameraState.Unit);
+    setCameraState    (CameraState.Unit, true);
     return            true;
   }
   
@@ -571,7 +497,6 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
   @Override public void resume () {}
   
   @Override public void dispose () {
-    characterModel.dispose  ();
     postProMain.dispose     ();
   }
   
@@ -586,37 +511,37 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
     Gdx.gl.glCullFace     (GL20.GL_FRONT);
     
     // Update any pending animation.
-    tweener.update            (delta);
-    lobbyInputCtrl.updateKeys ();
+    ctx.tweener.update    (delta);
+    inputCtrl.updateKeys  ();
     // We're in ALT mode.
-    if (lobbyInputCtrl.alt) {
+    if (inputCtrl.alt) {
       if (state==State.Gaming) {
-        handleMovement (target, lobbyInputCtrl.keys, true, false, false);
-        handleMovement (unit, lobbyInputCtrl.keys, true, false, false);
+        handleMovement (target, inputCtrl.keys, true, false, false);
+        handleMovement (unit, inputCtrl.keys, true, false, false);
         for (final Piece piece : availablePieces)
           if (piece.parent!=unit)
-            handleMovement  (piece, lobbyInputCtrl.keys, true, false, false);
+            handleMovement  (piece, inputCtrl.keys, true, false, false);
       }
     }
     // We're NOT in alt mode.
     else {
       // Player is willing to go back.
-      if (lobbyInputCtrl.keys[Key.Cancel.ordinal()]) {
+      if (inputCtrl.keys[Key.Cancel.ordinal()]) {
         if (state==State.Global)
           setState        (State.Settings);
         else if (state==State.Settings)
           setState        (State.Global);
-        else if (state==State.Gaming && isLastTurn())
+        else if (state==State.EndGame)
           setState        (State.Global);
         else {
-          setCameraState  (CameraState.Pieces);
+          setCameraState  (CameraState.Pieces, true);
           selectPiece     (null);
         }
       }
       // We're in game mode.
       if (state==State.Gaming) {
         // Player is asking to reset target and unit.
-        if (lobbyInputCtrl.keys[Key.Reset.ordinal()]) {
+        if (inputCtrl.keys[Key.Reset.ordinal()]) {
           resetRotation       (target);
           resetRotation       (unit);
           for (final Piece piece : availablePieces)
@@ -625,25 +550,25 @@ public class SCLobby implements Screen, UILobbyDelegate, ICLobbyDelegate, Pieces
         // We're in unit mode...
         if (cameraState==CameraState.Unit) {
           // There is a selection.
-          if (selectedPiece!=null) {
+          if (data.selectedPiece!=null) {
             // Only allow piece translation if not within first turn.
-            handleMovement                      (selectedPiece, lobbyInputCtrl.keys, true, combat.currentTurn!=1, true);
+            handleMovement                      (data.selectedPiece, inputCtrl.keys, true, !isFirstTurn(), true);
             // Send turn to server.
-            if (lobbyInputCtrl.keys[Key.Validate.ordinal()]) {
-              playPiece                         (selectedPiece);
-              setCameraState                    (CameraState.Pieces);
+            if (inputCtrl.keys[Key.Validate.ordinal()]) {
+              playPiece                         (data.selectedPiece);
+              setCameraState                    (CameraState.Pieces, true);
             }
           }
         }
         // There is no selection made.
         else if (cameraState==CameraState.Pieces) {
-          if (lobbyInputCtrl.keys[Key.MoveLeft.ordinal()])        piecesDock.cycle  (-1);
-          else if (lobbyInputCtrl.keys[Key.MoveRight.ordinal()])  piecesDock.cycle  (1);
+          if (inputCtrl.keys[Key.MoveLeft.ordinal()])        piecesDock.cycle  (-1);
+          else if (inputCtrl.keys[Key.MoveRight.ordinal()])  piecesDock.cycle  (1);
         }
         // Toggle between unit view and target view.
-        if (lobbyInputCtrl.keys[Key.CycleView.ordinal()])
+        if (inputCtrl.keys[Key.CycleView.ordinal()])
           if ((state==State.Gaming))
-            setCameraState(cameraState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces);
+            setCameraState(cameraState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces, true);
       }
     }
     

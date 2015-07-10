@@ -140,7 +140,7 @@ public abstract class FacetedObject extends GameObject {
     for (final Node node : nodes) {
       int i = 0;
       for (final NodePart part : node.parts) {
-        part.material   = Communitrix.faceMaterials[8+i];
+        part.material   = Communitrix.faceMaterials[6+i];
         i++;
       }
     }
