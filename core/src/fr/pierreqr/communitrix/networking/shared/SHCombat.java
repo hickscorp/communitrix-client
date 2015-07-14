@@ -18,4 +18,8 @@ public class SHCombat {
     players.addAll  (combat.players);
     return          this;
   }
+  
+  public String toString () {
+    return String.format("%s with %d over %d to %d players.", uuid, players.size(), minPlayers, maxPlayers);
+  }
 }

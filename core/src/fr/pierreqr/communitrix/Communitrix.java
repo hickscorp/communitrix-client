@@ -1,5 +1,6 @@
 package fr.pierreqr.communitrix;
 
+import java.util.EnumMap;
 import java.util.Random;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenManager;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g3d.Attribute;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -28,6 +30,7 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.Constants.CubeFace;
+import fr.pierreqr.communitrix.Constants.SkinSize;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.commands.rx.*;
@@ -47,7 +50,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   // Shared members.
   public          ApplicationType   applicationType;
   public          int               viewWidth, viewHeight;
-  public          Skin              uiSkin, uiSkinMini;
+  public          EnumMap<SkinSize, Skin>
+                                    skins                 = new EnumMap<SkinSize, Skin>(SkinSize.class);
   public          TweenManager      tweener               = new TweenManager();
   public          ModelBuilder      modelBuilder;
   public          ModelBatch        modelBatch;
@@ -99,7 +103,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     
     // Prepare face materials.
     if (faceMaterials[0]==null) {
-      final TextureAtlas  atlas       = new TextureAtlas(Gdx.files.internal("atlases/game.atlas"));
+      final TextureAtlas  atlas       = new TextureAtlas(Gdx.files.internal("atlases/Main.atlas"));
       final Attribute     blend       = new BlendingAttribute(true, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, 0.95f);
       for (final CubeFace face : Constants.CubeFace.values())
         faceMaterials[face.ordinal()]   = new Material(TextureAttribute.createDiffuse(atlas.findRegion(face.toString())), blend);
@@ -107,9 +111,12 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
 
     // Force cache viewport size.
     resize                  (Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    
     // Instantiate shared members.
-    uiSkin                  = new Skin(Gdx.files.internal("skins/uiskin.json"));
-    uiSkinMini              = new Skin(Gdx.files.internal("skins/uiskin_mini.json"));
+    skins.put               (SkinSize.Mini,     new Skin(Gdx.files.internal("skins/uiskin-mini.json")));
+    skins.put               (SkinSize.Medium,   new Skin(Gdx.files.internal("skins/uiskin-medium.json")));
+    skins.put               (SkinSize.Large,    new Skin(Gdx.files.internal("skins/uiskin-large.json")));
+    
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     dummyModel              = new Model();

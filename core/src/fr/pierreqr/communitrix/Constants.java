@@ -5,18 +5,23 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector3;
 
 public class Constants {
+  // Skin sizes.
+  public enum SkinSize {
+    Mini, Medium, Large
+  };
+  
   // Cube textures.
   public enum CubeFace {
     Forward,         Backward,         Top,         Bottom,         Left,         Right,
     ForwardCollides, BackwardCollides, TopCollides, BottomCollides, LeftCollides, RightCollides;
-  }
+  };
   
   // All key bindings.
   public enum Key {
     MoveForward, MoveBackward, MoveLeft, MoveRight, MoveUp, MoveDown,
     RotateUp, RotateDown, RotateLeft, RotateRight,
     CycleView, Reset, Validate, Cancel;
-  }
+  };
   // Key bindings.
   public final static EnumMap<Key, Integer> Keys    = new EnumMap<Key, Integer>(Key.class);
   static {
@@ -34,7 +39,7 @@ public class Constants {
     Keys.put    (Key.Reset,         Input.Keys.R);
     Keys.put    (Key.Validate,      Input.Keys.ENTER);
     Keys.put    (Key.Cancel,        Input.Keys.ESCAPE);
-  }
+  };
   // Keys instructions.
   public final static EnumMap<Key, String>  KeyText = new EnumMap<Key, String>(Key.class);
   static {
@@ -53,7 +58,7 @@ public class Constants {
     KeyText.put (Key.Validate,      "Validate");
     KeyText.put (Key.Cancel,        "Cancel");
   };
-
+  
   // Some rotation constants.
   public final static EnumMap<Key, Vector3> Directions = new EnumMap<Key, Vector3>(Key.class);
   static {
@@ -63,5 +68,5 @@ public class Constants {
     Directions.put(Key.MoveRight,     new Vector3(-1,  0,  0));
     Directions.put(Key.MoveUp,        new Vector3( 0,  1,  0));
     Directions.put(Key.MoveDown,      new Vector3( 0, -1,  0));
-  }
+  };
 }

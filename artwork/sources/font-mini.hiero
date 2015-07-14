@@ -1,5 +1,5 @@
-font.name=Oriya Sangam MN
-font.size=16
+font.name=Seravek
+font.size=10
 font.bold=true
 font.italic=false
 
@@ -19,17 +19,17 @@ glyph.page.height=512
 glyph.text=ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890\n"!`?'.,;:()[]{}<>|/@\^$-%+=#_&~*
 
 effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.ShadowEffect
-effect.Color=cccccc
-effect.Opacity=0.4
+effect.Color=000000
+effect.Opacity=0.6
 effect.X distance=1.0
-effect.Y distance=0.0
+effect.Y distance=1.0
 effect.Blur kernel size=0
-effect.Blur passes=1
+effect.Blur passes=2
 
 effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.GradientEffect
 effect.Top color=ffffff
-effect.Bottom color=999999
-effect.Offset=-2
+effect.Bottom color=e4e4e4
+effect.Offset=0
 effect.Scale=1.0
 effect.Cyclic=false
 

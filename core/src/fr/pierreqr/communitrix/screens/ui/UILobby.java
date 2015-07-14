@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -16,6 +17,7 @@ import com.badlogic.gdx.utils.Timer;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.Constants;
 import fr.pierreqr.communitrix.Constants.Key;
+import fr.pierreqr.communitrix.Constants.SkinSize;
 import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.commands.tx.TXCombatList;
@@ -35,7 +37,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   private final Timer           timer;
   private       Timer.Task      lastTask;
   private final Stage           stage;
-  private final Skin            skin, skinMini;
+  private final Skin            sknMini, sknMedium, sknLarge;
   private final Table           tblMain, tblCombats;
   private final Label           lblTitle, lblStatus;
   private final TextField       txtUsername;
@@ -46,30 +48,31 @@ public class UILobby extends InputAdapter implements ErrorResponder {
 
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
-    skin                    = ctx.uiSkin;
-    skinMini                = ctx.uiSkinMini;
+    sknMini                 = ctx.skins.get(SkinSize.Mini);
+    sknMedium               = ctx.skins.get(SkinSize.Medium);
+    sknLarge                = ctx.skins.get(SkinSize.Large);
     // Prepare UI timer.
     timer                   = new Timer();
     // Create our flat UI stage.
     stage                   = new Stage();
     // Prepare the main table.
-    tblMain                 = new Table(ctx.uiSkin);
+    tblMain                 = new Table(sknMedium);
     tblMain.setFillParent   (true);
     tblMain.pad             (pad);
     tblMain.setDebug        (debug);
     tblMain.top             ();
     stage.addActor          (tblMain);
     // Prepare combats table.
-    tblCombats              = new Table(ctx.uiSkin);
+    tblCombats              = new Table(sknMedium);
     tblCombats.pad          (pad);
     tblCombats.setDebug     (debug);
     tblCombats.top          ();
     // Prepare the title field.
-    lblTitle                = new Label("", skin);
+    lblTitle                = new Label("", sknLarge);
     // Prepare the status field.
-    lblStatus               = new Label("", skinMini);
+    lblStatus               = new Label("", sknMedium);
     // Prepare the username input text field.
-    txtUsername             = new TextField("Doodloo", skin);
+    txtUsername             = new TextField("Doodloo", sknMedium);
   }
   
   public void nextBinding (final Key newBinding) {
@@ -147,7 +150,7 @@ public class UILobby extends InputAdapter implements ErrorResponder {
         tblMain.add       (txtUsername).pad(pad).left();
         tblMain.row       ();
         // Add the combats table to the main table.
-        tblMain.add       (tblCombats).colspan(2).pad(5);
+        tblMain.add       (tblCombats).colspan(2).pad(pad);
         tblMain.row       ();
         // Refresh combats list.
         loadCombatList    ();
@@ -175,28 +178,29 @@ public class UILobby extends InputAdapter implements ErrorResponder {
   public void updateCombats () {
     // Remove combats list.
     tblCombats.clear  ();
+    
     // Add the combats list.
-    final Array<SHCombat> combats = data.combats;
-    if (combats!=null) {
-      flash                   (String.format("Loaded %d combat(s).", combats.size), Color.GREEN);
-      for (final SHCombat combat : combats) {
-        // Button row.
-        final TextButton btnJoin = new TextButton("Join", skin);
-        btnJoin.addListener(new ClickListener() {
-          @Override public void clicked(final InputEvent e, final float x, final float y) {
-            ctx
-              .networkingManager
-              .send(new TXRegister(txtUsername.getText()))
-              .send(new TXCombatJoin(combat.uuid));
-          }
-        });
-        tblCombats.add        (String.format("%s: %d over %d to %d", combat.uuid, combat.players.size(), combat.minPlayers, combat.maxPlayers)).pad(pad).right();
-        tblCombats.add        (btnJoin).pad(pad).left();
-        tblCombats.row        ();
+    final Array<SHCombat>     combats = data.combats;
+    final SelectBox<SHCombat> list    = new SelectBox<SHCombat>(sknMedium);
+    // Add items to the list.
+    list.setItems             (combats);
+    // Button row.
+    final TextButton          btnJoin = new TextButton("Join", sknMedium);
+    btnJoin.addListener(new ClickListener() {
+      @Override public void clicked(final InputEvent e, final float x, final float y) {
+        ctx
+          .networkingManager
+          .send(new TXRegister(txtUsername.getText()))
+          .send(new TXCombatJoin(list.getSelected().uuid));
       }
-    }
+    });
+    
+    tblCombats.add            (list).pad(pad);
+    tblCombats.add            (btnJoin).pad(pad);
+    tblCombats.row            ();
+
     // Add the refresh button to the combat screen.
-    final TextButton btnRefresh = new TextButton("Refresh", skin);
+    final TextButton btnRefresh = new TextButton("Refresh", sknMedium);
     btnRefresh.addListener(new ClickListener() {
       @Override public void clicked(final InputEvent e, final float x, final float y) {
         loadCombatList();

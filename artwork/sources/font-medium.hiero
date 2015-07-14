@@ -1,5 +1,5 @@
 font.name=Seravek
-font.size=8
+font.size=14
 font.bold=true
 font.italic=false
 
@@ -17,6 +17,19 @@ glyph.native.rendering=false
 glyph.page.width=512
 glyph.page.height=512
 glyph.text=ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890\n"!`?'.,;:()[]{}<>|/@\^$-%+=#_&~*
+
+effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.ShadowEffect
+effect.Color=000000
+effect.Opacity=0.6
+effect.X distance=1.0
+effect.Y distance=1.0
+effect.Blur kernel size=0
+effect.Blur passes=2
+
+effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.OutlineEffect
+effect.Color=000000
+effect.Width=1.0
+effect.Join=2
 
 effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.GradientEffect
 effect.Top color=ffffff
