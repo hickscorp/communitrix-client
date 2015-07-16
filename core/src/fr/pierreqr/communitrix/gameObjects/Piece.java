@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.gameObjects.FacetedObject;
-import fr.pierreqr.communitrix.networking.shared.SHPiece;
+import fr.pierreqr.communitrix.networking.cmd.beans.PieceBean;
 
 public class Piece extends FacetedObject {
   protected final static  MeshBuilder[]       builders  = new MeshBuilder[6];
@@ -20,7 +20,7 @@ public class Piece extends FacetedObject {
     }
   }
   
-  protected void begin (final SHPiece piece) {
+  protected void begin (final PieceBean piece) {
     // Prepare mesh builders.
     for (final MeshBuilder builder : builders) {
       builder.begin (Usage.Position | Usage.Normal | Usage.TextureCoordinates, GL20.GL_TRIANGLES);

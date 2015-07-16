@@ -10,7 +10,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g3d.Attribute;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -19,7 +18,6 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
-import com.badlogic.gdx.graphics.g3d.environment.PointLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Quaternion;
@@ -32,15 +30,17 @@ import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.Constants.CubeFace;
 import fr.pierreqr.communitrix.Constants.SkinSize;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
+import fr.pierreqr.communitrix.networking.NetworkDelegate;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
-import fr.pierreqr.communitrix.networking.commands.rx.*;
-import fr.pierreqr.communitrix.screens.SCLobby;
-import fr.pierreqr.communitrix.screens.SCLobby.State;
+import fr.pierreqr.communitrix.networking.cmd.rx.*;
+import fr.pierreqr.communitrix.screens.BaseScreen;
+import fr.pierreqr.communitrix.screens.MainScreen;
+import fr.pierreqr.communitrix.screens.MainScreen.State;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
-import fr.pierreqr.communitrix.tweeners.PointLightAccessor;
 
-public class Communitrix extends Game implements ErrorResponder, NetworkingManager.NetworkDelegate {
+public class Communitrix extends Game implements ErrorResponder, NetworkDelegate {
+  public                enum        State                 { Unknown, Startup, Game };
   // Common materials.
   public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
@@ -55,22 +55,24 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
   public          TweenManager      tweener               = new TweenManager();
   public          ModelBuilder      modelBuilder;
   public          ModelBatch        modelBatch;
-  public          Material          defaultMaterial;
   public          G3dModelLoader    modelLoader;
+  public          Material          defaultMaterial;
   public          Model             dummyModel;
   // Random generator.
   public final    Random            rand                  = new Random();
   // Network-related objects.
   public          NetworkingManager networkingManager;
+  public          boolean           connected             = false;
   public          Timer             networkTimer;
   // The current error responder if any.
   private         ErrorResponder    errorResponder;
+  private         NetworkDelegate   networkDelegate;
   
-  // The singleton isntance.
+  // The singleton instance.
   private static  Communitrix       instance;
   
   // All our different screens.
-  private         SCLobby           lobbyScreen;
+  private         MainScreen        mainScreen;
 
   public static Communitrix getInstance() {
     return instance;
@@ -84,12 +86,14 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Register motion tweening accessors.
     Tween.setCombinedAttributesLimit  (6);
     Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
-    Tween.registerAccessor            (PointLight.class,        new PointLightAccessor());
     Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
   }
   // Getters / Setters.
   public void setErrorResponder (final ErrorResponder newErrorResponder) {
     errorResponder          = newErrorResponder;
+  }
+  public void setNetworkDelegate (final NetworkDelegate newNetworkDelegate) {
+    networkDelegate         = newNetworkDelegate;
   }
   
   @Override public void create () {
@@ -119,8 +123,8 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
-    dummyModel              = new Model();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
+    dummyModel              = new Model();
     
     // Instantiate networking manager.
     networkTimer            = new Timer();
@@ -132,7 +136,25 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
     // Prepare our shared model loader.
     modelLoader             = new G3dModelLoader(new UBJsonReader());
     // Set default screen.
-    setScreen               (getLazyLobbyScreen());
+    setScreen               (getLazyMainScreen());
+  }
+  
+  public void setScreen (final BaseScreen screen) {
+    super.setScreen               (screen);
+    setErrorResponder       (screen);
+    setNetworkDelegate      (screen);
+  }
+  @Override public void render () {
+    // Clear viewport etc.
+    Gdx.gl.glClear        (GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+    // Enable alpha blending.
+    Gdx.gl.glEnable       (GL20.GL_BLEND);
+    Gdx.gl.glBlendFunc    (GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    // Enable back-face culling.
+    Gdx.gl.glEnable       (GL20.GL_CULL_FACE);
+    Gdx.gl.glCullFace     (GL20.GL_FRONT);
+    
+    super.render          ();
   }
   
   // ErrorResponder implementation.
@@ -150,33 +172,30 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       networkingManager.stop  ();
     }
     if (dummyModel!=null)     dummyModel.dispose();
-    if (lobbyScreen!=null)    lobbyScreen.dispose();
+    if (mainScreen!=null)    mainScreen.dispose();
     modelBatch.dispose      ();
   }
 
-  // Occurs whenever the viewport needs to render.
-  @Override public void render () {
-    super.render  ();
+  @Override public void resize (final int w, final int h) { super.resize(viewWidth = w, viewHeight = h); }
+  
+  public void setState (final State newState) {
   }
-
-  @Override public void resize (final int width, final int height) {
-    viewWidth = width; viewHeight = height;
-    // Propagate change to current screen instance.
-    super.resize(width, height);
-  }
-
-  @Override public void onServerConnected () {
-  }
-  @Override public void onServerDisconnected () {
-    networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 1.0f);
-  }
+  
   // This method runs after rendering.
-  @Override public void onServerMessage (final RXBase baseCmd) {
+  @Override public boolean onServerMessage (final RXBase baseCmd) {
     if (baseCmd==null) {
       Gdx.app.error         (LogTag, "Received a NULL command!");
-      return;
+      return true;
     }
+    else if (networkDelegate!=null && networkDelegate.onServerMessage(baseCmd))
+      return true;
+
     switch (baseCmd.type) {
+      case Connected:
+        break;
+      case Disconnected:
+        networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 1.0f);
+        break;
       case Error: {
         final RXError cmd = (RXError)baseCmd;
         setLastError(cmd.code, cmd.reason);
@@ -184,14 +203,14 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case Acknowledgment: {
         final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
-        getLazyLobbyScreen()
+        getLazyMainScreen()
           .handleAcknowledgment(cmd.serial, cmd.valid, cmd.errorMessage);
         break;
       }
       case Welcome: {
-        getLazyLobbyScreen()
-          .setState         (SCLobby.State.Global);
-        setScreen           (lobbyScreen);
+        getLazyMainScreen()
+          .setState         (MainScreen.State.Global);
+        setScreen           (mainScreen);
         break;
       }
       case Registered: {
@@ -199,61 +218,62 @@ public class Communitrix extends Game implements ErrorResponder, NetworkingManag
       }
       case CombatList: {
         final RXCombatList cmd = (RXCombatList)baseCmd;
-        lobbyScreen.setCombats  (cmd.combats);
+        getLazyMainScreen()
+          .setCombats  (cmd.combats);
         break;
       }
       case CombatJoin: {
         final RXCombatJoin cmd = (RXCombatJoin)baseCmd;
-        getLazyLobbyScreen()
-          .setCombat        (cmd.combat);
-        lobbyScreen
-          .setState         (SCLobby.State.Joined);
+        getLazyMainScreen()
+          .setCombat        (cmd.combat)
+          .setState         (MainScreen.State.Joined);
         break;
       }
       case CombatPlayerJoined: {
-        getLazyLobbyScreen  ()
+        getLazyMainScreen()
           .addPlayer          (((RXCombatPlayerJoined)baseCmd).player);
         break;
       }
       case CombatPlayerLeft: {
         final RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
-        getLazyLobbyScreen  ()
+        getLazyMainScreen()
           .removePlayer       (cmd.uuid);
         break;
       }
       case CombatStart: {
         final RXCombatStart cmd   = (RXCombatStart)baseCmd;
-        getLazyLobbyScreen()
+        getLazyMainScreen()
           .prepare        (cmd.target, cmd.units, cmd.pieces)
-          .setState       (SCLobby.State.Gaming);
+          .setState       (MainScreen.State.Gaming);
         break;
       }
       case CombatNewTurn: {
         RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
-        getLazyLobbyScreen()
+        getLazyMainScreen()
           .setTurn        (cmd.turnId, cmd.unitId)
-          .setState       (SCLobby.State.Gaming);
+          .setState       (MainScreen.State.Gaming);
         break;
       }
       case CombatPlayerTurn: {
         RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
-        getLazyLobbyScreen()
+        getLazyMainScreen()
           .registerPlayerTurn   (cmd.playerUUID, cmd.unitId, cmd.unit);
          break;
       }
       case CombatEnd: {
-        getLazyLobbyScreen()
-          .endGame              ()
-          .setState             (State.EndGame);
+        getLazyMainScreen()
+          .endGame        ()
+          .setState       (MainScreen.State.EndGame);
         break;
       }
       default:
-        setLastError        (-1, String.format("Unhandled command of type %s.", baseCmd.type.toString()));
+        setLastError      (-1, String.format("Unhandled command of type %s.", baseCmd.type.toString()));
     }
+    return true;
   }
 
-  private SCLobby getLazyLobbyScreen    () {
-    return lobbyScreen==null ? lobbyScreen = new SCLobby(this) : lobbyScreen;
+  private MainScreen getLazyMainScreen    () {
+    return mainScreen==null ? mainScreen = new MainScreen() : mainScreen;
   }
 
   public static float round (final float v, final float precision) {

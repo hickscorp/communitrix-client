@@ -3,26 +3,19 @@ package fr.pierreqr.communitrix.networking;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import fr.pierreqr.communitrix.networking.commands.rx.RXBase;
+import fr.pierreqr.communitrix.networking.cmd.rx.RXBase;
+import fr.pierreqr.communitrix.networking.cmd.rx.RXBase.Type;
 
 public class NetworkingManager implements Runnable {
   // Constants.
   private final static  String        LogTag                = "Networking";
-  
-  public interface NetworkDelegate {
-    void  onServerConnected     ();
-    void  onServerMessage       (final RXBase cmd);
-    void  onServerDisconnected  ();
-  }
-  
+
   // Network related members.
   private final     String            host;
   private final     int               port;
@@ -62,7 +55,7 @@ public class NetworkingManager implements Runnable {
       netInput          = socket.getInputStream();
       netOutput         = socket.getOutputStream();
       // Signal our delegate.
-      Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerConnected(); }});
+      Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(new RXBase(Type.Connected)); }});
       // Read forever.
       int         buff  = 0;
       while (shouldRun && socket.isConnected()) {
@@ -86,7 +79,7 @@ public class NetworkingManager implements Runnable {
             if (type!=null && sb.length()>0) {
               try {
                 //Gdx.app.log(LogTag, type + " -> " + sb.toString());
-                final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Rx.valueOf(type).toTypeReference());
+                final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Type.valueOf(type).toTypeReference());
                 Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); }});
               }
               catch (Exception ex) {
@@ -104,7 +97,7 @@ public class NetworkingManager implements Runnable {
       }
     }
     // Signal our delegate.
-    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerDisconnected(); }});
+    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(new RXBase(Type.Disconnected)); }});
     // Clean all resources.
     dispose         ();
     if (shouldRun)  start();
@@ -130,7 +123,7 @@ public class NetworkingManager implements Runnable {
     }
   }
   // Send data to the server. TODO: This should be asynchroneous.
-  public NetworkingManager send (final fr.pierreqr.communitrix.networking.commands.tx.TXBase command) {
+  public NetworkingManager send (final fr.pierreqr.communitrix.networking.cmd.tx.TXBase command) {
     synchronized (delegate) {
       // Don't send anything if we scheduled the thread for stopping.
       if (thread!=null && netOutput!=null && shouldRun) {

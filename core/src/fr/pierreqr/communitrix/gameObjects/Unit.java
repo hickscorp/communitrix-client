@@ -9,8 +9,8 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.networking.shared.SHCell;
-import fr.pierreqr.communitrix.networking.shared.SHPiece;
+import fr.pierreqr.communitrix.networking.cmd.beans.CellBean;
+import fr.pierreqr.communitrix.networking.cmd.beans.PieceBean;
 
 public class Unit extends FacetedObject {
   private final   HashMap<Integer,Material>     materials;
@@ -22,14 +22,14 @@ public class Unit extends FacetedObject {
     builders    = new HashMap<Integer, MeshBuilder>();
   }
   
-  protected void begin (final SHPiece piece) {
+  protected void begin (final PieceBean piece) {
     // Cache our game instance.
     final Communitrix ctx = Communitrix.getInstance();
     // Prepare a new array of materials.
     final HashMap<Integer,Material> newMaterials = new HashMap<Integer, Material>();
     HashMap<Integer,MeshBuilder>    newBuilders  = new HashMap<Integer, MeshBuilder>();
     // First, count the unique indices.
-    for (final SHCell cell : piece.content) {
+    for (final CellBean cell : piece.content) {
       final int index = cell.value;
       if (!newMaterials.containsKey(index)) {
         final Material mat = materials.getOrDefault(

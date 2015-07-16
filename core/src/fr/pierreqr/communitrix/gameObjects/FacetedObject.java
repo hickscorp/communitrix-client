@@ -8,33 +8,33 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.Constants.CubeFace;
-import fr.pierreqr.communitrix.networking.shared.SHCell;
-import fr.pierreqr.communitrix.networking.shared.SHPiece;
+import fr.pierreqr.communitrix.networking.cmd.beans.CellBean;
+import fr.pierreqr.communitrix.networking.cmd.beans.PieceBean;
 
 public abstract class FacetedObject extends GameObject {
-  protected abstract  void            begin           (final SHPiece piece);
+  protected abstract  void            begin           (final PieceBean piece);
   protected abstract  MeshPartBuilder builderFor      (final int x, final int y, final int z, final int index, final int direction);
   protected abstract  Model           end             ();
   
   private             Model           model;
-  public              SHPiece         sharedPiece     = new SHPiece();
+  public              PieceBean         sharedPiece     = new PieceBean();
 
   public FacetedObject () {
     super (Communitrix.getInstance().dummyModel);
   }
   
   private static final float r = 0.47f;
-  public void setFromSharedPiece (final SHPiece newPiece) {
+  public void setFromSharedPiece (final PieceBean newPiece) {
     clear               ();
     sharedPiece         = newPiece;
     if (newPiece==null) return;
 
     // Cache stuff.
-    final SHPiece p   = sharedPiece;
+    final PieceBean p   = sharedPiece;
     // Make the temporary contents array.
     final int[][][]   contents  = new int[p.size.x][p.size.y][p.size.z];
     // Finally build the content array.
-    for (final SHCell cell : newPiece.content)
+    for (final CellBean cell : newPiece.content)
       contents[cell.x-p.min.x][cell.y-p.min.y][cell.z-p.min.z] = cell.value;
     // Start building faces.
     begin             (newPiece);
@@ -117,11 +117,11 @@ public abstract class FacetedObject extends GameObject {
     if (sharedPiece==null || other.sharedPiece==null)
       return false;
     tmpMat.set          (targetPosition, targetRotation);
-    for (final SHCell v : sharedPiece.content) {
+    for (final CellBean v : sharedPiece.content) {
       tmpVec
         .set            (v.x, v.y, v.z)
         .mul            (tmpMat);
-      for (final SHCell c : other.sharedPiece.content)
+      for (final CellBean c : other.sharedPiece.content)
         if (c.x==Math.round(tmpVec.x) && c.y==Math.round(tmpVec.y) && c.z==Math.round(tmpVec.z))
           return true;
     }
