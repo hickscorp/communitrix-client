@@ -27,66 +27,59 @@ import fr.pierreqr.communitrix.gameObjects.FacetedObject;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.gameObjects.Piece;
 import fr.pierreqr.communitrix.networking.cmd.beans.CombatBean;
-import fr.pierreqr.communitrix.networking.cmd.beans.PieceBean;
 import fr.pierreqr.communitrix.networking.cmd.beans.PlayerBean;
 import fr.pierreqr.communitrix.networking.cmd.beans.UnitBean;
-import fr.pierreqr.communitrix.networking.cmd.rx.RXBase;
-import fr.pierreqr.communitrix.networking.cmd.tx.TXCombatPlayTurn;
+import fr.pierreqr.communitrix.networking.cmd.rx.*;
+import fr.pierreqr.communitrix.networking.cmd.tx.*;
 import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
 public class MainScreen extends BaseScreen implements GameScreenDelegate, PiecesDockDelegate {
-  public                enum          State         { Unknown, Settings, Global, Joined, Gaming, EndGame }
-  public                enum          CameraState   { Unknown, Lobby, Pieces, Unit, Observe }
+  public                enum          State         { Settings, Global, Joined, Gaming, EndGame }
+  public                enum          CameraState   { Lobby, Pieces, Unit, Observe }
   
   // Possible POV / Targets for camera.
-  public final static EnumMap<CameraState, float[]> CameraPOVs  = new EnumMap<CameraState, float[]>(CameraState.class);
-  static {
+  public final static EnumMap<CameraState, float[]> CameraPOVs  = new EnumMap<CameraState, float[]>(CameraState.class); static {
     CameraPOVs.put(CameraState.Lobby,   new float[]{ 0, 2, -6,  0, 0, 0 });
     CameraPOVs.put(CameraState.Pieces,  new float[]{ 0, 4,-10,  0, 0, 0 });
     CameraPOVs.put(CameraState.Unit,    new float[]{ 0, 5, -6,  0, 3, 0 });
     CameraPOVs.put(CameraState.Observe, new float[]{ 0, 5, -6,  0, 3, 0 });
-  }
-  private static final  Matrix4       tmpMat4       = new Matrix4();
-  private static final  String        LogTag        = "LobbyScreen";
+  };
   
+  private static final  String        LogTag        = "LobbyScreen";
   private static final  Vector3       tmpVec        = new Vector3();
   private static final  Quaternion    tmpRot        = new Quaternion();
+  private static final  Matrix4       tmpMat4       = new Matrix4();
   
-  // State related members.
-  private       State                 state         = State.Unknown;
-  private       CameraState           cameraState   = CameraState.Unknown;
-  // Shared screen data object.
-  private       ScreenSharedData      data          = new ScreenSharedData();
-
-  // Flat UI.
-  private       GameScreenOverlay     ui            = new GameScreenOverlay(data);
-  // Scene setup related objects.
-  private final Environment           envMain;
-  private final Camera                camMain, camTarget;
-  private final GameScreenController               inputCtrl;
-  private final PostProcessor         postProMain;
-  // Object which need to be rendered with the camMain.
-  private final Array<GameObject>     instances     = new Array<GameObject>();
-  // Model instances.
-  private final Piece                 target;
-  private final Array<UnitBean>         units;
-  private final Piece                 unit;
-  private final Array<Piece>          pieces;
-  private final Array<Piece>          availablePieces;
-  private final PiecesDock            piecesDock;
-
-  private static        Vector3       relXAxis, relYAxis, relZAxis;
-  static {
+  private static final  Vector3       relXAxis, relYAxis, relZAxis; static {
     relZAxis  = new Vector3(Vector3.Z).scl(-1);
     relXAxis  = new Vector3(relZAxis).crs(Vector3.Y);
     relYAxis  = new Vector3(relXAxis).crs(relZAxis);
   };
+  
+  // State related members.
+  private       State                 state         = null;
+  private       CameraState           cameraState   = CameraState.Lobby;
+  // Shared screen data object.
+  private final ScreenSharedData      data;
+  // Flat UI.
+  private final GameScreenOverlay     ui;
+  // Scene setup related objects.
+  private final Environment           envMain;
+  private final Camera                camMain, camTarget;
+  private final GameScreenController  inputCtrl;
+  private final PostProcessor         postProMain;
+  // Model instances.
+  private final Array<UnitBean>       units;
+  private final Array<Piece>          pieces, availablePieces;
+  private final Piece                 target, unit;
+  private final PiecesDock            piecesDock;
 
   public MainScreen () {
-    Gdx.app.log           (LogTag, "Constructing.");
-
+    cameraState           = CameraState.Lobby;
+    ui                    = new GameScreenOverlay( data = new ScreenSharedData() );
+    
     // Set up the scene environment.
     envMain               = new Environment();
     envMain.set           (new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1.0f));
@@ -129,7 +122,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     units                 = new Array<UnitBean>();
     pieces                = new Array<Piece>();
     availablePieces       = new Array<Piece>();
-
+    
     // Create objective piece. It is not added to the instances list, as it is rendered on the side.
     target                = new Piece();
     // Create unit piece.
@@ -137,14 +130,15 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     unit.transform
       .translate          (0, 3, 0);
     unit.reset            ();
-    instances.add         (unit);
     // Pieces dock.
     piecesDock            = new PiecesDock(this);
-    instances.add         (piecesDock);
     
     // Instantiate our interaction controller.
-    inputCtrl        = new GameScreenController(this);
+    inputCtrl             = new GameScreenController(this);
+    
+    setState              (State.Global);
   }
+  
   // Setter on state, handles transitions.
   public void setState (final State newState) {
     switch (state = newState) {
@@ -185,47 +179,123 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   public void setLastError (final int code, final String reason) {
     ui.setLastError (code, reason);
   }
-  public boolean onServerMessage (final RXBase cmd) {
-    return          false;
-  }
-  
-  public MainScreen setCombats (final CombatBean[] newCombats) {
-    data.combats.clear  ();
-    data.combats.addAll (newCombats);
-    ui.updateCombats    ();
-    return              this;
-  }
-  public MainScreen setCombat (final CombatBean newCombat) {
-    data.combat  = newCombat;
-    for (final CombatBean c : data.combats)
-      if (data.combat.uuid.equals(c.uuid)) {
-        data.combat   = c.set(newCombat);
+  public void onServerMessage (final RXBase baseCmd) {
+    switch (baseCmd.type) {
+      // We received an ack.
+      case Acknowledgment: {
+        final RXAcknowledgment    cmd = (RXAcknowledgment)baseCmd;
+        if (cmd.serial.equals("PlayTurn")) {
+          if (cmd.valid)
+            availablePieces
+              .removeValue    (data.playedPiece, true);
+          else {
+            ctx.setLastError  (600, cmd.errorMessage);
+            data.selectedPiece  = data.playedPiece;
+            data.playedPiece    = null;
+            selectPiece         (null);
+          }
+          piecesDock.refresh  ();
+        }
         break;
       }
-    return      this;
-  }
-
-  public MainScreen addPlayer (final PlayerBean player) {
-    Gdx.app.log             (LogTag, "Adding player (" + player.uuid + ").");
-    data.combat.players.add (player);
-    return this;
-  }
-  public MainScreen removePlayer (final String uuid) {
-    Gdx.app.log       (LogTag, "Removing player (" + uuid + ").");
-    for (final PlayerBean player : data.combat.players)
-      if (player.uuid.equals(uuid)) {
-        data.combat.players.remove(player);
+      // We received a list of combats.
+      case CombatList: {
+        final RXCombatList        cmd = (RXCombatList)baseCmd;
+        data.combats.clear            ();
+        data.combats.addAll           (cmd.combats);
+        ui.updateCombatList           ();
         break;
       }
-    return this;
+      // We received an order to join a combat.
+      case CombatJoin: {
+        final RXCombatJoin        cmd = (RXCombatJoin)baseCmd;
+        data.combat                   = cmd.combat;
+        for (final CombatBean c : data.combats)
+          if (data.combat.uuid.equals(c.uuid)) {
+            data.combat               = c.set(cmd.combat);
+            break;
+          }
+        setState                      (State.Joined);
+        break;
+      }
+      // We received a player info who just joined.
+      case CombatPlayerJoined: {
+        final RXCombatPlayerJoined cmd = (RXCombatPlayerJoined)baseCmd;
+        Gdx.app.log                   (LogTag, "Adding player (" + cmd.player.uuid + ").");
+        data.combat.players.add       (cmd.player);
+        break;
+      }
+      // A player has just left the combat.
+      case CombatPlayerLeft: {
+        final RXCombatPlayerLeft  cmd = (RXCombatPlayerLeft)baseCmd;
+        Gdx.app.log                   (LogTag, "Removing player (" + cmd.uuid + ").");
+        for (final PlayerBean player : data.combat.players)
+          if (player.uuid.equals(cmd.uuid)) {
+            data.combat.players.remove(player);
+            break;
+          }
+        break;
+      }
+      // We should move on to the main game state.
+      case CombatStart: {
+        final RXCombatStart       cmd = (RXCombatStart)baseCmd;
+        this.target
+          .setFromSharedPiece       (cmd.target);
+        // Place all my pieces.
+        if (cmd.pieces!=null) {
+          for (int i=0; i<cmd.pieces.length; i++) {
+            final Piece   obj       = new Piece();
+            obj.transform
+              .setTranslation       (0, 0, -5);
+            obj.reset               ();
+            obj.setFromSharedPiece  (cmd.pieces[i]);
+            pieces.add              (obj);
+            piecesDock.addChild     (obj);
+          }
+          availablePieces.addAll    (pieces);
+          units.addAll              (cmd.units);
+          piecesDock.refresh        ();
+        }
+        
+        setState                      (MainScreen.State.Gaming);
+        break;
+      }
+      // A new turn is being initiated.
+      case CombatNewTurn: {
+        final RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
+        // Update our combat object.
+        data.combat.currentTurn     = cmd.turnId;
+        // If a piece was played this turn, remove it from the scene.
+        if (data.playedPiece!=null) {
+          // Unparent the played piece from the unit.
+          data.playedPiece.unparent      ();
+          // The played unit should not be visible anymore.
+          data.playedPiece          = null;
+        }
+        final UnitBean currentUnit = units.get(cmd.unitId);
+        if (currentUnit.size.volume()!=0)
+          unit.setFromSharedPiece (currentUnit);
+        
+        setState                      (MainScreen.State.Gaming);
+        break;
+      }
+      // Another player has played his turn.
+      case CombatPlayerTurn: {
+        final RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
+        units.get(cmd.unitId).set     (cmd.unit);
+         break;
+      }
+      // That's the end of the game.
+      case CombatEnd: {
+        // TODO: Get end-game data as parameters and display them.
+        setState                      (MainScreen.State.EndGame);
+        break;
+      }
+      default:
+    }
+    return;
   }
   
-  public boolean isFirstTurn () {
-    return data.combat.currentTurn==1;
-  }
-  public boolean isLastTurn () {
-    return data.combat.currentTurn>pieces.size;
-  }
   public void setCameraState (final CameraState cameraState, final boolean animate) {
     final float[] pov     = CameraPOVs.get(cameraState);
     this.cameraState      = cameraState;
@@ -242,7 +312,11 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       camMain.update        ();
     }
   }
-  public Array<Piece> getAvailablePieces() { return availablePieces; }
+  
+  public Array<Piece> getAvailablePieces () {
+    return availablePieces;
+  }
+  
   public void selectPiece (final Piece piece) {
     if (data.selectedPiece==piece)
       return;
@@ -362,67 +436,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     ctx.networkingManager
       .send               (new TXCombatPlayTurn(idx, piece.targetPosition, piece.targetRotation));
   }
-  public void handleAcknowledgment (final String serial, final boolean valid, final String errorMessage) {
-    if (serial.equals("PlayTurn")) {
-      if (valid)
-        availablePieces
-          .removeValue    (data.playedPiece, true);
-      else {
-        ctx.setLastError  (600, errorMessage);
-        data.selectedPiece  = data.playedPiece;
-        data.playedPiece    = null;
-        selectPiece         (null);
-      }
-      piecesDock.refresh  ();
-    }
-  }
-  
-  public MainScreen prepare (final PieceBean target, final UnitBean[] newUnits, final PieceBean[] newPieces) {
-    this.target
-      .setFromSharedPiece       (target);
-    // Place all my pieces.
-    if (newPieces!=null) {
-      for (int i=0; i<newPieces.length; i++) {
-        final Piece   obj       = new Piece();
-        obj.transform
-          .setTranslation       (0, 0, -5);
-        obj.reset               ();
-        obj.setFromSharedPiece  (newPieces[i]);
-        pieces.add              (obj);
-        piecesDock.addChild     (obj);
-      }
-      availablePieces.addAll    (pieces);
-      units.addAll              (newUnits);
-      piecesDock.refresh        ();
-    }
-    return this;
-  }
-  public MainScreen setTurn (final int turn, final int unitId) {
-    // Update our combat object.
-    data.combat.currentTurn     = turn;
-    // If a piece was played this turn, remove it from the scene.
-    if (data.playedPiece!=null) {
-      // Unparent the played piece from the unit.
-      data.playedPiece.unparent      ();
-      // The played unit should not be visible anymore.
-      instances.removeValue     (data.playedPiece, true);
-      data.playedPiece          = null;
-    }
-    final UnitBean currentUnit = units.get(unitId);
-    if (currentUnit.size.volume()!=0)
-      unit.setFromSharedPiece (currentUnit);
-    return this;
-  }
-  public void registerPlayerTurn (final String playerUUID, final int unitId, final UnitBean newUnit) {
-    units
-      .get(unitId)
-      .set(newUnit);
-  }
-  public MainScreen endGame () {
-    // TODO: Get endgame data as parameters and display them.
-    return this;
-  }
-  
+
   public Piece getClickableAt (final int screenX, final int screenY) {
     if (data.playedPiece!=null) {
       ctx
@@ -540,7 +554,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
           // There is a selection.
           if (data.selectedPiece!=null) {
             // Only allow piece translation if not within first turn.
-            handleMovement                      (data.selectedPiece, inputCtrl.keys, true, !isFirstTurn(), true);
+            handleMovement                      (data.selectedPiece, inputCtrl.keys, true, data.combat.currentTurn>1, true);
             // Send turn to server.
             if (inputCtrl.keys[Key.Validate.ordinal()]) {
               playPiece                         (data.selectedPiece);
@@ -559,7 +573,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
             setCameraState(cameraState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces, true);
       }
     }
-    
+
     // Capture FBO for post-processing.
     postProMain.capture   ();
     
@@ -568,8 +582,8 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     ctx.modelBatch.begin  (camMain);
     // Render all instances in our batch array.
     GameObject.renderCam  = camMain;
-    for (final GameObject instance : instances)
-      ctx.modelBatch.render(instance, envMain);
+    ctx.modelBatch.render(unit, envMain);
+    ctx.modelBatch.render(piecesDock, envMain);
     // Rendering is over.
     ctx.modelBatch.end    ();
 

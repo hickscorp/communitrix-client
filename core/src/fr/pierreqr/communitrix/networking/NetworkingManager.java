@@ -7,12 +7,17 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.NetJavaSocketImpl;
 import com.badlogic.gdx.net.SocketHints;
+import com.badlogic.gdx.utils.Array;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.pierreqr.communitrix.networking.cmd.rx.RXBase;
 import fr.pierreqr.communitrix.networking.cmd.rx.RXBase.Type;
 
 public class NetworkingManager implements Runnable {
+  public interface NetworkDelegate {
+    void onServerMessage (final RXBase baseCmd);
+  }
+  
   // Constants.
   private final static  String        LogTag                = "Networking";
 
@@ -25,17 +30,26 @@ public class NetworkingManager implements Runnable {
   private           OutputStream      netOutput       = null;
   private           ObjectMapper      mapper          = new ObjectMapper();
   private           StringBuilder     sb              = new StringBuilder(8192);
-  private final     NetworkDelegate   delegate;
+  private final     Array<NetworkDelegate>
+                                      delegates       = new Array<NetworkDelegate>();
   private volatile  boolean           shouldRun       = true;
   
   public NetworkingManager (final String h, final int p, final NetworkDelegate d) {
     // Initialize our members.
     host              = h;
     port              = p;
-    delegate          = d;
+    delegates.add     (d);
     JsonFactory f     = mapper.getFactory();
     f.configure       (com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
     f.configure       (com.fasterxml.jackson.core.JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+  }
+  // Delegation getters / setters.
+  public void addDelegate (final NetworkDelegate delegate) {
+    if (!delegates.contains(delegate, true))
+      delegates.add (delegate);
+  }
+  public void removeDelegate (final NetworkDelegate delegate) {
+    delegates.removeValue(delegate, true);
   }
   
   @Override public void run() {
@@ -55,7 +69,10 @@ public class NetworkingManager implements Runnable {
       netInput          = socket.getInputStream();
       netOutput         = socket.getOutputStream();
       // Signal our delegate.
-      Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(new RXBase(Type.Connected)); }});
+      Gdx.app.postRunnable( new Runnable() { @Override public void run() {
+        for (final NetworkDelegate delegate : delegates)
+          delegate.onServerMessage(new RXBase(Type.Connected));
+      }});
       // Read forever.
       int         buff  = 0;
       while (shouldRun && socket.isConnected()) {
@@ -80,7 +97,11 @@ public class NetworkingManager implements Runnable {
               try {
                 //Gdx.app.log(LogTag, type + " -> " + sb.toString());
                 final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Type.valueOf(type).toTypeReference());
-                Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(cmd); }});
+                if (cmd!=null)
+                  Gdx.app.postRunnable( new Runnable() { @Override public void run() {
+                    for (final NetworkDelegate delegate : delegates)
+                        delegate.onServerMessage(cmd);
+                  }});
               }
               catch (Exception ex) {
                 ex.printStackTrace();
@@ -97,7 +118,10 @@ public class NetworkingManager implements Runnable {
       }
     }
     // Signal our delegate.
-    Gdx.app.postRunnable( new Runnable() { @Override public void run() { delegate.onServerMessage(new RXBase(Type.Disconnected)); }});
+    Gdx.app.postRunnable( new Runnable() { @Override public void run() {
+      for (final NetworkDelegate delegate : delegates)
+        delegate.onServerMessage(new RXBase(Type.Disconnected));
+    }});
     // Clean all resources.
     dispose         ();
     if (shouldRun)  start();
@@ -105,7 +129,7 @@ public class NetworkingManager implements Runnable {
   
   // If the networking thread isn't running, start it.
   public void start () {
-    synchronized (delegate) {
+    synchronized (delegates) {
       shouldRun = true;
       if (thread==null) {
         ( thread = new Thread(this) ).start();
@@ -114,7 +138,7 @@ public class NetworkingManager implements Runnable {
   }
   // Stop the networking thread if it is running.
   public void stop () {
-    synchronized (delegate) {
+    synchronized (delegates) {
       shouldRun = false;
       if (thread!=null) {
         thread.interrupt  ();
@@ -124,7 +148,7 @@ public class NetworkingManager implements Runnable {
   }
   // Send data to the server. TODO: This should be asynchroneous.
   public NetworkingManager send (final fr.pierreqr.communitrix.networking.cmd.tx.TXBase command) {
-    synchronized (delegate) {
+    synchronized (delegates) {
       // Don't send anything if we scheduled the thread for stopping.
       if (thread!=null && netOutput!=null && shouldRun) {
         // Send data to the server.
@@ -141,7 +165,7 @@ public class NetworkingManager implements Runnable {
   
   public void dispose () {
     stop            ();
-    synchronized (delegate) {
+    synchronized (delegates) {
       if (socket!=null) {
         socket.dispose  ();
         socket          = null;

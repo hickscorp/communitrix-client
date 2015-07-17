@@ -4,11 +4,14 @@ com.badlogic.gdx.graphics.Color: {
 	light_grey: { r: 0.8, g: 0.8, b: 0.8, a: 1 },
 	white: { r: 0.93333334, g: 0.9764706, b: 1, a: 1 },
 	red: { r: 1, g: 0.57254905, b: 0.57254905, a: 1 },
-	grey: { r: 0.7, g: 0.7, b: 0.7, a: 1 },
-	black: { r: 0.13725491, g: 0.13725491, b: 0.18039216, a: 1 }
+	black: { r: 0.13725491, g: 0.13725491, b: 0.18039216, a: 1 },
+	grey: { r: 0.7, g: 0.7, b: 0.7, a: 1 }
 },
 com.badlogic.gdx.graphics.g2d.BitmapFont: {
-  default-font: { file: font-large.fnt }
+	large-font: { file: font-large.fnt },
+	mini-font: { file: font-mini.fnt },
+	medium-font: { file: font-medium.fnt },
+	default-font: { file: font-large.fnt }
 },
 com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
 	dialogDim: {

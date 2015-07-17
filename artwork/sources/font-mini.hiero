@@ -1,6 +1,6 @@
-font.name=Seravek
-font.size=10
-font.bold=true
+font.name=Bodoni 72
+font.size=12
+font.bold=false
 font.italic=false
 
 font2.file=
@@ -10,26 +10,29 @@ pad.top=0
 pad.right=0
 pad.bottom=0
 pad.left=0
-pad.advance.x=1
+pad.advance.x=0
 pad.advance.y=0
 
 glyph.native.rendering=false
 glyph.page.width=512
 glyph.page.height=512
-glyph.text=ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890\n"!`?'.,;:()[]{}<>|/@\^$-%+=#_&~*
+glyph.text=ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\nÀÂÈÉÊËÏÔÙÜ\nàâèéêëïôùü\n1234567890\n"!`?'.,;:()[]{}<>|/@\^$-%+=#_&~*
 
 effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.ShadowEffect
 effect.Color=000000
-effect.Opacity=0.6
+effect.Opacity=1.0
 effect.X distance=1.0
 effect.Y distance=1.0
-effect.Blur kernel size=0
+effect.Blur kernel size=3
 effect.Blur passes=2
+
+effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.ColorEffect
+effect.Color=ffffff
 
 effect.class=com.badlogic.gdx.tools.hiero.unicodefont.effects.GradientEffect
 effect.Top color=ffffff
-effect.Bottom color=e4e4e4
-effect.Offset=0
-effect.Scale=1.0
+effect.Bottom color=e6e6e6
+effect.Offset=-2
+effect.Scale=0.1
 effect.Cyclic=false
 

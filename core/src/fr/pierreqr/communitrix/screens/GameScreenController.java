@@ -3,11 +3,8 @@ package fr.pierreqr.communitrix.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.math.Vector3;
 import fr.pierreqr.communitrix.Constants;
 import fr.pierreqr.communitrix.Constants.Key;
-import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.gameObjects.Piece;
 
 public class GameScreenController extends InputAdapter {
   private final       GameScreenDelegate       delegate;

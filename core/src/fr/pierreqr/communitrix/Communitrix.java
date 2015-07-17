@@ -30,17 +30,16 @@ import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.Constants.CubeFace;
 import fr.pierreqr.communitrix.Constants.SkinSize;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
-import fr.pierreqr.communitrix.networking.NetworkDelegate;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
+import fr.pierreqr.communitrix.networking.NetworkingManager.NetworkDelegate;
 import fr.pierreqr.communitrix.networking.cmd.rx.*;
 import fr.pierreqr.communitrix.screens.BaseScreen;
 import fr.pierreqr.communitrix.screens.MainScreen;
-import fr.pierreqr.communitrix.screens.MainScreen.State;
+import fr.pierreqr.communitrix.screens.StartupScreen;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
-public class Communitrix extends Game implements ErrorResponder, NetworkDelegate {
-  public                enum        State                 { Unknown, Startup, Game };
+public class Communitrix extends Game implements NetworkDelegate {
   // Common materials.
   public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
@@ -64,36 +63,32 @@ public class Communitrix extends Game implements ErrorResponder, NetworkDelegate
   public          NetworkingManager networkingManager;
   public          boolean           connected             = false;
   public          Timer             networkTimer;
-  // The current error responder if any.
-  private         ErrorResponder    errorResponder;
-  private         NetworkDelegate   networkDelegate;
+  // Currently displayed screen.
+  public          BaseScreen        currentScreen                = null;
   
   // The singleton instance.
   private static  Communitrix       instance;
   
-  // All our different screens.
-  private         MainScreen        mainScreen;
-
   public static Communitrix getInstance() {
     return instance;
   }
   
   public Communitrix () {
     // Store singleton instance.
-    setErrorResponder       (instance = this);
+    instance                = this;
+
     // Configure assets etc.
     ShaderLoader.BasePath   = "shaders/";
+    
     // Register motion tweening accessors.
     Tween.setCombinedAttributesLimit  (6);
     Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
     Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
   }
-  // Getters / Setters.
-  public void setErrorResponder (final ErrorResponder newErrorResponder) {
-    errorResponder          = newErrorResponder;
-  }
-  public void setNetworkDelegate (final NetworkDelegate newNetworkDelegate) {
-    networkDelegate         = newNetworkDelegate;
+  
+  public void setLastError (final int code, final String reason) {
+    if (currentScreen!=null)   currentScreen.setLastError(code, reason);
+    else                Gdx.app.log(LogTag, "An error has occured: #" + code + " - " + reason);
   }
   
   @Override public void create () {
@@ -131,19 +126,69 @@ public class Communitrix extends Game implements ErrorResponder, NetworkDelegate
     networkingManager       = new NetworkingManager(host, 9003, this);
     networkingManager.start ();
     
-    // Set up our default error responder.
-    errorResponder          = this;
     // Prepare our shared model loader.
     modelLoader             = new G3dModelLoader(new UBJsonReader());
-    // Set default screen.
-    setScreen               (getLazyMainScreen());
+    
+    setScreen               (new StartupScreen());
   }
   
-  public void setScreen (final BaseScreen screen) {
-    super.setScreen               (screen);
-    setErrorResponder       (screen);
-    setNetworkDelegate      (screen);
+  // Occurs when the game exits.
+  @Override public void dispose () {
+    setScreen               (null);
+    if (networkingManager!=null) {
+      networkTimer.stop     ();
+      networkingManager.stop();
+      networkingManager     = null;
+    }
+    modelBatch.dispose      ();
   }
+
+  @Override public void resize (final int w, final int h) {
+    super.resize(viewWidth = w, viewHeight = h);
+  }
+  
+  // This method runs after rendering.
+  @Override public void onServerMessage (final RXBase baseCmd) {
+    switch (baseCmd.type) {
+      // We received the welcome message. Switch screens.
+      case Welcome:
+        if (currentScreen==null || !currentScreen.getClass().toString().equals("StartupScreen"))
+          setScreen (new MainScreen());
+        break;
+      // We are disconnected, remove the screen.
+      case Disconnected:
+        if (currentScreen==null || !currentScreen.getClass().toString().equals("StartupScreen"))
+          setScreen (new StartupScreen());
+        networkTimer
+          .scheduleTask(new Timer.Task() {
+            @Override public void run() {
+              networkingManager.start();
+            }
+          }, 1.0f);
+        break;
+      // We received an error!.
+      case Error: {
+        final RXError cmd   = (RXError)baseCmd;
+        setLastError(cmd.code, cmd.reason);
+        break;
+      }
+      default:
+    }
+    return;
+  }
+
+  private void setScreen (final BaseScreen newScreen) {
+    if (currentScreen==newScreen)
+      return;
+    else if (currentScreen!=null) {
+      networkingManager.removeDelegate(currentScreen);
+      currentScreen.dispose();
+    }
+    if ((currentScreen=newScreen)!=null)
+      networkingManager.addDelegate(currentScreen);
+    super.setScreen(currentScreen);
+  }
+
   @Override public void render () {
     // Clear viewport etc.
     Gdx.gl.glClear        (GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -153,127 +198,7 @@ public class Communitrix extends Game implements ErrorResponder, NetworkDelegate
     // Enable back-face culling.
     Gdx.gl.glEnable       (GL20.GL_CULL_FACE);
     Gdx.gl.glCullFace     (GL20.GL_FRONT);
-    
     super.render          ();
-  }
-  
-  // ErrorResponder implementation.
-  public void setLastError (final int code, final String reason) {
-    if (errorResponder==this)
-      Gdx.app.log                 (LogTag, "An error has occured: #" + code + " - " + reason);
-    else
-      errorResponder.setLastError (code, reason);
-  };
-  
-  // Occurs when the game exits.
-  @Override public void dispose () {
-    if (networkingManager!=null) {
-      networkTimer.stop       ();
-      networkingManager.stop  ();
-    }
-    if (dummyModel!=null)     dummyModel.dispose();
-    if (mainScreen!=null)    mainScreen.dispose();
-    modelBatch.dispose      ();
-  }
-
-  @Override public void resize (final int w, final int h) { super.resize(viewWidth = w, viewHeight = h); }
-  
-  public void setState (final State newState) {
-  }
-  
-  // This method runs after rendering.
-  @Override public boolean onServerMessage (final RXBase baseCmd) {
-    if (baseCmd==null) {
-      Gdx.app.error         (LogTag, "Received a NULL command!");
-      return true;
-    }
-    else if (networkDelegate!=null && networkDelegate.onServerMessage(baseCmd))
-      return true;
-
-    switch (baseCmd.type) {
-      case Connected:
-        break;
-      case Disconnected:
-        networkTimer.scheduleTask(new Timer.Task() { @Override public void run() { networkingManager.start(); } }, 1.0f);
-        break;
-      case Error: {
-        final RXError cmd = (RXError)baseCmd;
-        setLastError(cmd.code, cmd.reason);
-        break;
-      }
-      case Acknowledgment: {
-        final RXAcknowledgment  cmd   = (RXAcknowledgment)baseCmd;
-        getLazyMainScreen()
-          .handleAcknowledgment(cmd.serial, cmd.valid, cmd.errorMessage);
-        break;
-      }
-      case Welcome: {
-        getLazyMainScreen()
-          .setState         (MainScreen.State.Global);
-        setScreen           (mainScreen);
-        break;
-      }
-      case Registered: {
-        break;
-      }
-      case CombatList: {
-        final RXCombatList cmd = (RXCombatList)baseCmd;
-        getLazyMainScreen()
-          .setCombats  (cmd.combats);
-        break;
-      }
-      case CombatJoin: {
-        final RXCombatJoin cmd = (RXCombatJoin)baseCmd;
-        getLazyMainScreen()
-          .setCombat        (cmd.combat)
-          .setState         (MainScreen.State.Joined);
-        break;
-      }
-      case CombatPlayerJoined: {
-        getLazyMainScreen()
-          .addPlayer          (((RXCombatPlayerJoined)baseCmd).player);
-        break;
-      }
-      case CombatPlayerLeft: {
-        final RXCombatPlayerLeft cmd = (RXCombatPlayerLeft)baseCmd;
-        getLazyMainScreen()
-          .removePlayer       (cmd.uuid);
-        break;
-      }
-      case CombatStart: {
-        final RXCombatStart cmd   = (RXCombatStart)baseCmd;
-        getLazyMainScreen()
-          .prepare        (cmd.target, cmd.units, cmd.pieces)
-          .setState       (MainScreen.State.Gaming);
-        break;
-      }
-      case CombatNewTurn: {
-        RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
-        getLazyMainScreen()
-          .setTurn        (cmd.turnId, cmd.unitId)
-          .setState       (MainScreen.State.Gaming);
-        break;
-      }
-      case CombatPlayerTurn: {
-        RXCombatPlayerTurn  cmd = (RXCombatPlayerTurn)baseCmd;
-        getLazyMainScreen()
-          .registerPlayerTurn   (cmd.playerUUID, cmd.unitId, cmd.unit);
-         break;
-      }
-      case CombatEnd: {
-        getLazyMainScreen()
-          .endGame        ()
-          .setState       (MainScreen.State.EndGame);
-        break;
-      }
-      default:
-        setLastError      (-1, String.format("Unhandled command of type %s.", baseCmd.type.toString()));
-    }
-    return true;
-  }
-
-  private MainScreen getLazyMainScreen    () {
-    return mainScreen==null ? mainScreen = new MainScreen() : mainScreen;
   }
 
   public static float round (final float v, final float precision) {
