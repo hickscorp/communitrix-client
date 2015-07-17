@@ -1,5 +1,6 @@
 package fr.pierreqr.communitrix;
 
 public interface ErrorResponder {
-  public    void    setLastError      (final int code, final String reason);
+  public    enum    MessageType       { Debug, Success, Message, Warning, Error };
+  public    void    showMessage       (final MessageType type, final String message);
 }

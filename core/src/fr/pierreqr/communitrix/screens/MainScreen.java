@@ -19,7 +19,6 @@ import com.badlogic.gdx.utils.Array;
 import com.bitfire.postprocessing.PostProcessor;
 import com.bitfire.postprocessing.effects.Bloom;
 import com.bitfire.postprocessing.effects.MotionBlur;
-import fr.pierreqr.communitrix.Communitrix;
 import fr.pierreqr.communitrix.Constants;
 import fr.pierreqr.communitrix.Constants.Key;
 import fr.pierreqr.communitrix.gameObjects.Camera;
@@ -35,7 +34,7 @@ import fr.pierreqr.communitrix.screens.util.PiecesDock;
 import fr.pierreqr.communitrix.screens.util.PiecesDock.PiecesDockDelegate;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 
-public class MainScreen extends BaseScreen implements GameScreenDelegate, PiecesDockDelegate {
+public class MainScreen extends BaseScreen implements PiecesDockDelegate {
   public                enum          State         { Settings, Global, Joined, Gaming, EndGame }
   public                enum          CameraState   { Lobby, Pieces, Unit, Observe }
   
@@ -61,24 +60,35 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   // State related members.
   private       State                 state         = null;
   private       CameraState           cameraState   = CameraState.Lobby;
-  // Shared screen data object.
-  private final ScreenSharedData      data;
   // Flat UI.
   private final GameScreenOverlay     ui;
   // Scene setup related objects.
   private final Environment           envMain;
   private final Camera                camMain, camTarget;
-  private final GameScreenController  inputCtrl;
   private final PostProcessor         postProMain;
   // Model instances.
   private final Array<UnitBean>       units;
   private final Array<Piece>          pieces, availablePieces;
   private final Piece                 target, unit;
   private final PiecesDock            piecesDock;
+  
+  // The last loaded list of combats.
+  public final  Array<CombatBean>     combats;
+  // The current combat we've joined.
+  public        CombatBean            combat;
+  
+  // The piece being played / that was played this turn.
+  public        Piece                 playedPiece;
+  // The currently selected piece and informations about it.
+  public        Piece                 selectedPiece;
+  public        boolean               isColliding;
+
 
   public MainScreen () {
+    super                 ();
+    
     cameraState           = CameraState.Lobby;
-    ui                    = new GameScreenOverlay( data = new ScreenSharedData() );
+    ui                    = new GameScreenOverlay(this);
     
     // Set up the scene environment.
     envMain               = new Environment();
@@ -105,7 +115,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     }
 
     // Set up our target camera.
-    camTarget             = new Camera(55, ctx.viewWidth/2.5f, ctx.viewHeight/2.5f);
+    camTarget             = new Camera(70, ctx.viewWidth/2.5f, ctx.viewHeight/2.5f);
     camTarget.position.set(0, 2, -6);
     camTarget.lookAt      (0, 0, 0);
     camTarget.near        = 1f;
@@ -119,6 +129,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     setCameraState        (CameraState.Lobby, false);
     
     // Create various arrays..
+    combats               = new Array<CombatBean>();
     units                 = new Array<UnitBean>();
     pieces                = new Array<Piece>();
     availablePieces       = new Array<Piece>();
@@ -131,10 +142,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       .translate          (0, 3, 0);
     unit.reset            ();
     // Pieces dock.
-    piecesDock            = new PiecesDock(this);
-    
-    // Instantiate our interaction controller.
-    inputCtrl             = new GameScreenController(this);
+    piecesDock            = new PiecesDock(this, pieces, availablePieces);
     
     setState              (State.Global);
   }
@@ -142,10 +150,12 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   // Setter on state, handles transitions.
   public void setState (final State newState) {
     switch (state = newState) {
+      
       case Settings:
         Gdx.input
           .setInputProcessor  (ui);
         break;
+      
       case Global:
         target.clear          ();
         resetRotation         (target);
@@ -153,33 +163,62 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
         resetRotation         (unit);
         units.clear           ();
         Gdx.input
-          .setInputProcessor  (ui.getStage());
+          .setInputProcessor  (ui.stage);
         break;
+      
       case Joined:
         Gdx.input
-          .setInputProcessor  (inputCtrl);
+          .setInputProcessor  (this);
         setCameraState        (CameraState.Lobby, true);
         break;
+      
       case Gaming:
         setCameraState        (CameraState.Pieces, true);
         break;
+      
       case EndGame:
         pieces.clear          ();
         availablePieces.clear ();
         piecesDock.refresh    ();
-        data.playedPiece      = null;
-        data.selectedPiece    = null;
+        playedPiece           = null;
+        selectedPiece         = null;
         break;
+      
       default :
         break;
     }
     ui.setState  (state);
   }
   
-  public void setLastError (final int code, final String reason) {
-    ui.setLastError (code, reason);
+  public        boolean     alt   = false;
+  public final  boolean[]   keys  = new boolean[Key.Count];
+  @Override public boolean keyDown (final int keycode) { return false; }
+  @Override public boolean keyUp (final int keycode) { return false; }
+  @Override public boolean keyTyped (final char character)  { return false; }
+  @Override public boolean touchDown (final int x, final int y, final int ptr, final int btn) {
+    return handleSelection(getClickableAt(x, y));
   }
-  public void onServerMessage (final RXBase baseCmd) {
+  @Override public boolean touchUp (final int x, final int y, final int ptr, final int btn) { return false; }
+  @Override public boolean touchDragged (final int x, final int y, final int ptr) { return false; }
+  @Override public boolean mouseMoved (int x, int y) { return false; }
+  @Override public boolean scrolled (int amount) {
+    if (state!=State.Gaming)
+      return false;
+    camMain
+    .translate(
+      tmpVec
+        .set(camMain.direction)
+        .scl(amount)
+    );
+    camMain.update();
+    return true;
+  }
+  
+  @Override public void showMessage (final MessageType type, final String message) {
+    ui.showMessage  (type, message);
+  }
+  
+  @Override  public void onServerMessage (final RXBase baseCmd) {
     switch (baseCmd.type) {
       // We received an ack.
       case Acknowledgment: {
@@ -187,11 +226,11 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
         if (cmd.serial.equals("PlayTurn")) {
           if (cmd.valid)
             availablePieces
-              .removeValue    (data.playedPiece, true);
+              .removeValue    (playedPiece, true);
           else {
-            ctx.setLastError  (600, cmd.errorMessage);
-            data.selectedPiece  = data.playedPiece;
-            data.playedPiece    = null;
+            ctx.showMessage   (MessageType.Error, cmd.errorMessage);
+            selectedPiece       = playedPiece;
+            playedPiece         = null;
             selectPiece         (null);
           }
           piecesDock.refresh  ();
@@ -201,18 +240,18 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       // We received a list of combats.
       case CombatList: {
         final RXCombatList        cmd = (RXCombatList)baseCmd;
-        data.combats.clear            ();
-        data.combats.addAll           (cmd.combats);
+        combats.clear                 ();
+        combats.addAll                (cmd.combats);
         ui.updateCombatList           ();
         break;
       }
       // We received an order to join a combat.
       case CombatJoin: {
         final RXCombatJoin        cmd = (RXCombatJoin)baseCmd;
-        data.combat                   = cmd.combat;
-        for (final CombatBean c : data.combats)
-          if (data.combat.uuid.equals(c.uuid)) {
-            data.combat               = c.set(cmd.combat);
+        combat                        = cmd.combat;
+        for (final CombatBean c : combats)
+          if (combat.uuid.equals(c.uuid)) {
+            combat                    = c.set(cmd.combat);
             break;
           }
         setState                      (State.Joined);
@@ -222,16 +261,16 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       case CombatPlayerJoined: {
         final RXCombatPlayerJoined cmd = (RXCombatPlayerJoined)baseCmd;
         Gdx.app.log                   (LogTag, "Adding player (" + cmd.player.uuid + ").");
-        data.combat.players.add       (cmd.player);
+        combat.players.add            (cmd.player);
         break;
       }
       // A player has just left the combat.
       case CombatPlayerLeft: {
         final RXCombatPlayerLeft  cmd = (RXCombatPlayerLeft)baseCmd;
         Gdx.app.log                   (LogTag, "Removing player (" + cmd.uuid + ").");
-        for (final PlayerBean player : data.combat.players)
+        for (final PlayerBean player : combat.players)
           if (player.uuid.equals(cmd.uuid)) {
-            data.combat.players.remove(player);
+            combat.players.remove     (player);
             break;
           }
         break;
@@ -264,13 +303,13 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       case CombatNewTurn: {
         final RXCombatNewTurn     cmd = (RXCombatNewTurn)baseCmd;
         // Update our combat object.
-        data.combat.currentTurn     = cmd.turnId;
+        combat.currentTurn            = cmd.turnId;
         // If a piece was played this turn, remove it from the scene.
-        if (data.playedPiece!=null) {
+        if (playedPiece!=null) {
           // Unparent the played piece from the unit.
-          data.playedPiece.unparent      ();
+          playedPiece.unparent        ();
           // The played unit should not be visible anymore.
-          data.playedPiece          = null;
+          playedPiece                 = null;
         }
         final UnitBean currentUnit = units.get(cmd.unitId);
         if (currentUnit.size.volume()!=0)
@@ -313,32 +352,28 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     }
   }
   
-  public Array<Piece> getAvailablePieces () {
-    return availablePieces;
-  }
-  
   public void selectPiece (final Piece piece) {
-    if (data.selectedPiece==piece)
+    if (selectedPiece==piece)
       return;
       // De-select old selection.
-    else if (data.selectedPiece!=null) {
+    else if (selectedPiece!=null) {
       // Scale back up.
-      data.selectedPiece.targetScale
+      selectedPiece.targetScale
         .set        (1, 1, 1);
       // Re-parent the piece to the pieces dock.
-      data.selectedPiece
+      selectedPiece
         .setParent  (piecesDock);
       // As the pieces dock itself isn't rotating, pre-rotate the piece.
-      data.selectedPiece.targetRotation
+      selectedPiece.targetRotation
         .set        (unit.targetRotation);
-      data.selectedPiece
+      selectedPiece
         .switchToRegularMaterials();
       piecesDock
         .refresh      ();
     }
     
     // Nothing selected, just return.
-    if ((data.selectedPiece = piece)==null)
+    if ((selectedPiece = piece)==null)
       return;
     
     // Compute status of selected piece.
@@ -353,20 +388,20 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
             count++;
     }
     // Build message.
-    if (count==0)     ctx.setLastError(0, "This piece has not been played in this unit yet.");
-    else              ctx.setLastError(-1, String.format("This piece has been played %d times in the current unit.", count));
+    if (count==0)     ctx.showMessage (MessageType.Success, "This piece has not been played in this unit yet.");
+    else              ctx.showMessage (MessageType.Warning, String.format("This piece has been played %d times in the current unit.", count));
 
     // To prevent face clipping, let's scale down a little bit.
-    data.selectedPiece.targetScale
+    selectedPiece.targetScale
       .set        (0.97f, 0.97f, 0.97f);
     // Re-parent the piece inside the unit.
-    data.selectedPiece
+    selectedPiece
       .setParent  (unit);
     // The piece needs to be at the unit's origin.
-    data.selectedPiece.targetPosition
+    selectedPiece.targetPosition
       .set        (0, 0, 0);
-    checkCollisionsWithUnit(data.selectedPiece);
-    data.selectedPiece
+    checkCollisionsWithUnit(selectedPiece);
+    selectedPiece
       .start      (ctx.tweener, 0.3f, Quad.INOUT);
   }
   public void translateWithinView (final GameObject obj, final Vector3 translation, final boolean checkCollisions) {
@@ -407,9 +442,9 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   }
   public void checkCollisionsWithUnit (final FacetedObject obj) {
     final boolean     collides    = obj.collidesWith(unit);
-    if (collides==data.isColliding)
+    if (collides==isColliding)
       return;
-    data.isColliding    = collides;
+    isColliding    = collides;
     if (collides)       obj.switchToCollisionMaterials();
     else                obj.switchToRegularMaterials();
   }
@@ -421,42 +456,40 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   }
   public void playPiece (final Piece piece) {
     // There already is a played piece for this turn...
-    if (data.playedPiece!=null) {
+    if (playedPiece!=null) {
       selectPiece         (null);
-      ctx.setLastError    (0, "You already have played this turn, please wait.");
+      ctx.showMessage     (MessageType.Warning, "You already have played this turn, please wait.");
       return;
     }
     // Get the index of the piece to be played.
     final int idx         = pieces.indexOf(piece, true);
     // Store the piece that is being played so we can rollback / validate upon server ack.
-    data.playedPiece      = piece;
+    playedPiece           = piece;
     // Make an empty selection, but don't reset / animate the piece.
-    data.selectedPiece    = null;
+    selectedPiece         = null;
     // Give the order!
-    ctx.networkingManager
+    ctx.net
       .send               (new TXCombatPlayTurn(idx, piece.targetPosition, piece.targetRotation));
   }
 
-  public Piece getClickableAt (final int screenX, final int screenY) {
-    if (data.playedPiece!=null) {
-      ctx
-        .setLastError       (0, "Please wait for all players to complete this turn.");
+  public Piece getClickableAt (final int x, final int y) {
+    if (playedPiece!=null) {
+      ctx.showMessage       (MessageType.Warning, "Please wait for all players to complete this turn.");
       return                null;
     }
     else if (state!=State.Gaming || cameraState!=CameraState.Pieces)
       return                null;
     else
-      return                rayPickTest(screenX, screenY, availablePieces);
+      return                rayPickTest(x, y, availablePieces);
   }
   public boolean handleSelection (final Piece clicked) {
-    if (data.playedPiece!=null) {
-      Communitrix.getInstance()
-        .setLastError (0, "Please wait for all players to complete this turn.");
+    if (playedPiece!=null) {
+      ctx.showMessage (MessageType.Warning, "Please wait for all players to complete this turn.");
       return false;
     }
     else if (state!=State.Gaming || cameraState!=CameraState.Pieces)
       return          false;
-    else if (data.selectedPiece==clicked)
+    else if (selectedPiece==clicked)
       return          false;
     // We had a previous selection.
     selectPiece       (clicked);
@@ -464,11 +497,11 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     return            true;
   }
   
-  private <T extends GameObject> T rayPickTest (final int screenX, final int screenY, final Array<T> list) {
+  private <T extends GameObject> T rayPickTest (final int x, final int y, final Array<T> list) {
     // Reset selection.
     T           result     = null;
     // Pick a ray from the cam.
-    final Ray   ray        = camMain.getPickRay(screenX, screenY);
+    final Ray   ray        = camMain.getPickRay(x, y);
     // Variable dist will be a temp, while sDist will be the shortest found distance.
     float       dist, sDist = Float.MAX_VALUE;
     BoundingBox bounds      = null;
@@ -487,20 +520,6 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
     }
     return result;
   }
-
-  
-  public boolean handleZoom (final int amount) {
-    if (state!=State.Gaming)
-      return false;
-    camMain
-    .translate(
-      tmpVec
-        .set(camMain.direction)
-        .scl(amount)
-    );
-    camMain.update();
-    return true;
-  }
   
   @Override public void show ()   {}
   @Override public void hide ()   {}
@@ -512,23 +531,26 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   }
   
   @Override public void render (final float delta) {
+    alt = Gdx.input.isKeyPressed(Constants.Keys[Constants.Key.Alt]);
+    for (int i=0; i<Key.Count; ++i)
+      keys[i]     = Gdx.input.isKeyJustPressed(Constants.Keys[i]);
+    
     // Update any pending animation.
     ctx.tweener.update    (delta);
-    inputCtrl.updateKeys  ();
     // We're in ALT mode.
-    if (inputCtrl.alt) {
+    if (alt) {
       if (state==State.Gaming) {
-        handleMovement (target, inputCtrl.keys, true, false, false);
-        handleMovement (unit, inputCtrl.keys, true, false, false);
+        handleMovement (target, keys, true, false, false);
+        handleMovement (unit, keys, true, false, false);
         for (final Piece piece : availablePieces)
           if (piece.parent!=unit)
-            handleMovement  (piece, inputCtrl.keys, true, false, false);
+            handleMovement  (piece, keys, true, false, false);
       }
     }
     // We're NOT in alt mode.
     else {
       // Player is willing to go back.
-      if (inputCtrl.keys[Key.Cancel.ordinal()]) {
+      if (keys[Key.Cancel]) {
         if (state==State.Global)
           setState        (State.Settings);
         else if (state==State.Settings)
@@ -543,7 +565,7 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
       // We're in game mode.
       if (state==State.Gaming) {
         // Player is asking to reset target and unit.
-        if (inputCtrl.keys[Key.Reset.ordinal()]) {
+        if (keys[Key.Reset]) {
           resetRotation       (target);
           resetRotation       (unit);
           for (final Piece piece : availablePieces)
@@ -552,23 +574,23 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
         // We're in unit mode...
         if (cameraState==CameraState.Unit) {
           // There is a selection.
-          if (data.selectedPiece!=null) {
+          if (selectedPiece!=null) {
             // Only allow piece translation if not within first turn.
-            handleMovement                      (data.selectedPiece, inputCtrl.keys, true, data.combat.currentTurn>1, true);
+            handleMovement                      (selectedPiece, keys, true, combat.currentTurn>1, true);
             // Send turn to server.
-            if (inputCtrl.keys[Key.Validate.ordinal()]) {
-              playPiece                         (data.selectedPiece);
+            if (keys[Key.Validate]) {
+              playPiece                         (selectedPiece);
               setCameraState                    (CameraState.Pieces, true);
             }
           }
         }
         // There is no selection made.
         else if (cameraState==CameraState.Pieces) {
-          if (inputCtrl.keys[Key.MoveLeft.ordinal()])        piecesDock.cycle  (-1);
-          else if (inputCtrl.keys[Key.MoveRight.ordinal()])  piecesDock.cycle  (1);
+          if (keys[Key.MoveLeft])        piecesDock.cycle  (-1);
+          else if (keys[Key.MoveRight])  piecesDock.cycle  (1);
         }
         // Toggle between unit view and target view.
-        if (inputCtrl.keys[Key.CycleView.ordinal()])
+        if (keys[Key.CycleView])
           if ((state==State.Gaming))
             setCameraState(cameraState==CameraState.Pieces ? CameraState.Unit : CameraState.Pieces, true);
       }
@@ -604,18 +626,18 @@ public class MainScreen extends BaseScreen implements GameScreenDelegate, Pieces
   // Checks whether the user is to translating / rotating.
   public void handleMovement (final Piece moveable, final boolean[] keys, final boolean rotate, final boolean translate, final boolean checkCollisions) {
     if (translate) {
-      if (keys[Key.MoveForward.ordinal()])        translateWithinView (moveable, Constants.Directions.get(Key.MoveForward),   checkCollisions);
-      else if (keys[Key.MoveBackward.ordinal()])  translateWithinView (moveable, Constants.Directions.get(Key.MoveBackward),  checkCollisions);
-      if (keys[Key.MoveLeft.ordinal()])           translateWithinView (moveable, Constants.Directions.get(Key.MoveLeft),      checkCollisions);
-      else if (keys[Key.MoveRight.ordinal()])     translateWithinView (moveable, Constants.Directions.get(Key.MoveRight),     checkCollisions);
-      if (keys[Key.MoveUp.ordinal()])             translateWithinView (moveable, Constants.Directions.get(Key.MoveUp),        checkCollisions);
-      else if (keys[Key.MoveDown.ordinal()])      translateWithinView (moveable, Constants.Directions.get(Key.MoveDown),      checkCollisions);
+      if (keys[Key.MoveForward])        translateWithinView (moveable, Constants.Directions.get(Key.MoveForward),   checkCollisions);
+      else if (keys[Key.MoveBackward])  translateWithinView (moveable, Constants.Directions.get(Key.MoveBackward),  checkCollisions);
+      if (keys[Key.MoveLeft])           translateWithinView (moveable, Constants.Directions.get(Key.MoveLeft),      checkCollisions);
+      else if (keys[Key.MoveRight])     translateWithinView (moveable, Constants.Directions.get(Key.MoveRight),     checkCollisions);
+      if (keys[Key.MoveUp])             translateWithinView (moveable, Constants.Directions.get(Key.MoveUp),        checkCollisions);
+      else if (keys[Key.MoveDown])      translateWithinView (moveable, Constants.Directions.get(Key.MoveDown),      checkCollisions);
     }
     if (rotate) {
-      if (keys[Key.RotateUp.ordinal()])           rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
-      else if (keys[Key.RotateDown.ordinal()])    rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
-      if (keys[Key.RotateLeft.ordinal()])         rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
-      else if (keys[Key.RotateRight.ordinal()])   rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
+      if (keys[Key.RotateUp])           rotateWithinView    (moveable, Vector3.X,  90, checkCollisions);
+      else if (keys[Key.RotateDown])    rotateWithinView    (moveable, Vector3.X, -90, checkCollisions);
+      if (keys[Key.RotateLeft])         rotateWithinView    (moveable, Vector3.Y, -90, checkCollisions);
+      else if (keys[Key.RotateRight])   rotateWithinView    (moveable, Vector3.Y,  90, checkCollisions);
     }
   }
 

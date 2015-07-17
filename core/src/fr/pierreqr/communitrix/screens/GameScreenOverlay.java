@@ -1,26 +1,24 @@
 package fr.pierreqr.communitrix.screens;
 
-import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.HorizontalGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.List;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Timer;
 import fr.pierreqr.communitrix.Communitrix;
-import fr.pierreqr.communitrix.Constants;
-import fr.pierreqr.communitrix.Constants.Key;
 import fr.pierreqr.communitrix.Constants.SkinSize;
 import fr.pierreqr.communitrix.ErrorResponder;
 import fr.pierreqr.communitrix.networking.cmd.beans.CombatBean;
+import fr.pierreqr.communitrix.networking.cmd.beans.PlayerBean;
 import fr.pierreqr.communitrix.networking.cmd.tx.TXCombatJoin;
 import fr.pierreqr.communitrix.networking.cmd.tx.TXCombatList;
 import fr.pierreqr.communitrix.networking.cmd.tx.TXRegister;
@@ -30,22 +28,21 @@ public class GameScreenOverlay extends InputAdapter implements ErrorResponder {
   private       Communitrix     ctx;
   private       State           state;
   private final boolean         debug       = false;
-  private final int             pad         = 5;
+  private final int             pad         = 3;
 
-  private final ScreenSharedData          data;
+  private final MainScreen      screen;
   private final Timer           timer;
   private       Timer.Task      lastTask;
-  private final Stage           stage;
+  public  final Stage           stage;
   private final Skin            sknMini, sknMedium, sknLarge;
   private final Table           tblMain, tblCombats;
   private final Label           lblTitle, lblStatus;
   private       SelectBox<CombatBean>
                                 lstCombats;
-  private       Key             currentBinding  = null;
 
-  public GameScreenOverlay (final ScreenSharedData newData) {
-    data                    = newData;
-
+  public GameScreenOverlay (final MainScreen _screen) {
+    screen                  = _screen;
+    
     // Cache some global things.
     ctx                     = Communitrix.getInstance();
     sknMini                 = ctx.skins.get(SkinSize.Mini);
@@ -71,110 +68,100 @@ public class GameScreenOverlay extends InputAdapter implements ErrorResponder {
     lblTitle                = new Label("", sknLarge);
     // Prepare the status field.
     lblStatus               = new Label("", sknMedium);
+    
+    Window wndPlayers = new Window("Players", sknMini);
+    List<PlayerBean> lstPlayers = new List<PlayerBean>(sknMini);
+    wndPlayers.addActor(lstPlayers);
+    wndPlayers.setDebug(false);
+    stage.addActor(wndPlayers);
+    
   }
   
-  public void nextBinding (final Key newBinding) {
-    flash             (String.format("Press any key for action %s...", Constants.KeyText.get( currentBinding = newBinding )), Color.GREEN);
-  }
-  public boolean keyUp (int keycode) {
-    if (state!=State.Settings || keycode==Keys.ESCAPE)
-      return false;
-    
-    Constants.Keys.put      (currentBinding, keycode);
-    final int ordinal       = currentBinding.ordinal() + 1;
-    if (ordinal<Key.values().length)
-      nextBinding           (Key.values()[ordinal]);
-    else {
-      currentBinding        = null;
-      flash                 ("All done! Press ESC to exit settings.", Color.GREEN);
-    }
-    return                  true;
-  }
-
   // ErrorResponder implementation.
-  public void setLastError (final int code, final String reason) {
-    if (code==0)
-      flash     (reason, Color.GREEN);
-    else
-      flash     (String.format("Error #%d: %s", code, reason), Color.RED);
-  }
-  private void flash (final String message, final Color color) {
+  public void showMessage (final MessageType type, final String message) {
+    final Color color;
+    switch (type) {
+      case Debug:
+        color       = Color.BLUE;
+        break;
+      case Message:
+        color       = Color.WHITE;
+        break;
+      case Warning:
+        color       = Color.ORANGE;
+        break;
+      default:
+        color       = Color.RED;
+    }
     lblStatus.setText       (message);
     lblStatus.setColor      (color);
     if (lastTask!=null && lastTask.isScheduled())
       lastTask.cancel       ();
     timer.scheduleTask      (lastTask = new Timer.Task() { @Override public void run() { lblStatus.setText(""); } }, 2.0f);
   }
-  
-  // Getters
-  public Stage getStage() { return stage; }
 
-  public void show() {
-    setState          (state);
-  }
-  public void hide() {
-    tblMain.clear     ();
-  }
   public void actAndDraw (final float delta) {
     stage.act         (delta);
     stage.draw        ();
   }
-  public void resize (final int width, final int height) {
-    stage.getViewport().update(width, height, true);
+  public void resize (final int w, final int h) {
+    stage.getViewport().update(w, h, true);
   }
 
   public GameScreenOverlay setState (final State newState) {
-    if (state!=newState) {
-      // Remove everything from the UI.
-      tblMain.clear     ();
-      // Add title row.
-      tblMain.add       (lblTitle).center().colspan(3);
-      tblMain.row       ();
-      // Add status row.
-      tblMain.add       (lblStatus).center().colspan(5);
-      tblMain.row       ();
-    }
+    if (newState==state)
+      return this;
+    // Remove everything from the UI.
+    tblMain.clear     ();
+    // Add title row.
+    tblMain.add       (lblTitle).center().colspan(4);
+    tblMain.row       ();
+    // Add status row.
+    tblMain.add       (lblStatus).center().colspan(4);
+    tblMain.row       ();
 
     switch (state = newState) {
       case Settings:
         lblTitle.setText  ("Settings State");
-        nextBinding       (Key.values()[0]);
         break;
+      
       case Global:
+        Table grpBtns;
+
         // Title row.
         lblTitle.setText  ("Global State.");
         
         // Login row.
-        // Prepare the username input text field.
         final TextField txtUsername = new TextField("Doodloo", sknMedium);
         final TextButton btnSet = new TextButton("Set", sknMedium);
         btnSet.addListener(new ClickListener() {
           @Override public void clicked(final InputEvent e, final float x, final float y) {
             ctx
-              .networkingManager
+              .net
               .send(new TXRegister(txtUsername.getText()));
           }
         });
+        grpBtns           = new Table(sknMedium).left();
+        grpBtns.add       (btnSet).pad(pad).width(100);
+
         tblMain.add       ("Username:").pad(pad).right();
         tblMain.add       (txtUsername).pad(pad).fill();
-        tblMain.add       (btnSet).pad(pad).fill();
+        tblMain.add       (grpBtns).pad(pad).fill();
         tblMain.row       ();
         
         // Combats row.
         if (lstCombats==null) {
           lstCombats              = new SelectBox<CombatBean>(sknMedium);
-          lstCombats.setItems     (data.combats);
+          lstCombats.setItems     (screen.combats);
         }
-        // Buttons.
-        final HorizontalGroup grpBtns = new HorizontalGroup();
         // Join button.
         final TextButton btnJoin = new TextButton("Join", sknMedium);
         btnJoin.addListener(new ClickListener() {
           @Override public void clicked (final InputEvent e, final float x, final float y) {
-            ctx.networkingManager.send(new TXCombatJoin(lstCombats.getSelected().uuid));
+            if (lstCombats!=null && lstCombats.getSelected()!=null)
+              ctx.net.send(new TXCombatJoin(lstCombats.getSelected().uuid));
           }
         });
-        grpBtns.addActor  (btnJoin);
         // Refresh button.
         final TextButton btnRefresh = new TextButton("Refresh", sknMedium);
         btnRefresh.addListener(new ClickListener() {
@@ -182,7 +169,10 @@ public class GameScreenOverlay extends InputAdapter implements ErrorResponder {
             loadCombatList();
           }
         });
-        grpBtns.addActor  (btnRefresh);
+        
+        grpBtns           = new Table(sknMedium).left();
+        grpBtns.add       (btnJoin).pad(pad).width(100);
+        grpBtns.add       (btnRefresh).pad(pad).width(100);
         
         tblMain.add       ("Combat:").pad(pad).right();
         tblMain.add       (lstCombats).pad(pad).fill();
@@ -192,20 +182,21 @@ public class GameScreenOverlay extends InputAdapter implements ErrorResponder {
         // Refresh combats list.
         loadCombatList    ();
         break;
+      
       // Received the list of combats.
       case Joined:
         // Title row.
-        if (data.combat.currentTurn==0)
+        if (screen.combat.currentTurn==0)
           lblTitle.setText  ("Waiting for other players...");
         else
           lblTitle.setText  ("Starting combat...");
         break;
       case Gaming:
-        lblTitle.setText  (String.format("In turn %d.", data.combat.currentTurn));
+        lblTitle.setText    (String.format("In turn %d.", screen.combat.currentTurn));
         break;
       case EndGame:
-        lblTitle.setText  (String.format("Game Over"));
-        flash             ("Press ESC to go back to the Global state.", Color.GREEN);
+        lblTitle.setText    (String.format("Game Over"));
+        ctx.showMessage     (MessageType.Warning, "Press ESC to go back to the Global state.");
         break;
       default :
         break;
@@ -214,13 +205,15 @@ public class GameScreenOverlay extends InputAdapter implements ErrorResponder {
   }
 
   public void loadCombatList () {
-    flash                       ("Loading combats list...", Color.GREEN);
+    ctx.showMessage             (MessageType.Message, "Loading combats list...");
+    lstCombats.setVisible       (false);
     lstCombats.setDisabled      (true);
     tblCombats.clear            ();
-    ctx.networkingManager.send  (new TXCombatList());
+    ctx.net.send  (new TXCombatList());
   }
   public void updateCombatList () {
-    lstCombats.setItems         (data.combats);
-    lstCombats.setDisabled      (false);;
+    lstCombats.setItems         (screen.combats);
+    lstCombats.setVisible       (true);
+    lstCombats.setDisabled      (false);
   }
 }

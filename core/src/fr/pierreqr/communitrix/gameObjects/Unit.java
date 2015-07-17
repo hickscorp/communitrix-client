@@ -32,20 +32,29 @@ public class Unit extends FacetedObject {
     for (final CellBean cell : piece.content) {
       final int index = cell.value;
       if (!newMaterials.containsKey(index)) {
-        final Material mat = materials.getOrDefault(
-            index,
-            new Material(
-              ColorAttribute.createDiffuse(
-                  0.5f + 0.1f*ctx.rand.nextInt(5),
-                  0.5f + 0.1f*ctx.rand.nextInt(5),
-                  0.5f + 0.1f*ctx.rand.nextInt(5),
-                  1.0f)
-            )
-          );
+    	Material mat	= null;
+    	if (materials.containsKey(index))
+    		mat 			= materials.get(index);
+    	else {
+    		mat 			= new Material(
+    	              			ColorAttribute.createDiffuse(
+    	              					0.5f + 0.1f*ctx.rand.nextInt(5),
+    	              					0.5f + 0.1f*ctx.rand.nextInt(5),
+    	              					0.5f + 0.1f*ctx.rand.nextInt(5),
+    	              					1.0f)
+    	                	);
+    		materials.put(index, mat);
+    	}
         newMaterials.put (cell.value, mat);
       }
       if (!newBuilders.containsKey(index)) {
-        final MeshBuilder builder = builders.getOrDefault(index, new MeshBuilder());
+    	MeshBuilder builder	= null;
+    	if (builders.containsKey(index))
+    		builder		= builders.get(index);
+		else {
+			builder 	= new MeshBuilder();
+			builders.put(index, builder);
+		}
         builder.begin             (Usage.Position | Usage.Normal, GL20.GL_TRIANGLES);
         newBuilders.put           (index, builder);
       }

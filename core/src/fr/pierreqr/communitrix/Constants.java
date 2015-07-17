@@ -1,14 +1,12 @@
 package fr.pierreqr.communitrix;
 
-import java.util.EnumMap;
+import java.util.HashMap;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector3;
 
 public class Constants {
   // Skin sizes.
-  public enum SkinSize {
-    Mini, Medium, Large
-  };
+  public enum SkinSize { Mini, Medium, Large };
   
   // Cube textures.
   public enum CubeFace {
@@ -17,32 +15,46 @@ public class Constants {
   };
   
   // All key bindings.
-  public enum Key {
-    MoveForward, MoveBackward, MoveLeft, MoveRight, MoveUp, MoveDown,
-    RotateUp, RotateDown, RotateLeft, RotateRight,
-    CycleView, Reset, Validate, Cancel;
+  public static class Key {
+      public final static int   Alt           = 0;
+      public final static int   MoveForward   = 1;
+      public final static int   MoveBackward  = 2;
+      public final static int   MoveLeft      = 3;
+      public final static int   MoveRight     = 4;
+      public final static int   MoveUp        = 5;
+      public final static int   MoveDown      = 6;
+      public final static int   RotateUp      = 7;
+      public final static int   RotateDown    = 8;
+      public final static int   RotateLeft    = 9;
+      public final static int   RotateRight   = 10;
+      public final static int   CycleView     = 11;
+      public final static int   Reset         = 12;
+      public final static int   Validate      = 13;
+      public final static int   Cancel        = 14;
+      public final static int   Count         = 15;
   };
-  // Key bindings.
-  public final static EnumMap<Key, Integer> Keys    = new EnumMap<Key, Integer>(Key.class);
+  public final static     int[] Keys          = new int[Key.Count];
   static {
-    Keys.put    (Key.MoveForward,   Input.Keys.W);
-    Keys.put    (Key.MoveBackward,  Input.Keys.S);
-    Keys.put    (Key.MoveLeft,      Input.Keys.A);
-    Keys.put    (Key.MoveRight,     Input.Keys.D);
-    Keys.put    (Key.MoveUp,        Input.Keys.O);
-    Keys.put    (Key.MoveDown,      Input.Keys.L);
-    Keys.put    (Key.RotateUp,      Input.Keys.UP);
-    Keys.put    (Key.RotateDown,    Input.Keys.DOWN);
-    Keys.put    (Key.RotateLeft,    Input.Keys.LEFT);
-    Keys.put    (Key.RotateRight,   Input.Keys.RIGHT);
-    Keys.put    (Key.CycleView,     Input.Keys.SPACE);
-    Keys.put    (Key.Reset,         Input.Keys.R);
-    Keys.put    (Key.Validate,      Input.Keys.ENTER);
-    Keys.put    (Key.Cancel,        Input.Keys.ESCAPE);
-  };
+    Keys[Key.Alt]           = Input.Keys.SHIFT_LEFT;
+    Keys[Key.MoveForward]   = Input.Keys.W;
+    Keys[Key.MoveBackward]  = Input.Keys.S;
+    Keys[Key.MoveLeft]      = Input.Keys.A;
+    Keys[Key.MoveRight]     = Input.Keys.D;
+    Keys[Key.MoveUp]        = Input.Keys.O;
+    Keys[Key.MoveDown]      = Input.Keys.L;
+    Keys[Key.RotateUp]      = Input.Keys.UP;
+    Keys[Key.RotateDown]    = Input.Keys.DOWN;
+    Keys[Key.RotateLeft]    = Input.Keys.LEFT;
+    Keys[Key.RotateRight]   = Input.Keys.RIGHT;
+    Keys[Key.CycleView]     = Input.Keys.SPACE;
+    Keys[Key.Reset]         = Input.Keys.R;
+    Keys[Key.Validate]      = Input.Keys.ENTER;
+    Keys[Key.Cancel]        = Input.Keys.ESCAPE;
+  }
   // Keys instructions.
-  public final static EnumMap<Key, String>  KeyText = new EnumMap<Key, String>(Key.class);
+  public final static HashMap<Number, String> KeyText = new HashMap<Number, String>();
   static {
+    KeyText.put (Key.Alt,           "Alt. Mode");
     KeyText.put (Key.MoveForward,   "Move Forward");
     KeyText.put (Key.MoveBackward,  "Move Backward");
     KeyText.put (Key.MoveLeft,      "Move Left");
@@ -60,7 +72,7 @@ public class Constants {
   };
   
   // Some rotation constants.
-  public final static EnumMap<Key, Vector3> Directions = new EnumMap<Key, Vector3>(Key.class);
+  public final static HashMap<Number, Vector3> Directions = new HashMap<Number, Vector3>();
   static {
     Directions.put(Key.MoveForward,   new Vector3( 0,  0,  1));
     Directions.put(Key.MoveBackward,  new Vector3( 0,  0, -1));

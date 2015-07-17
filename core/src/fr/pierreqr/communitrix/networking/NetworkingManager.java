@@ -54,6 +54,12 @@ public class NetworkingManager implements Runnable {
   
   @Override public void run() {
     boolean   ok        = false;
+    // Signal our delegate.
+    Gdx.app.postRunnable( new Runnable() { @Override public void run() {
+      for (final NetworkDelegate delegate : delegates)
+        delegate.onServerMessage(new RXBase(Type.Connecting));
+    }});
+    
     try {
       SocketHints hints = new SocketHints();
       hints.keepAlive   = true;
@@ -95,7 +101,7 @@ public class NetworkingManager implements Runnable {
             // We just got the type for the next payload.
             if (type!=null && sb.length()>0) {
               try {
-                //Gdx.app.log(LogTag, type + " -> " + sb.toString());
+                Gdx.app.log(LogTag, type + " -> " + sb.toString());
                 final RXBase      cmd     = mapper.readValue(sb.toString(), RXBase.Type.valueOf(type).toTypeReference());
                 if (cmd!=null)
                   Gdx.app.postRunnable( new Runnable() { @Override public void run() {

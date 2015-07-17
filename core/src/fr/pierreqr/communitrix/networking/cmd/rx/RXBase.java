@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public class RXBase {
   public enum Type {
+    Connecting,         // Whenever the controller is connecting.
     Connected,          // Fake command, emited whenever we connect.
     Disconnected,       // Fake command, emited whenever we disconnect.
     Error,              // Error notification.

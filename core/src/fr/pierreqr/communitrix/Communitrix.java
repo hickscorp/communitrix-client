@@ -24,22 +24,25 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.bitfire.utils.ShaderLoader;
 import fr.pierreqr.communitrix.Constants.CubeFace;
 import fr.pierreqr.communitrix.Constants.SkinSize;
+import fr.pierreqr.communitrix.ErrorResponder.MessageType;
 import fr.pierreqr.communitrix.gameObjects.GameObject;
 import fr.pierreqr.communitrix.networking.NetworkingManager;
 import fr.pierreqr.communitrix.networking.NetworkingManager.NetworkDelegate;
 import fr.pierreqr.communitrix.networking.cmd.rx.*;
 import fr.pierreqr.communitrix.screens.BaseScreen;
 import fr.pierreqr.communitrix.screens.MainScreen;
+import fr.pierreqr.communitrix.screens.MainScreen.State;
 import fr.pierreqr.communitrix.screens.StartupScreen;
 import fr.pierreqr.communitrix.tweeners.CameraAccessor;
 import fr.pierreqr.communitrix.tweeners.GameObjectAccessor;
 
-public class Communitrix extends Game implements NetworkDelegate {
+public class Communitrix extends Game implements Disposable, NetworkDelegate {
   // Common materials.
   public final static   Material[]  faceMaterials         = new Material[12];
   // Various constants.
@@ -52,19 +55,21 @@ public class Communitrix extends Game implements NetworkDelegate {
   public          EnumMap<SkinSize, Skin>
                                     skins                 = new EnumMap<SkinSize, Skin>(SkinSize.class);
   public          TweenManager      tweener               = new TweenManager();
+  public          G3dModelLoader    modelLoader;
   public          ModelBuilder      modelBuilder;
   public          ModelBatch        modelBatch;
-  public          G3dModelLoader    modelLoader;
   public          Material          defaultMaterial;
   public          Model             dummyModel;
+  
   // Random generator.
-  public final    Random            rand                  = new Random();
+  public          Random            rand;
   // Network-related objects.
-  public          NetworkingManager networkingManager;
-  public          boolean           connected             = false;
-  public          Timer             networkTimer;
+  public          NetworkingManager net;
+  public          Timer             netReconnectTimer;
   // Currently displayed screen.
-  public          BaseScreen        currentScreen                = null;
+  public          BaseScreen        currentScreen;
+  public          StartupScreen     startupScreen;
+  public          MainScreen        mainScreen;
   
   // The singleton instance.
   private static  Communitrix       instance;
@@ -80,15 +85,15 @@ public class Communitrix extends Game implements NetworkDelegate {
     // Configure assets etc.
     ShaderLoader.BasePath   = "shaders/";
     
-    // Register motion tweening accessors.
+    // Register motion tween accessor.
     Tween.setCombinedAttributesLimit  (6);
-    Tween.registerAccessor            (GameObject.class,        new GameObjectAccessor());
-    Tween.registerAccessor            (PerspectiveCamera.class, new CameraAccessor());
+    Tween.registerAccessor  (GameObject.class,        new GameObjectAccessor());
+    Tween.registerAccessor  (PerspectiveCamera.class, new CameraAccessor());
   }
   
-  public void setLastError (final int code, final String reason) {
-    if (currentScreen!=null)   currentScreen.setLastError(code, reason);
-    else                Gdx.app.log(LogTag, "An error has occured: #" + code + " - " + reason);
+  public void showMessage (final MessageType type, final String message) {
+    if (currentScreen!=null)  currentScreen.showMessage(type, message);
+    else                      Gdx.app.log(LogTag, String.format("%s: %s", type, message));
   }
   
   @Override public void create () {
@@ -116,31 +121,44 @@ public class Communitrix extends Game implements NetworkDelegate {
     skins.put               (SkinSize.Medium,   new Skin(Gdx.files.internal("skins/uiskin-medium.json")));
     skins.put               (SkinSize.Large,    new Skin(Gdx.files.internal("skins/uiskin-large.json")));
     
+    modelLoader             = new G3dModelLoader(new UBJsonReader());
     modelBuilder            = new ModelBuilder();
     modelBatch              = new ModelBatch();
     defaultMaterial         = new Material(ColorAttribute.createDiffuse(Color.WHITE));
     dummyModel              = new Model();
     
+    // Prepare random generator.
+    rand                    = new Random();
+    
     // Instantiate networking manager.
-    networkTimer            = new Timer();
-    networkingManager       = new NetworkingManager(host, 9003, this);
-    networkingManager.start ();
+    netReconnectTimer       = new Timer();
+    net                     = new NetworkingManager(host, 9003, this);
     
-    // Prepare our shared model loader.
-    modelLoader             = new G3dModelLoader(new UBJsonReader());
-    
-    setScreen               (new StartupScreen());
+    // Put our startup screen in our stack.
+    getLazyStartupScreen    ();
+
+    // Start networking.
+    net.start               ();
   }
   
   // Occurs when the game exits.
   @Override public void dispose () {
-    setScreen               (null);
-    if (networkingManager!=null) {
-      networkTimer.stop     ();
-      networkingManager.stop();
-      networkingManager     = null;
+    if (currentScreen!=null)
+      currentScreen           = null;
+    if (startupScreen!=null) {
+      startupScreen.dispose   ();
+      startupScreen           = null;
     }
-    modelBatch.dispose      ();
+    if (mainScreen!=null) {
+      mainScreen.dispose      ();
+      mainScreen              = null;
+    }
+    if (net!=null) {
+      netReconnectTimer.stop  ();
+      net.stop                ();
+      net                     = null;
+    }
+    modelBatch.dispose        ();
   }
 
   @Override public void resize (final int w, final int h) {
@@ -152,24 +170,23 @@ public class Communitrix extends Game implements NetworkDelegate {
     switch (baseCmd.type) {
       // We received the welcome message. Switch screens.
       case Welcome:
-        if (currentScreen==null || !currentScreen.getClass().toString().equals("StartupScreen"))
-          setScreen (new MainScreen());
+        getLazyMainScreen     ();
+        mainScreen.setState   (State.Global);
         break;
       // We are disconnected, remove the screen.
       case Disconnected:
-        if (currentScreen==null || !currentScreen.getClass().toString().equals("StartupScreen"))
-          setScreen (new StartupScreen());
-        networkTimer
-          .scheduleTask(new Timer.Task() {
-            @Override public void run() {
-              networkingManager.start();
-            }
-          }, 1.0f);
+        getLazyStartupScreen  ();
+        netReconnectTimer.scheduleTask(new Timer.Task() {
+          @Override public void run() {
+            Gdx.app.log(LogTag, "Reconnecting...");
+            net.start();
+          }
+        }, 1.0f);
         break;
       // We received an error!.
       case Error: {
         final RXError cmd   = (RXError)baseCmd;
-        setLastError(cmd.code, cmd.reason);
+        showMessage         (cmd.code==0 ? MessageType.Success : MessageType.Warning, cmd.reason);
         break;
       }
       default:
@@ -180,13 +197,17 @@ public class Communitrix extends Game implements NetworkDelegate {
   private void setScreen (final BaseScreen newScreen) {
     if (currentScreen==newScreen)
       return;
-    else if (currentScreen!=null) {
-      networkingManager.removeDelegate(currentScreen);
-      currentScreen.dispose();
-    }
+    else if (currentScreen!=null)
+      net.removeDelegate(currentScreen);
     if ((currentScreen=newScreen)!=null)
-      networkingManager.addDelegate(currentScreen);
+      net.addDelegate(currentScreen);
     super.setScreen(currentScreen);
+  }
+  private void getLazyStartupScreen () {
+    setScreen( startupScreen==null ? startupScreen = new StartupScreen() : startupScreen );
+  }
+  private void getLazyMainScreen () {
+    setScreen( mainScreen==null ? mainScreen = new MainScreen() : mainScreen );
   }
 
   @Override public void render () {
